@@ -1,9 +1,11 @@
 import { MenuItem, ProductCategory, LanguageCode } from './types';
-export const DATA_VERSION = '1.8'; // Version bump to force update with all new beverages
+export const DATA_VERSION = '2.0'; // Version bump to force update
+// --- NUOVA COSTANTE DI SICUREZZA ---
+export const DIY_CATEGORY_NAME = 'Hamburger "Fai da te"';
 export const HAMBURGER_SUBCATEGORIES = [
 "Old West Special",
 "Vegetariano/Vegano",
-'Hamburger "Fai da te"'
+DIY_CATEGORY_NAME // Usiamo la costante qui per evitare errori
 ];
 export const DIY_OPTIONS = {
 basePrice: 0,
@@ -153,7 +155,7 @@ export const UI_TRANSLATIONS: Record<string, Record<LanguageCode, string>> = {
 'login_prompt': { it: 'Accedi per gestire il menu digitale', en: 'Login to manage the digital menu', fr: 'Connectez-vous pour gérer le menu', de: 'Anmelden zur Menüverwaltung' },
 'login_btn': { it: 'Accedi', en: 'Login', fr: 'Connexion', de: 'Anmelden' },
 'back': { it: 'Indietro', en: 'Back', fr: 'Retour', de: 'Zurück' },
-'open_hours': { it: '11:00 - 15:00 | 17:00 - 00:00', en: '11:00 - 15:00 | 17:00 - 00:00', fr: '11h00 - 15h00 | 17h00 - 00h00', de: '11:00 - 15:00 | 17:00 - 00:00' },
+'open_hours': { it: '11:00 - 00:00', en: '11:00 AM - 12:00 AM', fr: '11h00 - 00h00', de: '11:00 - 00:00' },
 // Menu View
 'hero_title': { it: 'Il Gusto Autentico', en: 'The Authentic Taste', fr: 'Le Goût Authentique', de: 'Der Authentische Geschmack' },
 'updating_menu': { it: 'Menu in aggiornamento', en: 'Menu updating', fr: 'Menu en mise à jour', de: 'Menü wird aktualisiert' },
@@ -165,8 +167,8 @@ export const UI_TRANSLATIONS: Record<string, Record<LanguageCode, string>> = {
 'classics': { it: 'Classici', en: 'Classics', fr: 'Classiques', de: 'Klassiker' },
 'options': { it: 'Opzioni', en: 'Options', fr: 'Options', de: 'Optionen' },
 'create_your_taste': { it: 'Crea il tuo gusto', en: 'Create your taste', fr: 'Créez votre goût', de: 'Kreieren Sie Ihren Geschmack' },
-'diy_title': { it: 'Crea il tuo Capolavoro', en: 'Create your Masterpiece', fr: "Créez votre Chef-d'œuvre", de: 'Kreieren Sie Ihr Meisterwerk' },
-'diy_subtitle': { it: "Segui i 4 passaggi per comporre l'hamburger perfetto.", en: 'Follow the 4 steps to build your perfect burger.', fr: 'Suivez les 4 étapes pour composer votre burger parfait.', de: 'Folgen Sie den 4 Schritten zum perfekten Burger.' },
+'diy_title': { it: 'Crea il tuo Capolavoro', en: 'Create your Masterpiece', fr: 'Créez votre Chef-d'œuvre', de: 'Kreieren Sie Ihr Meisterwerk' },
+'diy_subtitle': { it: 'Segui i 4 passaggi per comporre l'hamburger perfetto.', en: 'Follow the 4 steps to build your perfect burger.', fr: 'Suivez les 4 étapes pour composer votre burger parfait.', de: 'Folgen Sie den 4 Schritten zum perfekten Burger.' },
 'total': { it: 'Totale', en: 'Total', fr: 'Total', de: 'Gesamt' },
 'base_price': { it: 'Prezzo base', en: 'Base price', fr: 'Prix de base', de: 'Grundpreis' },
 'order_table': { it: 'Ordina al Tavolo', en: 'Order at Table', fr: 'Commander à table', de: 'Am Tisch bestellen' },
