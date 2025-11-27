@@ -652,7 +652,7 @@ export default function App() {
             <p className="text-xs uppercase tracking-[0.3em] text-accent-500 font-bold mb-8">Cameri - Since 2024</p>
             <div className="mb-10 flex flex-col items-center justify-center"><div className="bg-white p-3 rounded-xl shadow-lg mb-3"><img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.href)}&color=3A3D3F`} alt="QR Code" className="w-32 h-32 object-contain" /></div><p className="text-xs font-bold text-wood-400 uppercase tracking-wider flex items-center gap-2"><QrCode size={14} /> {t('scan_me')}</p></div>
             <div className="flex justify-center gap-6 mb-10"><a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-accent-500 hover:text-white transition-colors"><Instagram size={18} /></a><a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-accent-500 hover:text-white transition-colors"><Facebook size={18} /></a><a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-accent-500 hover:text-white transition-colors"><Phone size={18} /></a></div>
-            <p className="text-sm opacity-40 max-w-sm mx-auto">© {new Date().getFullYear()} Old West Cameri. {t('all')} rights reserved.<br/>Design by AI Studio.</p>
+            <p className="text-sm opacity-40 max-w-sm mx-auto">© {new Date().getFullYear()} Old West Cameri. {t('all')} rights reserved.</p>
           </div>
         </footer>
       </div>
