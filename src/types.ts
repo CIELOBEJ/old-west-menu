@@ -24,6 +24,7 @@ export interface ProductVariant {
 
 export interface ActiveFilters {
   vegetarian: boolean;
+  vegan: boolean; // <--- QUESTA RIGA MANCAVA
   spicy: boolean;
   bestseller: boolean;
 }
@@ -33,13 +34,13 @@ export interface MenuItem {
   name: string;
   description: string;
   price: number;
-  brand?: string; // New field for Brand name
-  variants?: ProductVariant[]; // New field for multiple price options
+  brand?: string;
+  variants?: ProductVariant[];
   category: ProductCategory;
-  subCategory?: string; // New field for sub-categories (e.g., specific for Hamburger)
+  subCategory?: string;
   imageUrl?: string;
   isAvailable: boolean;
-  tags?: string[]; // e.g. "Piccante", "Vegetariano", "Best Seller", "Consigliato"
+  tags?: string[];
   translations?: {
     [key in LanguageCode]?: ProductTranslation;
   };
