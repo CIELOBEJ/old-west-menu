@@ -276,7 +276,7 @@ imageUrl: 'https://oldwest.click/wp-content/uploads/2025/11/335-225-tagliata-di-
 isAvailable: true,
 translations: {
 en: { name: 'Irish Angus Steak', description: 'Fine Irish Angus Steak served plated. (side included)' },
-fr: { name: 'Tagliata d'Angus Irlandais', description: 'Tagliata d'Angus Irlandais servie sur assiette. (accompagnement inclus)' },
+fr: { name: 'Tagliata d'Angus Irlandais', description: "Tagliata d'Angus Irlandais servie sur assiette. (accompagnement inclus)" },
 de: { name: 'Irisches Angus-Steak', description: 'Feines irisches Angus-Steak auf dem Teller serviert. (Beilage inklusive)' }
 }
 },
@@ -290,7 +290,7 @@ imageUrl: 'https://oldwest.click/wp-content/uploads/2019/11/abanico-iberico.png'
 isAvailable: true,
 translations: {
 en: { name: 'Iberian Abanico Steak', description: 'Tasty cut of Iberian pork. (side included)' },
-fr: { name: 'Tagliata d'Abanico Ibérique', description: 'Coupe savoureuse de porc ibérique. (accompagnement inclus)' },
+fr: { name: "Tagliata d'Abanico Ibérique", description: 'Coupe savoureuse de porc ibérique. (accompagnement inclus)' },
 de: { name: 'Iberisches Abanico-Steak', description: 'Leckeres Stück vom iberischen Schwein. (Beilage inklusive)' }
 }
 },
@@ -332,7 +332,7 @@ imageUrl: 'https://oldwest.click/wp-content/uploads/2025/11/costolette.jpg',
 isAvailable: true,
 translations: {
 en: { name: 'Lamb Chops', description: 'Tender grilled lamb chops. (side included)' },
-fr: { name: 'Côtelettes d'Agneau', description: 'Tendres côtelettes d'agneau grillées. (accompagnement inclus)' },
+fr: { name: "Côtelettes d'Agneau", description: "Tendres côtelettes d'agneau grillées. (accompagnement inclus)" },
 de: { name: 'Lammkoteletts', description: 'Zarte gegrillte Lammkoteletts. (Beilage inklusive)' }
 }
 },
@@ -361,7 +361,7 @@ isAvailable: true,
 tags: ['Consigliato'],
 translations: {
 en: { name: 'Tasting Platter', description: '100g Angus, Lamb Chops, 100g Buffalo, 100g Iberian Abanico, 100g Beef. (side included)' },
-fr: { name: 'Planche de Dégustation', description: '100g Angus, Côtelettes d'agneau, 100g Buffle, 100g Abanico Ibérique, 100g Bœuf. (accompagnement inclus)' },
+fr: { name: 'Planche de Dégustation', description: "100g Angus, Côtelettes d'agneau, 100g Buffle, 100g Abanico Ibérique, 100g Bœuf. (accompagnement inclus)" },
 de: { name: 'Verkostungsplatte', description: '100g Angus, Lammkoteletts, 100g Büffel, 100g Iberisches Abanico, 100g Rind. (Beilage inklusive)' }
 }
 },
