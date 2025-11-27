@@ -261,7 +261,7 @@ export default function App() {
       if (!isVegan) return false;
     }
     if (activeFilters.spicy) {
-      const isSpicy = item.tags?.includes('Piccante') || item.description.toLowerCase().includes('piccante') || item.description.toLowerCase().includes('nduja') || item.description.toLowerCase().includes('salamella'); 
+      const isSpicy = item.tags?.includes('Piccante') || item.description.toLowerCase().includes('piccante') || item.description.toLowerCase().includes('nduja'); 
       if (!isSpicy) return false;
     }
     if (activeFilters.bestseller) {
