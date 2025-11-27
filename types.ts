@@ -24,7 +24,7 @@ export interface ProductVariant {
 
 export interface ActiveFilters {
   vegetarian: boolean;
-  vegan: boolean; // NUOVO
+  vegan: boolean; // <--- QUESTA RIGA MANCAVA
   spicy: boolean;
   bestseller: boolean;
 }

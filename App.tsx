@@ -48,28 +48,41 @@ import {
   Award,
   QrCode,
   Database,
-  Sprout // Icona per Vegano
+  Sprout // Icona Vegano
 } from 'lucide-react';
 import { MenuItem, ProductCategory, ViewState, LanguageCode, ActiveFilters } from './types';
 import { INITIAL_MENU_ITEMS, CATEGORIES_LIST, HAMBURGER_SUBCATEGORIES, DIY_OPTIONS, UI_TRANSLATIONS, CATEGORY_TRANSLATIONS, DATA_VERSION } from './constants';
 import { supabase } from './supabase';
 
-// ... (Helper functions: uploadImageToSupabase, CategoryIcon, WesternLogo rimangono uguali) ...
-// Assicurati di copiare le funzioni helper dal file precedente o di lasciarle se stai modificando solo le parti necessarie.
-// Per brevità qui riporto il componente App aggiornato.
-
 // --- Helper Functions ---
+
 const uploadImageToSupabase = async (file: File): Promise<string | null> => {
   try {
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random()}.${fileExt}`;
     const filePath = `${fileName}`;
-    const { data, error } = await supabase.storage.from('menu-images').upload(filePath, file);
-    if (error) { console.error('Error uploading image:', error); return null; }
-    const { data: publicUrlData } = supabase.storage.from('menu-images').getPublicUrl(filePath);
+
+    const { data, error } = await supabase.storage
+      .from('menu-images')
+      .upload(filePath, file);
+
+    if (error) {
+      console.error('Error uploading image:', error);
+      return null;
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from('menu-images')
+      .getPublicUrl(filePath);
+
     return publicUrlData.publicUrl;
-  } catch (error) { console.error('Error:', error); return null; }
+  } catch (error) {
+    console.error('Error:', error);
+    return null;
+  }
 };
+
+// --- Helper Components ---
 
 const CategoryIcon = ({ category, className }: { category: ProductCategory | 'Tutti'; className?: string }) => {
   switch (category) {
@@ -88,39 +101,44 @@ const CategoryIcon = ({ category, className }: { category: ProductCategory | 'Tu
 };
 
 const DEFAULT_LOGO = "https://oldwest.click/wp-content/uploads/2022/06/LOGO-OLD-WEST.png";
+
 const WesternLogo = ({ size = 'md', className, url }: { size?: 'md' | 'lg', className?: string, url?: string }) => {
   const isLarge = size === 'lg';
   const logoUrl = url || DEFAULT_LOGO;
+  
   return (
     <div className={`
       ${isLarge ? 'w-28 h-28 rounded-3xl' : 'w-12 h-12 rounded-xl'} 
       bg-accent-500 relative shadow-lg overflow-hidden shrink-0 select-none flex items-center justify-center
       ${className || ''}
     `}>
-       <img src={logoUrl} alt="Old West Logo" className={`w-full h-full object-contain ${isLarge ? 'p-2' : 'p-1'}`} />
+       <img 
+         src={logoUrl} 
+         alt="Old West Logo" 
+         className={`w-full h-full object-contain ${isLarge ? 'p-2' : 'p-1'}`} 
+       />
     </div>
   );
 };
 
 const LANGUAGES_CONFIG = [
   { code: 'it', label: 'Italiano', flag: '🇮🇹' },
-  { code: 'en', label: 'English', flag: '🇬🇧' },
+  { code: 'en', label: 'English', flag: '🇬🇧' }, 
   { code: 'fr', label: 'Français', flag: '🇫🇷' },
   { code: 'de', label: 'Deutsch', flag: '🇩🇪' }
 ] as const;
 
 export default function App() {
-  // ... (States rimangono uguali) ...
   const [items, setItems] = useState<MenuItem[]>([]);
   const [view, setView] = useState<ViewState>('MENU');
   const [activeCategory, setActiveCategory] = useState<string>('Tutti');
   const [activeSubCategoryView, setActiveSubCategoryView] = useState<string | null>(null);
   const [diySelections, setDiySelections] = useState<Record<number, string>>({});
   
-  // UPDATED FILTER STATE
+  // NUOVO STATO FILTRI CON VEGANO
   const [activeFilters, setActiveFilters] = useState<ActiveFilters>({
     vegetarian: false,
-    vegan: false, // Added
+    vegan: false, // <--- Aggiunto
     spicy: false,
     bestseller: false
   });
@@ -133,7 +151,7 @@ export default function App() {
   const [adminPassword, setAdminPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [isProcessingImage, setIsProcessingImage] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false); 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [adminLang, setAdminLang] = useState<LanguageCode>('it');
   const [customLogo, setCustomLogo] = useState<string>('');
@@ -141,7 +159,7 @@ export default function App() {
   const [lang, setLang] = useState<LanguageCode>('it');
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  
+
   const [newItem, setNewItem] = useState<Partial<MenuItem>>({
     category: ProductCategory.HAMBURGER,
     isAvailable: true,
@@ -149,42 +167,97 @@ export default function App() {
     translations: {}
   });
 
-  // ... (Fetch, Scroll, Carousel Logic rimangono uguali) ...
   const fetchItems = async () => {
     try {
       const { data, error } = await supabase.from('menu_items').select('*');
       if (error) throw error;
-      if (data && data.length > 0) setItems(data); else setItems(INITIAL_MENU_ITEMS);
+      if (data && data.length > 0) {
+        setItems(data);
+      } else {
+        setItems(INITIAL_MENU_ITEMS);
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
       setItems(INITIAL_MENU_ITEMS);
-    } finally { setIsDataLoaded(true); }
+    } finally {
+      setIsDataLoaded(true);
+    }
   };
 
-  useEffect(() => { fetchItems(); const savedLogo = localStorage.getItem('oldWestLogoUrl'); if (savedLogo) setCustomLogo(savedLogo); }, []);
-  useEffect(() => { const handleScroll = () => { if (window.scrollY > 300) setShowScrollTop(true); else setShowScrollTop(false); }; window.addEventListener('scroll', handleScroll); return () => window.removeEventListener('scroll', handleScroll); }, []);
-  const scrollToTop = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  useEffect(() => {
+    fetchItems();
+    const savedLogo = localStorage.getItem('oldWestLogoUrl');
+    if (savedLogo) setCustomLogo(savedLogo);
+  }, []);
 
-  const handleMouseDown = (e: React.MouseEvent) => { if (!carouselRef.current) return; setIsDragging(true); setStartX(e.pageX - carouselRef.current.offsetLeft); setScrollLeft(carouselRef.current.scrollLeft); };
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 300) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!carouselRef.current) return;
+    setIsDragging(true);
+    setStartX(e.pageX - carouselRef.current.offsetLeft);
+    setScrollLeft(carouselRef.current.scrollLeft);
+  };
   const handleMouseLeave = () => setIsDragging(false);
   const handleMouseUp = () => setIsDragging(false);
-  const handleMouseMove = (e: React.MouseEvent) => { if (!isDragging || !carouselRef.current) return; e.preventDefault(); const x = e.pageX - carouselRef.current.offsetLeft; const walk = (x - startX) * 2; carouselRef.current.scrollLeft = scrollLeft - walk; };
-  const scrollCarousel = (direction: 'left' | 'right') => { if (carouselRef.current) { const scrollAmount = 300; carouselRef.current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' }); } };
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !carouselRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - carouselRef.current.offsetLeft;
+    const walk = (x - startX) * 2; 
+    carouselRef.current.scrollLeft = scrollLeft - walk;
+  };
+  const scrollCarousel = (direction: 'left' | 'right') => {
+    if (carouselRef.current) {
+      const scrollAmount = 300;
+      carouselRef.current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
+    }
+  };
 
   const t = (key: string): string => (UI_TRANSLATIONS[key] && UI_TRANSLATIONS[key][lang]) ? UI_TRANSLATIONS[key][lang] : key;
-  const tCategory = (cat: string): string => { if (cat === 'Tutti') return UI_TRANSLATIONS['all'][lang]; if (CATEGORY_TRANSLATIONS[cat as ProductCategory] && CATEGORY_TRANSLATIONS[cat as ProductCategory][lang]) return CATEGORY_TRANSLATIONS[cat as ProductCategory][lang]; return cat; };
-  const getProductContent = (item: MenuItem | Partial<MenuItem>) => { if (lang === 'it') return { name: item.name || '', description: item.description || '' }; const trans = item.translations?.[lang]; return { name: trans?.name || item.name || '', description: trans?.description || item.description || '' }; };
-  const getDIYStepContent = (step: any) => { if (lang === 'it') return { title: step.title, description: step.description }; const trans = step.translations?.[lang]; return { title: trans?.title || step.title, description: trans?.description || step.description }; };
-  const getDIYOptionContent = (opt: any) => { if (lang === 'it') return opt.name; return opt.translations?.[lang]?.name || opt.name; };
+  const tCategory = (cat: string): string => {
+    if (cat === 'Tutti') return UI_TRANSLATIONS['all'][lang];
+    if (CATEGORY_TRANSLATIONS[cat as ProductCategory] && CATEGORY_TRANSLATIONS[cat as ProductCategory][lang]) return CATEGORY_TRANSLATIONS[cat as ProductCategory][lang];
+    return cat;
+  };
+  const getProductContent = (item: MenuItem | Partial<MenuItem>) => {
+    if (lang === 'it') return { name: item.name || '', description: item.description || '' };
+    const trans = item.translations?.[lang];
+    return { name: trans?.name || item.name || '', description: trans?.description || item.description || '' };
+  };
+  const getDIYStepContent = (step: any) => {
+    if (lang === 'it') return { title: step.title, description: step.description };
+    const trans = step.translations?.[lang];
+    return { title: trans?.title || step.title, description: trans?.description || step.description };
+  };
+  const getDIYOptionContent = (opt: any) => {
+     if (lang === 'it') return opt.name;
+     return opt.translations?.[lang]?.name || opt.name;
+  };
 
-  // --- UPDATED FILTER LOGIC ---
+  // --- LOGICA FILTRI AGGIORNATA ---
   const checkFilters = (item: MenuItem) => {
     if (activeFilters.vegetarian) {
       const isVeg = item.tags?.includes('Vegetariano') || item.tags?.includes('Vegano') || item.category === ProductCategory.CONTORNI || (item.category === ProductCategory.PIZZA && (item.name === 'Vegetariana' || item.name === 'Margherita' || item.name === 'Marinara' || item.name === 'Verdure'));
       if (!isVeg) return false;
     }
+    // Filtro Vegano specifico
     if (activeFilters.vegan) {
-      const isVegan = item.tags?.includes('Vegano') || (item.category === ProductCategory.CONTORNI && item.name !== 'Patatine Fritte') || (item.category === ProductCategory.PIZZA && item.name === 'Marinara'); // Simple logic, can be refined
+      const isVegan = item.tags?.includes('Vegano') || (item.category === ProductCategory.CONTORNI && item.name !== 'Patatine Fritte' /* Esempio */) || (item.category === ProductCategory.PIZZA && item.name === 'Marinara'); 
       if (!isVegan) return false;
     }
     if (activeFilters.spicy) {
@@ -198,34 +271,113 @@ export default function App() {
     return true;
   };
 
-  // ... (Handlers rimangono uguali) ...
-  const handleCategoryClick = (cat: string) => { setActiveCategory(cat); setActiveSubCategoryView(null); if (view === 'MENU') { const listStart = 300; if (window.scrollY > listStart) window.scrollTo({ top: listStart, behavior: 'smooth' }); } };
-  useEffect(() => { const activeBtn = document.getElementById(`btn-${activeCategory}`); if (activeBtn) activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); }, [activeCategory]);
-  const handleLogin = (e: React.FormEvent) => { e.preventDefault(); if (adminPassword === '1234') { setView('ADMIN'); setAdminPassword(''); setLoginError(''); setActiveCategory('Tutti'); setLang('it'); } else { setLoginError('PIN non valido'); } };
-  
-  // Save with full fields
+  const handleCategoryClick = (cat: string) => {
+    setActiveCategory(cat);
+    setActiveSubCategoryView(null); 
+    if (view === 'MENU') {
+      const listStart = 300; 
+      if (window.scrollY > listStart) window.scrollTo({ top: listStart, behavior: 'smooth' });
+    }
+  };
+  useEffect(() => {
+    const activeBtn = document.getElementById(`btn-${activeCategory}`);
+    if (activeBtn) activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  }, [activeCategory]);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (adminPassword === '1234') { 
+      setView('ADMIN'); setAdminPassword(''); setLoginError(''); setActiveCategory('Tutti'); setLang('it'); 
+    } else { setLoginError('PIN non valido'); }
+  };
+
   const handleSaveItem = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newItem.name || !newItem.price) return;
     const finalSubCategory = newItem.category === ProductCategory.HAMBURGER ? newItem.subCategory : undefined;
-    const itemToSave = { name: newItem.name, description: newItem.description, price: Number(newItem.price), category: newItem.category, subCategory: finalSubCategory, imageUrl: newItem.imageUrl, isAvailable: newItem.isAvailable !== undefined ? newItem.isAvailable : true, tags: newItem.tags || [], brand: newItem.brand || null, variants: newItem.variants || null, translations: newItem.translations || null };
+    const itemToSave = {
+        name: newItem.name, description: newItem.description, price: Number(newItem.price), category: newItem.category, subCategory: finalSubCategory, imageUrl: newItem.imageUrl, isAvailable: newItem.isAvailable !== undefined ? newItem.isAvailable : true, tags: newItem.tags || [], brand: newItem.brand || null, variants: newItem.variants || null, translations: newItem.translations || null
+    };
     try {
-      if (editingId) { const { error } = await supabase.from('menu_items').update(itemToSave).eq('id', editingId); if (error) throw error; alert('Prodotto modificato con successo!'); } 
-      else { const { error } = await supabase.from('menu_items').insert([itemToSave]); if (error) throw error; alert('Prodotto aggiunto con successo!'); }
-      fetchItems(); setEditingId(null); setNewItem({ category: ProductCategory.HAMBURGER, subCategory: HAMBURGER_SUBCATEGORIES[0], isAvailable: true, name: '', description: '', price: 0, imageUrl: '', translations: {}, brand: undefined, variants: undefined }); setAdminLang('it');
+      if (editingId) {
+        const { error } = await supabase.from('menu_items').update(itemToSave).eq('id', editingId);
+        if (error) throw error;
+        alert('Prodotto modificato con successo!');
+      } else {
+        const { error } = await supabase.from('menu_items').insert([itemToSave]);
+        if (error) throw error;
+        alert('Prodotto aggiunto con successo!');
+      }
+      fetchItems(); setEditingId(null);
+      setNewItem({ category: ProductCategory.HAMBURGER, subCategory: HAMBURGER_SUBCATEGORIES[0], isAvailable: true, name: '', description: '', price: 0, imageUrl: '', translations: {}, brand: undefined, variants: undefined });
+      setAdminLang('it');
     } catch (error) { console.error('Error saving item:', error); alert('Errore durante il salvataggio nel database cloud.'); }
   };
 
-  const handleEditItem = (item: MenuItem) => { setNewItem({ ...item }); setEditingId(item.id); setAdminLang('it'); const formElement = document.getElementById('new-product-form'); if (formElement) formElement.scrollIntoView({ behavior: 'smooth' }); };
-  const handleCancelEdit = () => { setEditingId(null); setNewItem({ category: ProductCategory.HAMBURGER, subCategory: HAMBURGER_SUBCATEGORIES[0], isAvailable: true, name: '', description: '', price: 0, imageUrl: '', translations: {}, brand: undefined, variants: undefined }); setAdminLang('it'); };
-  const handleDeleteItem = async (id: string, e?: React.MouseEvent) => { if (e) { e.preventDefault(); e.stopPropagation(); } if (window.confirm('Sei sicuro di voler eliminare questo prodotto?')) { try { const { error } = await supabase.from('menu_items').delete().eq('id', id); if (error) throw error; fetchItems(); if (editingId === id) handleCancelEdit(); } catch (error) { console.error('Error deleting item:', error); alert('Errore durante l\'eliminazione.'); } } };
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { setIsProcessingImage(true); try { const publicUrl = await uploadImageToSupabase(file); if (publicUrl) setCustomLogo(publicUrl); else alert("Errore caricamento logo su Supabase"); } catch (error) { alert("Errore durante il caricamento dell'immagine"); } finally { setIsProcessingImage(false); } } };
+  const handleEditItem = (item: MenuItem) => {
+    setNewItem({ ...item }); setEditingId(item.id); setAdminLang('it');
+    const formElement = document.getElementById('new-product-form');
+    if (formElement) formElement.scrollIntoView({ behavior: 'smooth' });
+  };
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setNewItem({ category: ProductCategory.HAMBURGER, subCategory: HAMBURGER_SUBCATEGORIES[0], isAvailable: true, name: '', description: '', price: 0, imageUrl: '', translations: {}, brand: undefined, variants: undefined });
+    setAdminLang('it');
+  };
+  const handleDeleteItem = async (id: string, e?: React.MouseEvent) => {
+    if (e) { e.preventDefault(); e.stopPropagation(); }
+    if (window.confirm('Sei sicuro di voler eliminare questo prodotto?')) {
+      try {
+        const { error } = await supabase.from('menu_items').delete().eq('id', id);
+        if (error) throw error;
+        fetchItems(); if (editingId === id) handleCancelEdit();
+      } catch (error) { console.error('Error deleting item:', error); alert('Errore durante l\'eliminazione.'); }
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setIsProcessingImage(true);
+      try {
+        const publicUrl = await uploadImageToSupabase(file);
+        if (publicUrl) setCustomLogo(publicUrl); else alert("Errore caricamento logo su Supabase");
+      } catch (error) { alert("Errore durante il caricamento dell'immagine"); } finally { setIsProcessingImage(false); }
+    }
+  };
   const handleSaveLogo = () => { if (customLogo) { localStorage.setItem('oldWestLogoUrl', customLogo); alert('Logo salvato con successo!'); } };
-  const handleProductImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { setIsProcessingImage(true); try { const publicUrl = await uploadImageToSupabase(file); if (publicUrl) setNewItem({...newItem, imageUrl: publicUrl}); else alert("Errore caricamento immagine su Supabase"); } catch (error) { alert("Errore durante il caricamento dell'immagine"); } finally { setIsProcessingImage(false); } } };
+  const handleProductImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+       setIsProcessingImage(true);
+       try {
+         const publicUrl = await uploadImageToSupabase(file);
+         if (publicUrl) setNewItem({...newItem, imageUrl: publicUrl}); else alert("Errore caricamento immagine su Supabase");
+       } catch (error) { alert("Errore durante il caricamento dell'immagine"); } finally { setIsProcessingImage(false); }
+    }
+  };
   const handleRemoveProductImage = () => { setNewItem({...newItem, imageUrl: ''}); };
   const handleResetLogo = () => { if (window.confirm('Vuoi ripristinare il logo originale?')) { setCustomLogo(''); localStorage.removeItem('oldWestLogoUrl'); } };
-  const handleSyncInitialData = async () => { if (window.confirm("Questa operazione caricherà tutti i prodotti iniziali nel database cloud. Potrebbero crearsi duplicati se non è vuoto. Continuare?")) { setIsSyncing(true); try { const formattedItems = INITIAL_MENU_ITEMS.map(item => ({ name: item.name, description: item.description, price: item.price, category: item.category, "subCategory": item.subCategory || null, "imageUrl": item.imageUrl || null, brand: item.brand || null, "isAvailable": true, tags: item.tags || [], variants: item.variants || null, translations: item.translations || null })); const { error } = await supabase.from('menu_items').insert(formattedItems); if (error) { console.error("Sync Error Details:", error); throw error; } alert("Sincronizzazione completata! I prodotti sono stati caricati."); fetchItems(); } catch (error: any) { console.error('Sync Error:', error); alert(`Errore durante la sincronizzazione: ${error.message || 'Errore sconosciuto'}`); } finally { setIsSyncing(false); } } };
-  const handleExportData = () => { const dataStr = JSON.stringify(items, null, 2); const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr); const exportFileDefaultName = `old_west_menu_backup_${new Date().toISOString().slice(0,10)}.json`; const linkElement = document.createElement('a'); linkElement.setAttribute('href', dataUri); linkElement.setAttribute('download', exportFileDefaultName); linkElement.click(); };
+  const handleSyncInitialData = async () => {
+    if (window.confirm("Questa operazione caricherà tutti i prodotti iniziali nel database cloud. Potrebbero crearsi duplicati se non è vuoto. Continuare?")) {
+       setIsSyncing(true);
+       try {
+          const formattedItems = INITIAL_MENU_ITEMS.map(item => ({
+             name: item.name, description: item.description, price: item.price, category: item.category, "subCategory": item.subCategory || null, "imageUrl": item.imageUrl || null, brand: item.brand || null, "isAvailable": true, tags: item.tags || [], variants: item.variants || null, translations: item.translations || null
+          }));
+          const { error } = await supabase.from('menu_items').insert(formattedItems);
+          if (error) { console.error("Sync Error Details:", error); throw error; }
+          alert("Sincronizzazione completata! I prodotti sono stati caricati."); fetchItems();
+       } catch (error: any) { console.error('Sync Error:', error); alert(`Errore durante la sincronizzazione: ${error.message || 'Errore sconosciuto'}`); } finally { setIsSyncing(false); }
+    }
+  };
+  
+  const handleExportData = () => {
+    const dataStr = JSON.stringify(items, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    const exportFileDefaultName = `old_west_menu_backup_${new Date().toISOString().slice(0,10)}.json`;
+    const linkElement = document.createElement('a'); linkElement.setAttribute('href', dataUri); linkElement.setAttribute('download', exportFileDefaultName); linkElement.click();
+  };
   const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => { alert("L'importazione da file JSON locale è disabilitata ora che usi il Database Cloud. Usa la funzione 'Sincronizza Menu Iniziale' o aggiungi i prodotti manualmente."); };
   const handleFactoryReset = () => { alert("Il reset di fabbrica locale non è disponibile con il Database Cloud. Per resettare, cancella i prodotti dal database."); };
 
@@ -309,7 +461,10 @@ export default function App() {
     <div className="container mx-auto px-4 mb-6">
       <div className="flex flex-wrap gap-2">
         <button onClick={() => setActiveFilters(prev => ({...prev, vegetarian: !prev.vegetarian}))} className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all border ${activeFilters.vegetarian ? 'bg-green-100 border-green-200 text-green-700' : 'bg-white border-wood-200 text-wood-500 hover:bg-wood-50'}`}><Leaf size={14} /> {t('filter_veg')}</button>
-        <button onClick={() => setActiveFilters(prev => ({...prev, vegan: !prev.vegan}))} className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all border ${activeFilters.vegan ? 'bg-emerald-100 border-emerald-200 text-emerald-700' : 'bg-white border-wood-200 text-wood-500 hover:bg-wood-50'}`}><Sprout size={14} /> {t('filter_vegan')}</button>
+        
+        {/* TASTO FILTRO VEGANO AGGIUNTO */}
+        <button onClick={() => setActiveFilters(prev => ({...prev, vegan: !prev.vegan}))} className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all border ${activeFilters.vegan ? 'bg-emerald-100 border-emerald-200 text-emerald-700' : 'bg-white border-wood-200 text-wood-500 hover:bg-wood-50'}`}><Sprout size={14} /> Vegano</button>
+        
         <button onClick={() => setActiveFilters(prev => ({...prev, spicy: !prev.spicy}))} className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all border ${activeFilters.spicy ? 'bg-red-100 border-red-200 text-red-700' : 'bg-white border-wood-200 text-wood-500 hover:bg-wood-50'}`}><Flame size={14} /> {t('filter_spicy')}</button>
         <button onClick={() => setActiveFilters(prev => ({...prev, bestseller: !prev.bestseller}))} className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all border ${activeFilters.bestseller ? 'bg-yellow-100 border-yellow-200 text-yellow-700' : 'bg-white border-wood-200 text-wood-500 hover:bg-wood-50'}`}><Award size={14} /> {t('filter_best')}</button>
       </div>
@@ -371,7 +526,8 @@ export default function App() {
           <div className="relative z-10 text-center px-4 max-w-2xl mx-auto">
             <h1 className="text-4xl md:text-6xl font-western text-white mb-4 drop-shadow-lg">{t('hero_title')}</h1>
             <div className="inline-flex flex-wrap justify-center gap-4 md:gap-8 bg-black/60 backdrop-blur-sm p-3 rounded-2xl border border-white/10">
-              <div className="flex items-center gap-2 text-wood-100"><Clock size={18} className="text-accent-500" /><span className="text-sm font-medium">{t('open_hours')}</span></div>
+              {/* ORARI AGGIORNATI QUI */}
+              <div className="flex items-center gap-2 text-wood-100"><Clock size={18} className="text-accent-500" /><span className="text-sm font-medium">11:00 - 15:00 | 17:00 - 00:00</span></div>
               <div className="w-px h-5 bg-white/20 hidden md:block"></div>
               <div className="flex items-center gap-2 text-wood-100"><MapPin size={18} className="text-accent-500" /><span className="text-sm font-medium">Via G. Galilei 35, Cameri</span></div>
             </div>
@@ -456,18 +612,13 @@ export default function App() {
         <footer className="bg-wood-900 text-wood-300 py-16 mt-12 border-t border-wood-800">
           <div className="container mx-auto px-4 text-center">
             <div className="mx-auto mb-8 w-fit">
+               {/* LOGO DRITTO (rimosso rotate-3) */}
                <WesternLogo size="md" url={customLogo} />
             </div>
             <h2 className="font-western text-3xl mb-2 text-white">OLD WEST</h2>
-            <p className="text-xs uppercase tracking-[0.3em] text-accent-500 font-bold mb-8">Cameri - Since 1988!</p>
-            
-            <div className="mb-10 flex flex-col items-center justify-center">
-               <div className="bg-white p-3 rounded-xl shadow-lg mb-3">
-                  <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.href)}&color=3A3D3F`} alt="QR Code" className="w-32 h-32 object-contain" />
-               </div>
-               <p className="text-xs font-bold text-wood-400 uppercase tracking-wider flex items-center gap-2"><QrCode size={14} /> {t('scan_me')}</p>
-            </div>
-
+            {/* ANNO AGGIORNATO */}
+            <p className="text-xs uppercase tracking-[0.3em] text-accent-500 font-bold mb-8">Cameri - Since 1988</p>
+            <div className="mb-10 flex flex-col items-center justify-center"><div className="bg-white p-3 rounded-xl shadow-lg mb-3"><img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.href)}&color=3A3D3F`} alt="QR Code" className="w-32 h-32 object-contain" /></div><p className="text-xs font-bold text-wood-400 uppercase tracking-wider flex items-center gap-2"><QrCode size={14} /> {t('scan_me')}</p></div>
             <div className="flex justify-center gap-6 mb-10"><a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-accent-500 hover:text-white transition-colors"><Instagram size={18} /></a><a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-accent-500 hover:text-white transition-colors"><Facebook size={18} /></a><a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-accent-500 hover:text-white transition-colors"><Phone size={18} /></a></div>
             <p className="text-sm opacity-40 max-w-sm mx-auto">© {new Date().getFullYear()} Old West Cameri. {t('all')} rights reserved.<br/>Design by AI Studio.</p>
           </div>
@@ -598,6 +749,3 @@ export default function App() {
     </>
   );
 }
-]]></content>
-</change>
-</changes>
