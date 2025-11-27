@@ -3,7 +3,7 @@ export const DATA_VERSION = '1.8'; // Version bump to force update with all new 
 export const HAMBURGER_SUBCATEGORIES = [
 "Old West Special",
 "Vegetariano/Vegano",
-"Hamburger "Fai da te"" // CORRETTO: Le virgolette interne sono precedute da
+"Hamburger \"Fai da te\"" // CORRETTO: Le virgolette interne sono precedute da
 ];
 export const DIY_OPTIONS = {
 basePrice: 0,
