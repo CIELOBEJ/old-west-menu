@@ -459,7 +459,7 @@ export default function App() {
                <WesternLogo size="md" url={customLogo} />
             </div>
             <h2 className="font-western text-3xl mb-2 text-white">OLD WEST</h2>
-            <p className="text-xs uppercase tracking-[0.3em] text-accent-500 font-bold mb-8">Cameri - Since 1988</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-accent-500 font-bold mb-8">Cameri - Since 1988!</p>
             
             <div className="mb-10 flex flex-col items-center justify-center">
                <div className="bg-white p-3 rounded-xl shadow-lg mb-3">
