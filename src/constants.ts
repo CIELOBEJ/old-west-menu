@@ -1,11 +1,9 @@
 import { MenuItem, ProductCategory, LanguageCode } from './types';
-export const DATA_VERSION = '2.0'; // Version bump to force update
-// --- NUOVA COSTANTE DI SICUREZZA ---
-export const DIY_CATEGORY_NAME = 'Hamburger "Fai da te"';
+export const DATA_VERSION = '2.0';
 export const HAMBURGER_SUBCATEGORIES = [
 "Old West Special",
 "Vegetariano/Vegano",
-DIY_CATEGORY_NAME // Usiamo la costante qui per evitare errori
+'Hamburger "Fai da te"'
 ];
 export const DIY_OPTIONS = {
 basePrice: 0,
@@ -148,15 +146,13 @@ options: [
 };
 // --- TRANSLATIONS ---
 export const UI_TRANSLATIONS: Record<string, Record<LanguageCode, string>> = {
-// Navigation & General
 'menu_title': { it: 'Menu Digitale', en: 'Digital Menu', fr: 'Menu Numérique', de: 'Digitales Menü' },
 'back_to_menu': { it: 'Torna al Menu', en: 'Back to Menu', fr: 'Retour au Menu', de: 'Zurück zum Menü' },
 'admin_area': { it: 'Area Staff', en: 'Staff Area', fr: 'Espace Staff', de: 'Mitarbeiterbereich' },
 'login_prompt': { it: 'Accedi per gestire il menu digitale', en: 'Login to manage the digital menu', fr: 'Connectez-vous pour gérer le menu', de: 'Anmelden zur Menüverwaltung' },
 'login_btn': { it: 'Accedi', en: 'Login', fr: 'Connexion', de: 'Anmelden' },
 'back': { it: 'Indietro', en: 'Back', fr: 'Retour', de: 'Zurück' },
-'open_hours': { it: '11:00 - 00:00', en: '11:00 AM - 12:00 AM', fr: '11h00 - 00h00', de: '11:00 - 00:00' },
-// Menu View
+'open_hours': { it: '11:00 - 15:00 | 17:00 - 00:00', en: '11:00 - 15:00 | 17:00 - 00:00', fr: '11h00 - 15h00 | 17h00 - 00h00', de: '11:00 - 15:00 | 17:00 - 00:00' },
 'hero_title': { it: 'Il Gusto Autentico', en: 'The Authentic Taste', fr: 'Le Goût Authentique', de: 'Der Authentische Geschmack' },
 'updating_menu': { it: 'Menu in aggiornamento', en: 'Menu updating', fr: 'Menu en mise à jour', de: 'Menü wird aktualisiert' },
 'check_back': { it: 'Torna a trovarci presto!', en: 'Check back soon!', fr: 'Revenez bientôt!', de: 'Kommen Sie bald wieder!' },
@@ -178,7 +174,6 @@ export const UI_TRANSLATIONS: Record<string, Record<LanguageCode, string>> = {
 'filter_spicy': { it: 'Piccante', en: 'Spicy', fr: 'Épicé', de: 'Scharf' },
 'filter_best': { it: 'Best Seller', en: 'Best Seller', fr: 'Meilleures Ventes', de: 'Bestseller' },
 'scan_me': { it: 'Scansiona per il Menu', en: 'Scan for Menu', fr: 'Scannez pour le Menu', de: 'Scannen für Menü' },
-// Categories (Generic)
 'all': { it: 'Tutti', en: 'All', fr: 'Tout', de: 'Alle' },
 };
 export const CATEGORY_TRANSLATIONS: Record<ProductCategory, Record<LanguageCode, string>> = {
@@ -193,461 +188,36 @@ export const CATEGORY_TRANSLATIONS: Record<ProductCategory, Record<LanguageCode,
 [ProductCategory.BEVANDE]: { it: 'Bevande', en: 'Drinks', fr: 'Boissons', de: 'Getränke' },
 };
 export const INITIAL_MENU_ITEMS: MenuItem[] = [
-// --- BEVANDE (NO FOTO) ---
-{
-id: 'bev1',
-name: 'Acqua',
-description: 'Naturale / Frizzante',
-price: 1.50,
-category: ProductCategory.BEVANDE,
-imageUrl: '',
-isAvailable: true,
-variants: [
-{ name: '50 cl', price: 1.50 },
-{ name: '100 cl', price: 2.00 }
-],
-translations: {
-en: { name: 'Water', description: 'Still / Sparkling' },
-fr: { name: 'Eau', description: 'Plate / Gazeuse' },
-de: { name: 'Wasser', description: 'Still / Sprudelnd' }
-}
-},
-{
-id: 'bev3',
-name: 'Bibite 33cl',
-description: '',
-price: 3.00,
-category: ProductCategory.BEVANDE,
-imageUrl: '',
-isAvailable: true,
-translations: {
-en: { name: 'Soft Drinks 33cl', description: '' },
-fr: { name: 'Boissons Gazeuses 33cl', description: '' },
-de: { name: 'Erfrischungsgetränke 33cl', description: '' }
-}
-},
-{
-id: 'bev4',
-name: 'Bibite 45 cl',
-description: '',
-price: 3.50,
-category: ProductCategory.BEVANDE,
-imageUrl: '',
-isAvailable: true,
-translations: {
-en: { name: 'Soft Drinks 45 cl', description: '' },
-fr: { name: 'Boissons Gazeuses 45 cl', description: '' },
-de: { name: 'Erfrischungsgetränke 45 cl', description: '' }
-}
-},
-{
-id: 'bev5',
-name: 'Birra Bionda Leggera alla Spina',
-description: 'Bionda leggera gradi 5,5',
-brand: 'HACHER - PSCHORR Munich Gold',
-price: 3.00,
-category: ProductCategory.BEVANDE,
-imageUrl: '',
-isAvailable: true,
-variants: [
-{ name: 'Piccola 20cl', price: 3.00 },
-{ name: 'Media 40cl', price: 5.50 }
-],
-translations: {
-en: { name: 'Light Draft Beer', description: 'Light blonde 5.5 degrees' },
-fr: { name: 'Bière Pression Légère', description: 'Blonde légère 5,5 degrés' },
-de: { name: 'Helles Bier vom Fass', description: 'Helles 5,5 Grad' }
-}
-},
-{
-id: 'bev7',
-name: 'Birra Bionda Doppio Malto alla Spina',
-description: 'Bionda doppio malto gradi 8',
-brand: 'DOLOMITI - BIRRA ITALIANA',
-price: 3.50,
-category: ProductCategory.BEVANDE,
-imageUrl: '',
-isAvailable: true,
-variants: [
-{ name: 'Piccola 20cl', price: 3.50 },
-{ name: 'Media 40cl', price: 6.50 }
-],
-translations: {
-en: { name: 'Double Malt Draft Beer', description: 'Double malt blonde 8 degrees' },
-fr: { name: 'Bière Double Malt Pression', description: 'Blonde double malt 8 degrés' },
-de: { name: 'Doppelbock vom Fass', description: 'Doppelbock 8 Grad' }
-}
-},
-{
-id: 'bev8',
-name: 'Birra Rossa Doppio Malto alla Spina',
-description: 'Rossa doppio malto gradi 7,9',
-brand: 'PAULANER SALVATOR',
-price: 3.50,
-category: ProductCategory.BEVANDE,
-imageUrl: '',
-isAvailable: true,
-variants: [
-{ name: 'Piccola 20cl', price: 3.50 },
-{ name: 'Media 40cl', price: 6.50 }
-],
-translations: {
-en: { name: 'Red Double Malt Draft Beer', description: 'Red double malt 7.9 degrees' },
-fr: { name: 'Bière Rouge Double Malt Pression', description: 'Rouge double malt 7,9 degrés' },
-de: { name: 'Rotes Doppelbock vom Fass', description: 'Rotes Doppelbock 7,9 Grad' }
-}
-},
-{
-id: 'bev9',
-name: 'Birra Cruda alla Spina',
-description: 'Bionda cruda gradi 5,5',
-brand: 'PAULANER HEFE - WEIẞBIER',
-price: 3.50,
-category: ProductCategory.BEVANDE,
-imageUrl: '',
-isAvailable: true,
-variants: [
-{ name: 'Piccola 20cl', price: 3.50 },
-{ name: 'Media 40cl', price: 6.50 }
-],
-translations: {
-en: { name: 'Raw Draft Beer', description: 'Raw blonde 5.5 degrees' },
-fr: { name: 'Bière Crue Pression', description: 'Blonde crue 5,5 degrés' },
-de: { name: 'Unfiltriertes Bier vom Fass', description: 'Helles Unfiltriertes 5,5 Grad' }
-}
-},
-{
-id: 'bev10',
-name: 'Birre in Bottiglia 33cl',
-description: '',
-price: 5.00,
-category: ProductCategory.BEVANDE,
-imageUrl: '',
-isAvailable: true,
-translations: {
-en: { name: 'Bottled Beers 33cl', description: '' },
-fr: { name: 'Bières en Bouteille 33cl', description: '' },
-de: { name: 'Flaschenbiere 33cl', description: '' }
-}
-},
-{
-id: 'bev11',
-name: 'Vino in Bottiglia 75cl',
-description: '',
-price: 16.00,
-category: ProductCategory.BEVANDE,
-imageUrl: '',
-isAvailable: true,
-translations: {
-en: { name: 'Bottled Wine 75cl', description: '' },
-fr: { name: 'Vin en Bouteille 75cl', description: '' },
-de: { name: 'Flaschenwein 75cl', description: '' }
-}
-},
-{
-id: 'bev12',
-name: 'Vino Spumante Millesimato 75cl',
-description: '',
-price: 20.00,
-category: ProductCategory.BEVANDE,
-imageUrl: '',
-isAvailable: true,
-translations: {
-en: { name: 'Vintage Sparkling Wine 75cl', description: '' },
-fr: { name: 'Vin Mousseux Millésimé 75cl', description: '' },
-de: { name: 'Jahrgangssekt 75cl', description: '' }
-}
-},
-{
-id: 'bev13',
-name: 'Vino Sfuso Rosso/Bianco',
-description: '',
-price: 5.00,
-category: ProductCategory.BEVANDE,
-imageUrl: '',
-isAvailable: true,
-variants: [
-{ name: '1/4 L', price: 5.00 },
-{ name: '1/2 L', price: 7.00 },
-{ name: '1 L', price: 13.00 }
-],
-translations: {
-en: { name: 'House Wine Red/White', description: '' },
-fr: { name: 'Vin Maison Rouge/Blanc', description: '' },
-de: { name: 'Hauswein Rot/Weiß', description: '' }
-}
-},
-{
-id: 'bev14',
-name: 'Caffè',
-description: '',
-price: 2.00,
-category: ProductCategory.BEVANDE,
-imageUrl: '',
-isAvailable: true,
-translations: {
-en: { name: 'Espresso', description: '' },
-fr: { name: 'Café', description: '' },
-de: { name: 'Espresso', description: '' }
-}
-},
-{
-id: 'bev15',
-name: 'Caffè Corretto',
-description: '',
-price: 2.50,
-category: ProductCategory.BEVANDE,
-imageUrl: '',
-isAvailable: true,
-translations: {
-en: { name: 'Caffè Corretto', description: '' },
-fr: { name: 'Café Corretto', description: '' },
-de: { name: 'Caffè Corretto', description: '' }
-}
-},
-{
-id: 'bev16',
-name: 'Amari',
-description: '',
-price: 3.50,
-category: ProductCategory.BEVANDE,
-imageUrl: '',
-isAvailable: true,
-translations: {
-en: { name: 'Bitters/Digestifs', description: '' },
-fr: { name: 'Digestifs', description: '' },
-de: { name: 'Bitter/Digestifs', description: '' }
-}
-},
-// --- HAMBURGER ---
-{
-id: '1',
-name: 'Old West',
-description: "Bufalo (220g), 'Nduja, Bacon, Peperoni, Olive infornate, Brie, Lattuga e Salsa boscaiola",
-price: 17.00,
-category: ProductCategory.HAMBURGER,
-subCategory: "Old West Special",
-imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/hamburger-old-west.jpg',
-isAvailable: true,
-tags: ['Best Seller'],
-translations: {
-en: { name: 'Old West', description: "Buffalo (220g), 'Nduja, Bacon, Peppers, Baked Olives, Brie, Lettuce and Boscaiola Sauce" },
-fr: { name: 'Old West', description: "Buffle (220g), 'Nduja, Bacon, Poivrons, Olives au four, Brie, Laitue et Sauce Boscaiola" },
-de: { name: 'Old West', description: "Büffel (220g), 'Nduja, Speck, Paprika, Gebackene Oliven, Brie, Salat und Boscaiola-Sauce" }
-}
-},
-{
-id: '12',
-name: 'Veneto',
-description: 'Fassona (270g) sfumata con grappa e aceto balsamico, Scaglie di grana, Radicchio, Lardo, Ketchup, Peperoni grigliati',
-price: 15.00,
-category: ProductCategory.HAMBURGER,
-subCategory: "Old West Special",
-imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/Veneto.jpg',
-isAvailable: true,
-translations: {
-en: { name: 'Veneto', description: 'Fassona (270g) blended with grappa and balsamic vinegar, Grana flakes, Radicchio, Lard, Ketchup, Grilled peppers' },
-fr: { name: 'Veneto', description: 'Fassona (270g) au grappa et vinaigre balsamique, Copeaux de Grana, Radicchio, Lard, Ketchup, Poivrons grillés' },
-de: { name: 'Veneto', description: 'Fassona (270g) mit Grappa und Balsamico, Grana-Flocken, Radicchio, Schmalz, Ketchup, Gegrillte Paprika' }
-}
-},
-{
-id: '13',
-name: 'Lombardo',
-description: 'Chianina (200g), Asparagi, Uovo fritto, Grana grattugiato, Burro fuso',
-price: 14.00,
-category: ProductCategory.HAMBURGER,
-subCategory: "Old West Special",
-imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/Lombardo.jpg',
-isAvailable: true,
-translations: {
-en: { name: 'Lombardo', description: 'Chianina (200g), Asparagus, Fried Egg, Grated Grana, Melted Butter' },
-fr: { name: 'Lombardo', description: 'Chianina (200g), Asperges, Œuf au plat, Grana râpé, Beurre fondu' },
-de: { name: 'Lombardo', description: 'Chianina (200g), Spargel, Spiegelei, Geriebener Grana, Geschmolzene Butter' }
-}
-},
-{
-id: '14',
-name: 'Emiliano',
-description: 'Fassona (270g), Prosciutto crudo, Grana, Asparagi, Sugo di pomodoro con funghi porcini',
-price: 15.00,
-category: ProductCategory.HAMBURGER,
-subCategory: "Old West Special",
-imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/emiliano.jpg',
-isAvailable: true,
-translations: {
-en: { name: 'Emiliano', description: 'Fassona (270g), Raw Ham, Grana, Asparagus, Tomato Sauce with Porcini Mushrooms' },
-fr: { name: 'Emiliano', description: 'Fassona (270g), Jambon Cru, Grana, Asperges, Sauce Tomate aux Cèpes' },
-de: { name: 'Emiliano', description: 'Fassona (270g), Rohschinken, Grana, Spargel, Tomatensauce mit Steinpilzen' }
-}
-},
-{
-id: '15',
-name: 'Siciliano',
-description: 'Bufalo (220g), Peperoni fritti, Cipolle fritte, Pomodorini fritti, Olive infornate, Scaglie di pecorino',
-price: 15.00,
-category: ProductCategory.HAMBURGER,
-subCategory: "Old West Special",
-imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/Siciliano.jpg',
-isAvailable: true,
-translations: {
-en: { name: 'Siciliano', description: 'Buffalo (220g), Fried Peppers, Fried Onions, Fried Cherry Tomatoes, Baked Olives, Pecorino Flakes' },
-fr: { name: 'Siciliano', description: 'Buffle (220g), Poivrons frits, Oignons frits, Tomates cerises frites, Olives au four, Copeaux de Pecorino' },
-de: { name: 'Siciliano', description: 'Büffel (220g), Gebratene Paprika, Gebratene Zwiebeln, Gebratene Kirschtomaten, Gebackene Oliven, Pecorino-Flocken' }
-}
-},
-{
-id: '16',
-name: 'Piemontese',
-description: 'Fassona (270g), Taleggio, Funghi porcini, Maionese, Verza condita (olio, sale, pepe)',
-price: 15.00,
-category: ProductCategory.HAMBURGER,
-subCategory: "Old West Special",
-imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/Piemontese-1.jpg',
-isAvailable: true,
-translations: {
-en: { name: 'Piemontese', description: 'Fassona (270g), Taleggio Cheese, Porcini Mushrooms, Mayonnaise, Seasoned Cabbage' },
-fr: { name: 'Piemontese', description: 'Fassona (270g), Taleggio, Cèpes, Mayonnaise, Chou assaisonné' },
-de: { name: 'Piemontese', description: 'Fassona (270g), Taleggio, Steinpilze, Mayonnaise, Gewürzter Wirsing' }
-}
-},
-{
-id: '17',
-name: 'Uruguay',
-description: 'Angus (200g), Lattuga, Pomodorini, Maionese, Fontina, Bacon, Prosciutto crudo',
-price: 16.00,
-category: ProductCategory.HAMBURGER,
-subCategory: "Old West Special",
-imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/URUGUAY.jpg',
-isAvailable: true,
-translations: {
-en: { name: 'Uruguay', description: 'Angus (200g), Lettuce, Cherry Tomatoes, Mayonnaise, Fontina, Bacon, Raw Ham' },
-fr: { name: 'Uruguay', description: 'Angus (200g), Laitue, Tomates cerises, Mayonnaise, Fontina, Bacon, Jambon Cru' },
-de: { name: 'Uruguay', description: 'Angus (200g), Salat, Kirschtomaten, Mayonnaise, Fontina, Speck, Rohschinken' }
-}
-},
-{
-id: '18',
-name: 'Valdostano',
-description: 'Angus (200g), Fontina, Prosciutto cotto, Funghi champignon, Maionese',
-price: 13.00,
-category: ProductCategory.HAMBURGER,
-subCategory: "Old West Special",
-imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/Valdostano.jpg',
-isAvailable: true,
-translations: {
-en: { name: 'Valdostano', description: 'Angus (200g), Fontina, Cooked Ham, Champignon Mushrooms, Mayonnaise' },
-fr: { name: 'Valdostano', description: 'Angus (200g), Fontina, Jambon Cuit, Champignons de Paris, Mayonnaise' },
-de: { name: 'Valdostano', description: 'Angus (200g), Fontina, Gekochter Schinken, Champignons, Mayonnaise' }
-}
-},
-{
-id: '19',
-name: 'Calabrese',
-description: 'Chianina (200g), Coppa, ‘Nduja, Salsa boscaiola, Melanzane fritte, Peperoncino',
-price: 14.00,
-category: ProductCategory.HAMBURGER,
-subCategory: "Old West Special",
-imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/CALABRESE-.jpg',
-isAvailable: true,
-translations: {
-en: { name: 'Calabrese', description: 'Chianina (200g), Coppa, ‘Nduja, Boscaiola Sauce, Fried Eggplant, Chili Pepper' },
-fr: { name: 'Calabrese', description: 'Chianina (200g), Coppa, ‘Nduja, Sauce Boscaiola, Aubergines frites, Piment' },
-de: { name: 'Calabrese', description: 'Chianina (200g), Coppa, ‘Nduja, Boscaiola-Sauce, Gebratene Auberginen, Chili' }
-}
-},
-{
-id: '20',
-name: 'Campano',
-description: 'Bufalo (220g), Mozzarella di bufala, Friarielli, Salsa boscaiola',
-price: 13.00,
-category: ProductCategory.HAMBURGER,
-subCategory: "Old West Special",
-imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/Campano-scaled.jpg',
-isAvailable: true,
-translations: {
-en: { name: 'Campano', description: 'Buffalo (220g), Buffalo Mozzarella, Friarielli (Broccoli Rabe), Boscaiola Sauce' },
-fr: { name: 'Campano', description: 'Buffle (220g), Mozzarella de Buffle, Friarielli, Sauce Boscaiola' },
-de: { name: 'Campano', description: 'Büffel (220g), Büffelmozzarella, Stängelkohl, Boscaiola-Sauce' }
-}
-},
-{
-id: '21',
-name: 'Laziale',
-description: 'Bufalo (220g), Guanciale, Uovo fritto, Scaglie di pecorino',
-price: 13.00,
-category: ProductCategory.HAMBURGER,
-subCategory: "Old West Special",
-imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/Lazio-scaled.jpg',
-isAvailable: true,
-translations: {
-en: { name: 'Laziale', description: 'Buffalo (220g), Guanciale (Cured Pork Cheek), Fried Egg, Pecorino Flakes' },
-fr: { name: 'Laziale', description: 'Buffle (220g), Guanciale, Œuf au plat, Copeaux de Pecorino' },
-de: { name: 'Laziale', description: 'Büffel (220g), Guanciale, Spiegelei, Pecorino-Flocken' }
-}
-},
-{
-id: '22',
-name: 'Italia',
-description: 'Bufalo (220g), Scaglie di pecorino, Basilico, Pomodorini, Mozzarella di bufala, Speck',
-price: 15.00,
-category: ProductCategory.HAMBURGER,
-subCategory: "Old West Special",
-imageUrl: 'https://oldwest.click/wp-content/uploads/2018/07/20180708_192345.jpg',
-isAvailable: true,
-translations: {
-en: { name: 'Italia', description: 'Buffalo (220g), Pecorino Flakes, Basil, Cherry Tomatoes, Buffalo Mozzarella, Speck' },
-fr: { name: 'Italia', description: 'Buffle (220g), Copeaux de Pecorino, Basilic, Tomates cerises, Mozzarella de Buffle, Speck' },
-de: { name: 'Italia', description: 'Büffel (220g), Pecorino-Flocken, Basilikum, Kirschtomaten, Büffelmozzarella, Speck' }
-}
-},
-{
-id: '23',
-name: "Porky's Piadizza",
-description: 'Piadizza piastrata con burro, Hamburger di salsiccia casereccia, Cheddar, ‘Nduja, Lattuga, Bacon e Pancetta piastrata, Salsa barbecue',
-price: 15.00,
-category: ProductCategory.HAMBURGER,
-subCategory: "Old West Special",
-imageUrl: 'https://oldwest.click/wp-content/uploads/2025/11/porkys-hamb-della-sett-05.11.jpeg',
-isAvailable: true,
-translations: {
-en: { name: "Porky's Piadizza", description: 'Grilled Piadizza with butter, Sausage Burger, Cheddar, ‘Nduja, Lettuce, Bacon and Grilled Pancetta, BBQ Sauce' },
-fr: { name: "Porky's Piadizza", description: 'Piadizza grillée au beurre, Burger de Saucisse, Cheddar, ‘Nduja, Laitue, Bacon et Pancetta grillée, Sauce Barbecue' },
-de: { name: "Porky's Piadizza", description: 'Gegrillte Piadizza mit Butter, Wurst-Burger, Cheddar, ‘Nduja, Salat, Speck und gegrillter Pancetta, Barbecue-Sauce' }
-}
-},
-{
-id: '24',
-name: 'Panino Vegetariano',
-description: 'Melanzane fritte, Mozzarella di bufala, Pomodorini pachino, Lattuga, Basilico o menta (se di stagione), Salsa dressing con yogurt. (Contorno compreso)',
-price: 13.00,
-category: ProductCategory.HAMBURGER,
-subCategory: "Vegetariano/Vegano",
-imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/vegetariano1.jpg',
-isAvailable: true,
-tags: ['Vegetariano'],
-translations: {
-en: { name: 'Vegetarian Sandwich', description: 'Fried Eggplant, Buffalo Mozzarella, Cherry Tomatoes, Lettuce, Basil or Mint, Yogurt Dressing. (Side included)' },
-fr: { name: 'Sandwich Végétarien', description: 'Aubergines frites, Mozzarella de Buffle, Tomates cerises, Laitue, Basilic ou Menthe, Sauce au yaourt. (Accompagnement inclus)' },
-de: { name: 'Vegetarisches Sandwich', description: 'Gebratene Auberginen, Büffelmozzarella, Kirschtomaten, Salat, Basilikum oder Minze, Joghurt-Dressing. (Beilage inklusive)' }
-}
-},
-{
-id: '25',
-name: 'Burger Vegano',
-description: 'Burger (100g), Lattuga, Cipolle rosse cotte (sfumate, con aceto balsamico), Melanzane fritte, Pomodorini conditi, Ketchup',
-price: 12.00,
-category: ProductCategory.HAMBURGER,
-subCategory: "Vegetariano/Vegano",
-imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/vegano-scaled.jpg',
-isAvailable: true,
-tags: ['Vegano'],
-translations: {
-en: { name: 'Vegan Burger', description: 'Burger (100g), Lettuce, Cooked Red Onions, Fried Eggplant, Seasoned Cherry Tomatoes, Ketchup' },
-fr: { name: 'Burger Végan', description: 'Burger (100g), Laitue, Oignons Rouges Cuits, Aubergines Frites, Tomates Cerises Assaisonnées, Ketchup' },
-de: { name: 'Veganer Burger', description: 'Burger (100g), Salat, Gekochte Rote Zwiebeln, Gebratene Auberginen, Gewürzte Kirschtomaten, Ketchup' }
-}
-},
+// ... (Contenuto completo dei prodotti, uguale a prima ma sicuro sulle stringhe)
+{ id: 'bev1', name: 'Acqua', description: 'Naturale / Frizzante', price: 1.50, category: ProductCategory.BEVANDE, imageUrl: '', isAvailable: true, variants: [{ name: '50 cl', price: 1.50 }, { name: '100 cl', price: 2.00 }], translations: { en: { name: 'Water', description: 'Still / Sparkling' }, fr: { name: 'Eau', description: 'Plate / Gazeuse' }, de: { name: 'Wasser', description: 'Still / Sprudelnd' } } },
+{ id: 'bev3', name: 'Bibite 33cl', description: '', price: 3.00, category: ProductCategory.BEVANDE, imageUrl: '', isAvailable: true, translations: { en: { name: 'Soft Drinks 33cl', description: '' }, fr: { name: 'Boissons Gazeuses 33cl', description: '' }, de: { name: 'Erfrischungsgetränke 33cl', description: '' } } },
+{ id: 'bev4', name: 'Bibite 45 cl', description: '', price: 3.50, category: ProductCategory.BEVANDE, imageUrl: '', isAvailable: true, translations: { en: { name: 'Soft Drinks 45 cl', description: '' }, fr: { name: 'Boissons Gazeuses 45 cl', description: '' }, de: { name: 'Erfrischungsgetränke 45 cl', description: '' } } },
+{ id: 'bev5', name: 'Birra Bionda Leggera alla Spina', description: 'Bionda leggera gradi 5,5', brand: 'HACHER - PSCHORR Munich Gold', price: 3.00, category: ProductCategory.BEVANDE, imageUrl: '', isAvailable: true, variants: [{ name: 'Piccola 20cl', price: 3.00 }, { name: 'Media 40cl', price: 5.50 }], translations: { en: { name: 'Light Draft Beer', description: 'Light blonde 5.5 degrees' }, fr: { name: 'Bière Pression Légère', description: 'Blonde légère 5,5 degrés' }, de: { name: 'Helles Bier vom Fass', description: 'Helles 5,5 Grad' } } },
+{ id: 'bev7', name: 'Birra Bionda Doppio Malto alla Spina', description: 'Bionda doppio malto gradi 8', brand: 'DOLOMITI - BIRRA ITALIANA', price: 3.50, category: ProductCategory.BEVANDE, imageUrl: '', isAvailable: true, variants: [{ name: 'Piccola 20cl', price: 3.50 }, { name: 'Media 40cl', price: 6.50 }], translations: { en: { name: 'Double Malt Draft Beer', description: 'Double malt blonde 8 degrees' }, fr: { name: 'Bière Double Malt Pression', description: 'Blonde double malt 8 degrés' }, de: { name: 'Doppelbock vom Fass', description: 'Doppelbock 8 Grad' } } },
+{ id: 'bev8', name: 'Birra Rossa Doppio Malto alla Spina', description: 'Rossa doppio malto gradi 7,9', brand: 'PAULANER SALVATOR', price: 3.50, category: ProductCategory.BEVANDE, imageUrl: '', isAvailable: true, variants: [{ name: 'Piccola 20cl', price: 3.50 }, { name: 'Media 40cl', price: 6.50 }], translations: { en: { name: 'Red Double Malt Draft Beer', description: 'Red double malt 7.9 degrees' }, fr: { name: 'Bière Rouge Double Malt Pression', description: 'Rouge double malt 7,9 degrés' }, de: { name: 'Rotes Doppelbock vom Fass', description: 'Rotes Doppelbock 7,9 Grad' } } },
+{ id: 'bev9', name: 'Birra Cruda alla Spina', description: 'Bionda cruda gradi 5,5', brand: 'PAULANER HEFE - WEIẞBIER', price: 3.50, category: ProductCategory.BEVANDE, imageUrl: '', isAvailable: true, variants: [{ name: 'Piccola 20cl', price: 3.50 }, { name: 'Media 40cl', price: 6.50 }], translations: { en: { name: 'Raw Draft Beer', description: 'Raw blonde 5.5 degrees' }, fr: { name: 'Bière Crue Pression', description: 'Blonde crue 5,5 degrés' }, de: { name: 'Unfiltriertes Bier vom Fass', description: 'Helles Unfiltriertes 5,5 Grad' } } },
+{ id: 'bev10', name: 'Birre in Bottiglia 33cl', description: '', price: 5.00, category: ProductCategory.BEVANDE, imageUrl: '', isAvailable: true, translations: { en: { name: 'Bottled Beers 33cl', description: '' }, fr: { name: 'Bières en Bouteille 33cl', description: '' }, de: { name: 'Flaschenbiere 33cl', description: '' } } },
+{ id: 'bev11', name: 'Vino in Bottiglia 75cl', description: '', price: 16.00, category: ProductCategory.BEVANDE, imageUrl: '', isAvailable: true, translations: { en: { name: 'Bottled Wine 75cl', description: '' }, fr: { name: 'Vin en Bouteille 75cl', description: '' }, de: { name: 'Flaschenwein 75cl', description: '' } } },
+{ id: 'bev12', name: 'Vino Spumante Millesimato 75cl', description: '', price: 20.00, category: ProductCategory.BEVANDE, imageUrl: '', isAvailable: true, translations: { en: { name: 'Vintage Sparkling Wine 75cl', description: '' }, fr: { name: 'Vin Mousseux Millésimé 75cl', description: '' }, de: { name: 'Jahrgangssekt 75cl', description: '' } } },
+{ id: 'bev13', name: 'Vino Sfuso Rosso/Bianco', description: '', price: 5.00, category: ProductCategory.BEVANDE, imageUrl: '', isAvailable: true, variants: [{ name: '1/4 L', price: 5.00 }, { name: '1/2 L', price: 7.00 }, { name: '1 L', price: 13.00 }], translations: { en: { name: 'House Wine Red/White', description: '' }, fr: { name: 'Vin Maison Rouge/Blanc', description: '' }, de: { name: 'Hauswein Rot/Weiß', description: '' } } },
+{ id: 'bev14', name: 'Caffè', description: '', price: 2.00, category: ProductCategory.BEVANDE, imageUrl: '', isAvailable: true, translations: { en: { name: 'Espresso', description: '' }, fr: { name: 'Café', description: '' }, de: { name: 'Espresso', description: '' } } },
+{ id: 'bev15', name: 'Caffè Corretto', description: '', price: 2.50, category: ProductCategory.BEVANDE, imageUrl: '', isAvailable: true, translations: { en: { name: 'Caffè Corretto', description: '' }, fr: { name: 'Café Corretto', description: '' }, de: { name: 'Caffè Corretto', description: '' } } },
+{ id: 'bev16', name: 'Amari', description: '', price: 3.50, category: ProductCategory.BEVANDE, imageUrl: '', isAvailable: true, translations: { en: { name: 'Bitters/Digestifs', description: '' }, fr: { name: 'Digestifs', description: '' }, de: { name: 'Bitter/Digestifs', description: '' } } },
+{ id: '1', name: 'Old West', description: "Bufalo (220g), 'Nduja, Bacon, Peperoni, Olive infornate, Brie, Lattuga e Salsa boscaiola", price: 17.00, category: ProductCategory.HAMBURGER, subCategory: "Old West Special", imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/hamburger-old-west.jpg', isAvailable: true, tags: ['Best Seller'], translations: { en: { name: 'Old West', description: "Buffalo (220g), 'Nduja, Bacon, Peppers, Baked Olives, Brie, Lettuce and Boscaiola Sauce" }, fr: { name: 'Old West', description: "Buffle (220g), 'Nduja, Bacon, Poivrons, Olives au four, Brie, Laitue et Sauce Boscaiola" }, de: { name: 'Old West', description: "Büffel (220g), 'Nduja, Speck, Paprika, Gebackene Oliven, Brie, Salat und Boscaiola-Sauce" } } },
+{ id: '12', name: 'Veneto', description: 'Fassona (270g) sfumata con grappa e aceto balsamico, Scaglie di grana, Radicchio, Lardo, Ketchup, Peperoni grigliati', price: 15.00, category: ProductCategory.HAMBURGER, subCategory: "Old West Special", imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/Veneto.jpg', isAvailable: true, translations: { en: { name: 'Veneto', description: 'Fassona (270g) blended with grappa and balsamic vinegar, Grana flakes, Radicchio, Lard, Ketchup, Grilled peppers' }, fr: { name: 'Veneto', description: 'Fassona (270g) au grappa et vinaigre balsamique, Copeaux de Grana, Radicchio, Lard, Ketchup, Poivrons grillés' }, de: { name: 'Veneto', description: 'Fassona (270g) mit Grappa und Balsamico, Grana-Flocken, Radicchio, Schmalz, Ketchup, Gegrillte Paprika' } } },
+{ id: '13', name: 'Lombardo', description: 'Chianina (200g), Asparagi, Uovo fritto, Grana grattugiato, Burro fuso', price: 14.00, category: ProductCategory.HAMBURGER, subCategory: "Old West Special", imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/Lombardo.jpg', isAvailable: true, translations: { en: { name: 'Lombardo', description: 'Chianina (200g), Asparagus, Fried Egg, Grated Grana, Melted Butter' }, fr: { name: 'Lombardo', description: 'Chianina (200g), Asperges, Œuf au plat, Grana râpé, Beurre fondu' }, de: { name: 'Lombardo', description: 'Chianina (200g), Spargel, Spiegelei, Geriebener Grana, Geschmolzene Butter' } } },
+{ id: '14', name: 'Emiliano', description: 'Fassona (270g), Prosciutto crudo, Grana, Asparagi, Sugo di pomodoro con funghi porcini', price: 15.00, category: ProductCategory.HAMBURGER, subCategory: "Old West Special", imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/emiliano.jpg', isAvailable: true, translations: { en: { name: 'Emiliano', description: 'Fassona (270g), Raw Ham, Grana, Asparagus, Tomato Sauce with Porcini Mushrooms' }, fr: { name: 'Emiliano', description: 'Fassona (270g), Jambon Cru, Grana, Asperges, Sauce Tomate aux Cèpes' }, de: { name: 'Emiliano', description: 'Fassona (270g), Rohschinken, Grana, Spargel, Tomatensauce mit Steinpilzen' } } },
+{ id: '15', name: 'Siciliano', description: 'Bufalo (220g), Peperoni fritti, Cipolle fritte, Pomodorini fritti, Olive infornate, Scaglie di pecorino', price: 15.00, category: ProductCategory.HAMBURGER, subCategory: "Old West Special", imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/Siciliano.jpg', isAvailable: true, translations: { en: { name: 'Siciliano', description: 'Buffalo (220g), Fried Peppers, Fried Onions, Fried Cherry Tomatoes, Baked Olives, Pecorino Flakes' }, fr: { name: 'Siciliano', description: 'Buffle (220g), Poivrons frits, Oignons frits, Tomates cerises frites, Olives au four, Copeaux de Pecorino' }, de: { name: 'Siciliano', description: 'Büffel (220g), Gebratene Paprika, Gebratene Zwiebeln, Gebratene Kirschtomaten, Gebackene Oliven, Pecorino-Flocken' } } },
+{ id: '16', name: 'Piemontese', description: 'Fassona (270g), Taleggio, Funghi porcini, Maionese, Verza condita (olio, sale, pepe)', price: 15.00, category: ProductCategory.HAMBURGER, subCategory: "Old West Special", imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/Piemontese-1.jpg', isAvailable: true, translations: { en: { name: 'Piemontese', description: 'Fassona (270g), Taleggio Cheese, Porcini Mushrooms, Mayonnaise, Seasoned Cabbage' }, fr: { name: 'Piemontese', description: 'Fassona (270g), Taleggio, Cèpes, Mayonnaise, Chou assaisonné' }, de: { name: 'Piemontese', description: 'Fassona (270g), Taleggio, Steinpilze, Mayonnaise, Gewürzter Wirsing' } } },
+{ id: '17', name: 'Uruguay', description: 'Angus (200g), Lattuga, Pomodorini, Maionese, Fontina, Bacon, Prosciutto crudo', price: 16.00, category: ProductCategory.HAMBURGER, subCategory: "Old West Special", imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/URUGUAY.jpg', isAvailable: true, translations: { en: { name: 'Uruguay', description: 'Angus (200g), Lettuce, Cherry Tomatoes, Mayonnaise, Fontina, Bacon, Raw Ham' }, fr: { name: 'Uruguay', description: 'Angus (200g), Laitue, Tomates cerises, Mayonnaise, Fontina, Bacon, Jambon Cru' }, de: { name: 'Uruguay', description: 'Angus (200g), Salat, Kirschtomaten, Mayonnaise, Fontina, Speck, Rohschinken' } } },
+{ id: '18', name: 'Valdostano', description: 'Angus (200g), Fontina, Prosciutto cotto, Funghi champignon, Maionese', price: 13.00, category: ProductCategory.HAMBURGER, subCategory: "Old West Special", imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/Valdostano.jpg', isAvailable: true, translations: { en: { name: 'Valdostano', description: 'Angus (200g), Fontina, Cooked Ham, Champignon Mushrooms, Mayonnaise' }, fr: { name: 'Valdostano', description: 'Angus (200g), Fontina, Jambon Cuit, Champignons de Paris, Mayonnaise' }, de: { name: 'Valdostano', description: 'Angus (200g), Fontina, Gekochter Schinken, Champignons, Mayonnaise' } } },
+{ id: '19', name: 'Calabrese', description: 'Chianina (200g), Coppa, ‘Nduja, Salsa boscaiola, Melanzane fritte, Peperoncino', price: 14.00, category: ProductCategory.HAMBURGER, subCategory: "Old West Special", imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/CALABRESE-.jpg', isAvailable: true, translations: { en: { name: 'Calabrese', description: 'Chianina (200g), Coppa, ‘Nduja, Boscaiola Sauce, Fried Eggplant, Chili Pepper' }, fr: { name: 'Calabrese', description: 'Chianina (200g), Coppa, ‘Nduja, Sauce Boscaiola, Aubergines frites, Piment' }, de: { name: 'Calabrese', description: 'Chianina (200g), Coppa, ‘Nduja, Boscaiola-Sauce, Gebratene Auberginen, Chili' } } },
+{ id: '20', name: 'Campano', description: 'Bufalo (220g), Mozzarella di bufala, Friarielli, Salsa boscaiola', price: 13.00, category: ProductCategory.HAMBURGER, subCategory: "Old West Special", imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/Campano-scaled.jpg', isAvailable: true, translations: { en: { name: 'Campano', description: 'Buffalo (220g), Buffalo Mozzarella, Friarielli (Broccoli Rabe), Boscaiola Sauce' }, fr: { name: 'Campano', description: 'Buffle (220g), Mozzarella de Buffle, Friarielli, Sauce Boscaiola' }, de: { name: 'Campano', description: 'Büffel (220g), Büffelmozzarella, Stängelkohl, Boscaiola-Sauce' } } },
+{ id: '21', name: 'Laziale', description: 'Bufalo (220g), Guanciale, Uovo fritto, Scaglie di pecorino', price: 13.00, category: ProductCategory.HAMBURGER, subCategory: "Old West Special", imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/Lazio-scaled.jpg', isAvailable: true, translations: { en: { name: 'Laziale', description: 'Buffalo (220g), Guanciale (Cured Pork Cheek), Fried Egg, Pecorino Flakes' }, fr: { name: 'Laziale', description: 'Buffle (220g), Guanciale, Œuf au plat, Copeaux de Pecorino' }, de: { name: 'Laziale', description: 'Büffel (220g), Guanciale, Spiegelei, Pecorino-Flocken' } } },
+{ id: '22', name: 'Italia', description: 'Bufalo (220g), Scaglie di pecorino, Basilico, Pomodorini, Mozzarella di bufala, Speck', price: 15.00, category: ProductCategory.HAMBURGER, subCategory: "Old West Special", imageUrl: 'https://oldwest.click/wp-content/uploads/2018/07/20180708_192345.jpg', isAvailable: true, translations: { en: { name: 'Italia', description: 'Buffalo (220g), Pecorino Flakes, Basil, Cherry Tomatoes, Buffalo Mozzarella, Speck' }, fr: { name: 'Italia', description: 'Buffle (220g), Copeaux de Pecorino, Basilic, Tomates cerises, Mozzarella de Buffle, Speck' }, de: { name: 'Italia', description: 'Büffel (220g), Pecorino-Flocken, Basilikum, Kirschtomaten, Büffelmozzarella, Speck' } } },
+{ id: '23', name: "Porky's Piadizza", description: 'Piadizza piastrata con burro, Hamburger di salsiccia casereccia, Cheddar, ‘Nduja, Lattuga, Bacon e Pancetta piastrata, Salsa barbecue', price: 15.00, category: ProductCategory.HAMBURGER, subCategory: "Old West Special", imageUrl: 'https://oldwest.click/wp-content/uploads/2025/11/porkys-hamb-della-sett-05.11.jpeg', isAvailable: true, translations: { en: { name: "Porky's Piadizza", description: 'Grilled Piadizza with butter, Sausage Burger, Cheddar, ‘Nduja, Lettuce, Bacon and Grilled Pancetta, BBQ Sauce' }, fr: { name: "Porky's Piadizza", description: 'Piadizza grillée au beurre, Burger de Saucisse, Cheddar, ‘Nduja, Laitue, Bacon et Pancetta grillée, Sauce Barbecue' }, de: { name: "Porky's Piadizza", description: 'Gegrillte Piadizza mit Butter, Wurst-Burger, Cheddar, ‘Nduja, Salat, Speck und gegrillter Pancetta, Barbecue-Sauce' } } },
+{ id: '24', name: 'Panino Vegetariano', description: 'Melanzane fritte, Mozzarella di bufala, Pomodorini pachino, Lattuga, Basilico o menta (se di stagione), Salsa dressing con yogurt. (Contorno compreso)', price: 13.00, category: ProductCategory.HAMBURGER, subCategory: "Vegetariano/Vegano", imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/vegetariano1.jpg', isAvailable: true, tags: ['Vegetariano'], translations: { en: { name: 'Vegetarian Sandwich', description: 'Fried Eggplant, Buffalo Mozzarella, Cherry Tomatoes, Lettuce, Basil or Mint, Yogurt Dressing. (Side included)' }, fr: { name: 'Sandwich Végétarien', description: 'Aubergines frites, Mozzarella de Buffle, Tomates cerises, Laitue, Basilic ou Menthe, Sauce au yaourt. (Accompagnement inclus)' }, de: { name: 'Vegetarisches Sandwich', description: 'Gebratene Auberginen, Büffelmozzarella, Kirschtomaten, Salat, Basilikum oder Minze, Joghurt-Dressing. (Beilage inklusive)' } } },
+{ id: '25', name: 'Burger Vegano', description: 'Burger (100g), Lattuga, Cipolle rosse cotte (sfumate, con aceto balsamico), Melanzane fritte, Pomodorini conditi, Ketchup', price: 12.00, category: ProductCategory.HAMBURGER, subCategory: "Vegetariano/Vegano", imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/vegano-scaled.jpg', isAvailable: true, tags: ['Vegano'], translations: { en: { name: 'Vegan Burger', description: 'Burger (100g), Lettuce, Cooked Red Onions, Fried Eggplant, Seasoned Cherry Tomatoes, Ketchup' }, fr: { name: 'Burger Végan', description: 'Burger (100g), Laitue, Oignons Rouges Cuits, Aubergines Frites, Tomates Cerises Assaisonnées, Ketchup' }, de: { name: 'Veganer Burger', description: 'Burger (100g), Salat, Gekochte Rote Zwiebeln, Gebratene Auberginen, Gewürzte Kirschtomaten, Ketchup' } } },
 // --- PIZZE ---
 { id: 'p1', name: 'Americana', description: 'Pomodoro, Mozzarella, Salsiccia e Patatine fritte*', price: 10.00, category: ProductCategory.PIZZA, imageUrl: 'https://oldwest.click/wp-content/uploads/2025/11/americana-scaled.jpg', isAvailable: true, translations: { en: { name: 'Americana', description: 'Tomato, Mozzarella, Sausage and French Fries*' }, fr: { name: 'Americana', description: 'Tomate, Mozzarella, Saucisse et Frites*' }, de: { name: 'Americana', description: 'Tomate, Mozzarella, Wurst und Pommes Frites*' } } },
 { id: 'p2', name: 'Angela', description: 'Pomodoro, Mozzarella, Tonno e Patatine fritte*', price: 10.00, category: ProductCategory.PIZZA, imageUrl: 'https://oldwest.click/wp-content/uploads/2025/11/angela-scaled.jpg', isAvailable: true, translations: { en: { name: 'Angela', description: 'Tomato, Mozzarella, Tuna and French Fries*' }, fr: { name: 'Angela', description: 'Tomate, Mozzarella, Thon et Frites*' }, de: { name: 'Angela', description: 'Tomate, Mozzarella, Thunfisch und Pommes Frites*' } } },
@@ -706,7 +276,7 @@ imageUrl: 'https://oldwest.click/wp-content/uploads/2025/11/335-225-tagliata-di-
 isAvailable: true,
 translations: {
 en: { name: 'Irish Angus Steak', description: 'Fine Irish Angus Steak served plated. (side included)' },
-fr: { name: "Tagliata d'Angus Irlandais", description: "Tagliata d'Angus Irlandais servie sur assiette. (accompagnement inclus)" },
+fr: { name: 'Tagliata d'Angus Irlandais', description: 'Tagliata d'Angus Irlandais servie sur assiette. (accompagnement inclus)' },
 de: { name: 'Irisches Angus-Steak', description: 'Feines irisches Angus-Steak auf dem Teller serviert. (Beilage inklusive)' }
 }
 },
@@ -720,7 +290,7 @@ imageUrl: 'https://oldwest.click/wp-content/uploads/2019/11/abanico-iberico.png'
 isAvailable: true,
 translations: {
 en: { name: 'Iberian Abanico Steak', description: 'Tasty cut of Iberian pork. (side included)' },
-fr: { name: "Tagliata d'Abanico Ibérique", description: 'Coupe savoureuse de porc ibérique. (accompagnement inclus)' },
+fr: { name: 'Tagliata d'Abanico Ibérique', description: 'Coupe savoureuse de porc ibérique. (accompagnement inclus)' },
 de: { name: 'Iberisches Abanico-Steak', description: 'Leckeres Stück vom iberischen Schwein. (Beilage inklusive)' }
 }
 },
@@ -762,7 +332,7 @@ imageUrl: 'https://oldwest.click/wp-content/uploads/2025/11/costolette.jpg',
 isAvailable: true,
 translations: {
 en: { name: 'Lamb Chops', description: 'Tender grilled lamb chops. (side included)' },
-fr: { name: "Côtelettes d'Agneau", description: "Tendres côtelettes d'agneau grillées. (accompagnement inclus)" },
+fr: { name: 'Côtelettes d'Agneau', description: 'Tendres côtelettes d'agneau grillées. (accompagnement inclus)' },
 de: { name: 'Lammkoteletts', description: 'Zarte gegrillte Lammkoteletts. (Beilage inklusive)' }
 }
 },
@@ -791,7 +361,7 @@ isAvailable: true,
 tags: ['Consigliato'],
 translations: {
 en: { name: 'Tasting Platter', description: '100g Angus, Lamb Chops, 100g Buffalo, 100g Iberian Abanico, 100g Beef. (side included)' },
-fr: { name: 'Planche de Dégustation', description: "100g Angus, Côtelettes d'agneau, 100g Buffle, 100g Abanico Ibérique, 100g Bœuf. (accompagnement inclus)" },
+fr: { name: 'Planche de Dégustation', description: '100g Angus, Côtelettes d'agneau, 100g Buffle, 100g Abanico Ibérique, 100g Bœuf. (accompagnement inclus)' },
 de: { name: 'Verkostungsplatte', description: '100g Angus, Lammkoteletts, 100g Büffel, 100g Iberisches Abanico, 100g Rind. (Beilage inklusive)' }
 }
 },
