@@ -10,45 +10,45 @@ import {
   Cookie, 
   Beer, 
   Settings, 
-  Plus,
-  Trash2,
-  LogOut,
-  ChevronLeft,
-  ChevronRight,
-  Lock,
-  Utensils,
-  Star,
-  MapPin,
-  Clock,
-  Instagram,
-  Facebook,
-  Phone,
-  LayoutGrid,
-  ArrowRight,
-  Upload,
-  Image as ImageIcon,
-  Download,
-  FileJson,
-  RotateCcw,
-  CheckCircle2,
-  Save,
-  ChevronDown,
-  ChevronUp,
-  X,
-  Loader2,
-  Pencil,
-  RefreshCw,
-  Wheat,
-  CircleDot,
-  Globe,
-  Languages,
-  Check,
-  Leaf,
-  Flame,
-  Award,
-  QrCode,
+  Plus, 
+  Trash2, 
+  LogOut, 
+  ChevronLeft, 
+  ChevronRight, 
+  Lock, 
+  Utensils, 
+  Star, 
+  MapPin, 
+  Clock, 
+  Instagram, 
+  Facebook, 
+  Phone, 
+  LayoutGrid, 
+  ArrowRight, 
+  Upload, 
+  Image as ImageIcon, 
+  Download, 
+  FileJson, 
+  RotateCcw, 
+  CheckCircle2, 
+  Save, 
+  ChevronDown, 
+  ChevronUp, 
+  X, 
+  Loader2, 
+  Pencil, 
+  RefreshCw, 
+  Wheat, 
+  CircleDot, 
+  Globe, 
+  Languages, 
+  Check, 
+  Leaf, 
+  Flame, 
+  Award, 
+  QrCode, 
   Database,
-  Sprout // Icona Vegano
+  Sprout
 } from 'lucide-react';
 import { MenuItem, ProductCategory, ViewState, LanguageCode, ActiveFilters } from './types';
 import { INITIAL_MENU_ITEMS, CATEGORIES_LIST, HAMBURGER_SUBCATEGORIES, DIY_OPTIONS, UI_TRANSLATIONS, CATEGORY_TRANSLATIONS, DATA_VERSION } from './constants';
@@ -135,10 +135,9 @@ export default function App() {
   const [activeSubCategoryView, setActiveSubCategoryView] = useState<string | null>(null);
   const [diySelections, setDiySelections] = useState<Record<number, string>>({});
   
-  // NUOVO STATO FILTRI CON VEGANO
   const [activeFilters, setActiveFilters] = useState<ActiveFilters>({
     vegetarian: false,
-    vegan: false, // <--- Aggiunto
+    vegan: false, 
     spicy: false,
     bestseller: false
   });
@@ -249,19 +248,17 @@ export default function App() {
      return opt.translations?.[lang]?.name || opt.name;
   };
 
-  // --- LOGICA FILTRI AGGIORNATA ---
   const checkFilters = (item: MenuItem) => {
     if (activeFilters.vegetarian) {
       const isVeg = item.tags?.includes('Vegetariano') || item.tags?.includes('Vegano') || item.category === ProductCategory.CONTORNI || (item.category === ProductCategory.PIZZA && (item.name === 'Vegetariana' || item.name === 'Margherita' || item.name === 'Marinara' || item.name === 'Verdure'));
       if (!isVeg) return false;
     }
-    // Filtro Vegano specifico
     if (activeFilters.vegan) {
-      const isVegan = item.tags?.includes('Vegano') || (item.category === ProductCategory.CONTORNI && item.name !== 'Patatine Fritte' /* Esempio */) || (item.category === ProductCategory.PIZZA && item.name === 'Marinara'); 
+      const isVegan = item.tags?.includes('Vegano') || (item.category === ProductCategory.CONTORNI && item.name !== 'Patatine Fritte') || (item.category === ProductCategory.PIZZA && item.name === 'Marinara'); 
       if (!isVegan) return false;
     }
     if (activeFilters.spicy) {
-      const isSpicy = item.tags?.includes('Piccante') || item.description.toLowerCase().includes('piccante') || item.description.toLowerCase().includes('nduja'); 
+      const isSpicy = item.tags?.includes('Piccante') || item.description.toLowerCase().includes('piccante') || item.description.toLowerCase().includes('nduja') || item.description.toLowerCase().includes('salamella'); 
       if (!isSpicy) return false;
     }
     if (activeFilters.bestseller) {
@@ -381,48 +378,7 @@ export default function App() {
   const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => { alert("L'importazione da file JSON locale è disabilitata ora che usi il Database Cloud. Usa la funzione 'Sincronizza Menu Iniziale' o aggiungi i prodotti manualmente."); };
   const handleFactoryReset = () => { alert("Il reset di fabbrica locale non è disponibile con il Database Cloud. Per resettare, cancella i prodotti dal database."); };
 
-  const renderHeader = () => (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${view === 'MENU' ? 'bg-wood-900/95 backdrop-blur-md border-b border-wood-800' : 'bg-wood-900 shadow-md'}`}>
-      <div className="container mx-auto px-4 h-16 md:h-20 flex justify-between items-center">
-        <div className="flex items-center gap-3 group cursor-pointer" onClick={() => setView('MENU')}>
-           <div className="transform group-hover:rotate-12 transition-transform duration-300">
-             <WesternLogo size="md" url={customLogo} />
-           </div>
-           <div className="flex flex-col">
-              <span className="font-western text-xl text-white tracking-wide leading-none">OLD WEST</span>
-              <span className="text-[10px] uppercase tracking-[0.2em] text-accent-500 font-bold">Cameri</span>
-           </div>
-        </div>
-        
-        {view === 'MENU' ? (
-          <div className="flex items-center gap-4">
-             <div className="relative">
-                {isLangMenuOpen && <div className="fixed inset-0 z-40" onClick={() => setIsLangMenuOpen(false)}></div>}
-                <button onClick={() => setIsLangMenuOpen(!isLangMenuOpen)} className="flex items-center gap-2 bg-wood-800 hover:bg-wood-700 transition-colors pl-3 pr-2 py-1.5 rounded-xl border border-wood-700 text-white">
-                   <span className="text-xl leading-none">{LANGUAGES_CONFIG.find(l => l.code === lang)?.flag}</span>
-                   <ChevronDown size={14} className={`text-wood-400 transition-transform ${isLangMenuOpen ? 'rotate-180' : ''}`} />
-                </button>
-                {isLangMenuOpen && (
-                   <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-wood-100 overflow-hidden py-1 z-50 animate-in fade-in zoom-in-95 duration-200">
-                      {LANGUAGES_CONFIG.map((language) => (
-                        <button key={language.code} onClick={() => { setLang(language.code as LanguageCode); setIsLangMenuOpen(false); }} className={`w-full flex items-center justify-between px-4 py-3 hover:bg-wood-50 transition-colors text-left ${lang === language.code ? 'bg-accent-50 text-accent-700' : 'text-wood-700'}`}>
-                           <div className="flex items-center gap-3"><span className="text-2xl leading-none shadow-sm rounded-sm">{language.flag}</span><span className="text-sm font-bold">{language.label}</span></div>
-                           {lang === language.code && <Check size={16} />}
-                        </button>
-                      ))}
-                   </div>
-                )}
-             </div>
-             <button onClick={() => setView('LOGIN')} className="w-10 h-10 rounded-full flex items-center justify-center text-wood-400 hover:text-white hover:bg-wood-800 transition-all" aria-label="Admin Login"><Settings size={20} /></button>
-          </div>
-        ) : (
-          <button onClick={() => { setView('MENU'); setActiveCategory('Tutti'); window.scrollTo(0,0); }} className="flex items-center gap-2 bg-wood-800 text-white px-5 py-2 rounded-full hover:bg-accent-600 transition-colors text-sm font-medium">
-            <LogOut size={16} /> <span className="hidden md:inline">{t('back_to_menu')}</span>
-          </button>
-        )}
-      </div>
-    </nav>
-  );
+  // --- DEFINIZIONE FUNZIONI RENDER (ORDINE CORRETTO) ---
 
   const renderHighlights = () => {
     const highlightedItems = items.filter(item => item.tags?.some(tag => tag === 'Best Seller' || tag === 'Consigliato'));
@@ -461,10 +417,7 @@ export default function App() {
     <div className="container mx-auto px-4 mb-6">
       <div className="flex flex-wrap gap-2">
         <button onClick={() => setActiveFilters(prev => ({...prev, vegetarian: !prev.vegetarian}))} className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all border ${activeFilters.vegetarian ? 'bg-green-100 border-green-200 text-green-700' : 'bg-white border-wood-200 text-wood-500 hover:bg-wood-50'}`}><Leaf size={14} /> {t('filter_veg')}</button>
-        
-        {/* TASTO FILTRO VEGANO AGGIUNTO */}
         <button onClick={() => setActiveFilters(prev => ({...prev, vegan: !prev.vegan}))} className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all border ${activeFilters.vegan ? 'bg-emerald-100 border-emerald-200 text-emerald-700' : 'bg-white border-wood-200 text-wood-500 hover:bg-wood-50'}`}><Sprout size={14} /> Vegano</button>
-        
         <button onClick={() => setActiveFilters(prev => ({...prev, spicy: !prev.spicy}))} className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all border ${activeFilters.spicy ? 'bg-red-100 border-red-200 text-red-700' : 'bg-white border-wood-200 text-wood-500 hover:bg-wood-50'}`}><Flame size={14} /> {t('filter_spicy')}</button>
         <button onClick={() => setActiveFilters(prev => ({...prev, bestseller: !prev.bestseller}))} className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all border ${activeFilters.bestseller ? 'bg-yellow-100 border-yellow-200 text-yellow-700' : 'bg-white border-wood-200 text-wood-500 hover:bg-wood-50'}`}><Award size={14} /> {t('filter_best')}</button>
       </div>
@@ -515,117 +468,97 @@ export default function App() {
     </div>
   )};
 
-  const renderMenu = () => {
-    const hasAnyItems = items.length > 0;
-    const navCategories = ['Tutti', ...CATEGORIES_LIST];
+  const renderDIYBuilder = () => {
+    let currentTotal = DIY_OPTIONS.basePrice;
+    DIY_OPTIONS.steps.forEach(step => {
+      const selectedName = diySelections[step.id];
+      if (selectedName) {
+        const optionData = step.options.find(opt => opt.name === selectedName);
+        if (optionData) currentTotal += optionData.price;
+      }
+    });
     return (
-      <div className="min-h-screen pt-16 md:pt-20">
-        <div className="relative h-[250px] md:h-[300px] flex items-center justify-center overflow-hidden bg-wood-900">
-          <div className="absolute inset-0 bg-[url('https://oldwest.click/wp-content/uploads/2018/07/background1.jpg')] bg-cover bg-center filter brightness-75"></div>
-          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/80"></div>
-          <div className="relative z-10 text-center px-4 max-w-2xl mx-auto">
-            <h1 className="text-4xl md:text-6xl font-western text-white mb-4 drop-shadow-lg">{t('hero_title')}</h1>
-            <div className="inline-flex flex-wrap justify-center gap-4 md:gap-8 bg-black/60 backdrop-blur-sm p-3 rounded-2xl border border-white/10">
-              {/* ORARI AGGIORNATI QUI */}
-              <div className="flex items-center gap-2 text-wood-100"><Clock size={18} className="text-accent-500" /><span className="text-sm font-medium">11:00 - 15:00 | 17:00 - 00:00</span></div>
-              <div className="w-px h-5 bg-white/20 hidden md:block"></div>
-              <div className="flex items-center gap-2 text-wood-100"><MapPin size={18} className="text-accent-500" /><span className="text-sm font-medium">Via G. Galilei 35, Cameri</span></div>
-            </div>
-          </div>
-        </div>
-        <div className="sticky top-[64px] md:top-[80px] z-40 bg-wood-50/80 backdrop-blur-xl border-b border-wood-200 shadow-sm">
-          <div className="container mx-auto py-4">
-            <div className="flex overflow-x-auto gap-3 px-4 no-scrollbar items-center">
-              {navCategories.map((cat) => {
-                const isActive = activeCategory === cat;
-                return (
-                  <button key={cat} id={`btn-${cat}`} onClick={() => handleCategoryClick(cat)} className={`group flex items-center gap-2 px-5 py-2.5 rounded-full whitespace-nowrap transition-all duration-300 flex-shrink-0 ${isActive ? 'bg-wood-900 text-white shadow-lg ring-2 ring-accent-500 ring-offset-2 ring-offset-wood-50 scale-105' : 'bg-white text-wood-600 hover:bg-wood-200 border border-wood-100'}`}>
-                    <CategoryIcon category={cat as any} className={`w-4 h-4 ${isActive ? 'text-accent-500' : 'text-wood-400 group-hover:text-wood-600'}`} />
-                    <span className={`text-sm font-bold tracking-wide ${isActive ? '' : 'opacity-80'}`}>{tCategory(cat)}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-        <div className="container mx-auto px-4 py-8 md:py-12 min-h-[50vh]">
-          {!hasAnyItems && (
-            <div className="flex flex-col items-center justify-center py-24 text-center opacity-50 bg-white rounded-3xl border border-dashed border-wood-300 mx-auto max-w-lg"><UtensilsCrossed size={48} className="text-wood-400 mb-4" /><h3 className="text-xl font-bold text-wood-800">{t('updating_menu')}</h3><p className="text-wood-500">{t('check_back')}</p></div>
-          )}
-          {activeCategory === 'Tutti' && renderHighlights()}
-          {hasAnyItems && renderFilters()}
-          {activeCategory === 'Tutti' && hasAnyItems && (
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-500">
-               {CATEGORIES_LIST.map((cat) => {
-                 const filteredCategoryItems = items.filter(i => i.category === cat).filter(checkFilters);
-                 const catCount = filteredCategoryItems.length;
-                 if (catCount === 0) return null;
+      <div className="space-y-6">
+        <div className="bg-white rounded-[2rem] p-8 shadow-soft border border-wood-100 relative overflow-hidden">
+          <div className="relative z-10">
+            <h3 className="text-2xl md:text-3xl font-western text-wood-900 mb-2">{t('diy_title')}</h3>
+            <p className="text-wood-500 mb-6 max-w-2xl">{t('diy_subtitle')}</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+               {DIY_OPTIONS.steps.map((step) => {
+                 const { title, description } = getDIYStepContent(step);
                  return (
-                   <button key={cat} onClick={() => handleCategoryClick(cat)} className="group bg-white rounded-[2rem] p-6 shadow-soft hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-wood-100 text-left flex items-center justify-between">
-                      <div className="flex items-center gap-5"><div className="w-16 h-16 rounded-2xl bg-wood-50 group-hover:bg-wood-900 transition-colors flex items-center justify-center text-wood-900 group-hover:text-accent-500"><CategoryIcon category={cat as any} className="w-8 h-8" /></div><div><h3 className="text-xl font-western text-wood-900">{tCategory(cat)}</h3><p className="text-wood-500 text-sm font-medium mt-1">{catCount} {t('products_count')}</p></div></div>
-                      <div className="w-10 h-10 rounded-full border border-wood-100 flex items-center justify-center text-wood-300 group-hover:border-accent-500 group-hover:text-accent-500 transition-colors"><ArrowRight size={20} /></div>
-                   </button>
-                 );
-               })}
-             </div>
-          )}
-          {activeCategory !== 'Tutti' && (
-             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-               {activeCategory === ProductCategory.HAMBURGER ? (
-                  <>
-                    {activeSubCategoryView ? (
-                      <div>
-                        <div className="mb-6"><button onClick={() => setActiveSubCategoryView(null)} className="flex items-center gap-2 text-wood-500 hover:text-wood-900 font-bold transition-colors"><ChevronLeft size={20} /> {t('back')}</button></div>
-                        <div className="mb-8 flex items-center gap-4"><div className="w-12 h-12 rounded-full bg-accent-500 text-white flex items-center justify-center shadow-md"><Beef className="w-6 h-6" /></div><div><h2 className="text-3xl font-western text-wood-900">{activeSubCategoryView}</h2>{activeSubCategoryView !== "Hamburger \"Fai da te\"" && (<p className="text-wood-500 text-sm mt-1 font-medium">{items.filter(i => i.category === activeCategory && i.subCategory === activeSubCategoryView).filter(checkFilters).length} {t('products_count')}</p>)}</div></div>
-                        {activeSubCategoryView === "Hamburger \"Fai da te\"" ? renderDIYBuilder() : (<>{renderProductGrid(items.filter(i => i.category === activeCategory && i.subCategory === activeSubCategoryView))}{items.filter(i => i.category === activeCategory && i.subCategory === activeSubCategoryView).filter(checkFilters).length === 0 && (<div className="text-center py-12 text-wood-400 italic bg-wood-50 rounded-3xl border border-dashed border-wood-200">{t('no_products_section')}</div>)}</>)}
-                      </div>
-                    ) : (
-                      <div className="space-y-8">
-                         <div className="flex items-center gap-4"><div className="w-12 h-12 rounded-full bg-wood-200 flex items-center justify-center text-wood-800 shadow-inner"><CategoryIcon category={activeCategory as any} className="w-6 h-6" /></div><div><h2 className="text-3xl font-western text-wood-900">{tCategory(activeCategory)}</h2><p className="text-wood-500 text-sm mt-1 font-medium">{t('select_category')}</p></div></div>
-                         {items.filter(i => i.category === activeCategory && !i.subCategory).filter(checkFilters).length > 0 && (<div className="mb-8"><h3 className="text-xl font-western text-wood-800 mb-4">{t('classics')}</h3>{renderProductGrid(items.filter(i => i.category === activeCategory && !i.subCategory))}</div>)}
-                         <div className="grid grid-cols-1 gap-4">
-                            {HAMBURGER_SUBCATEGORIES.map((subCat) => {
-                               const isDIY = subCat === "Hamburger \"Fai da te\"";
-                               const count = items.filter(i => i.category === activeCategory && i.subCategory === subCat).filter(checkFilters).length;
-                               if (!isDIY && count === 0 && (activeFilters.vegetarian || activeFilters.spicy || activeFilters.bestseller)) return null;
-                               return (
-                                 <button key={subCat} onClick={() => setActiveSubCategoryView(subCat)} className={`group relative overflow-hidden text-white p-3 md:p-6 rounded-3xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 flex items-center justify-between text-left ${isDIY ? 'bg-wood-900' : 'bg-accent-500 hover:bg-accent-600'}`}>
-                                    <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
-                                    <div className="relative z-10 pr-2 flex-1"><div className="flex items-center gap-2 mb-1">{isDIY && <Pencil size={18} className="text-accent-500" />}<h3 className="font-western text-sm sm:text-lg md:text-2xl tracking-wide leading-none whitespace-nowrap">{subCat}</h3></div>{isDIY ? (<span className="text-[10px] md:text-xs font-bold text-wood-300 uppercase tracking-wider">{t('create_your_taste')}</span>) : (<span className="text-[10px] md:text-xs font-bold text-accent-100 uppercase tracking-wider">{count} {t('options')}</span>)}</div>
-                                    <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center backdrop-blur-sm transition-colors z-10 shrink-0 ${isDIY ? 'bg-accent-500 text-white group-hover:bg-accent-400' : 'bg-white/20 group-hover:bg-white group-hover:text-accent-600'}`}><ArrowRight size={18} className="md:w-5 md:h-5" /></div>
-                                 </button>
-                               );
-                            })}
-                         </div>
-                      </div>
-                    )}
-                  </>
-               ) : (
-                 <div>
-                    <div className="mb-8 flex items-center gap-4"><div className="w-12 h-12 rounded-full bg-wood-200 flex items-center justify-center text-wood-800 shadow-inner"><CategoryIcon category={activeCategory as any} className="w-6 h-6" /></div><div><h2 className="text-3xl font-western text-wood-900">{tCategory(activeCategory)}</h2><p className="text-wood-500 text-sm mt-1 font-medium">{items.filter(i => i.category === activeCategory).filter(checkFilters).length} {t('products_available')}</p></div></div>
-                    {renderProductGrid(items.filter(item => item.category === activeCategory))}
+                 <div key={step.id} className="bg-wood-50 rounded-2xl p-6 border border-wood-100 hover:shadow-md transition-shadow relative overflow-hidden group flex flex-col">
+                    <div className="absolute -right-4 -top-4 w-16 h-16 bg-accent-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+                    <div className="flex items-center gap-3 mb-4 relative z-10"><div className="w-8 h-8 rounded-full bg-wood-900 text-white flex items-center justify-center font-bold text-sm shadow-md flex-shrink-0">{step.id}</div><h4 className="font-western text-xl text-wood-900 leading-none">{title}</h4></div>
+                    <p className="text-xs font-bold text-accent-500 uppercase tracking-wider mb-4">{description}</p>
+                    <ul className="space-y-2 relative z-10 flex-1">
+                       {step.options.map((option, idx) => {
+                         const isSelected = diySelections[step.id] === option.name;
+                         const optionName = getDIYOptionContent(option);
+                         return (
+                           <li key={idx} onClick={() => setDiySelections(prev => ({...prev, [step.id]: option.name}))} className={`flex items-center justify-between text-sm p-3 rounded-xl cursor-pointer transition-all duration-200 border ${isSelected ? 'bg-accent-500 text-white font-bold shadow-md border-accent-500 transform -translate-y-0.5' : 'bg-white text-wood-600 hover:bg-wood-100 border-wood-200'}`}>
+                              <div className="flex items-center gap-2 flex-1 min-w-0"><CircleDot size={14} className={`flex-shrink-0 ${isSelected ? 'text-white' : 'text-accent-500'}`} /><span className="leading-tight text-sm py-1">{optionName}</span></div>
+                              <span className={`text-xs ml-2 font-mono whitespace-nowrap ${isSelected ? 'text-white opacity-90' : 'text-wood-400'}`}>{option.price > 0 ? `+€${option.price.toFixed(2)}` : '€ 0'}</span>
+                           </li>
+                         );
+                       })}
+                    </ul>
                  </div>
-               )}
-             </div>
-          )}
-        </div>
-        <footer className="bg-wood-900 text-wood-300 py-16 mt-12 border-t border-wood-800">
-          <div className="container mx-auto px-4 text-center">
-            <div className="mx-auto mb-8 w-fit">
-               {/* LOGO DRITTO (rimosso rotate-3) */}
-               <WesternLogo size="md" url={customLogo} />
+               )})}
             </div>
-            <h2 className="font-western text-3xl mb-2 text-white">OLD WEST</h2>
-            {/* ANNO AGGIORNATO */}
-            <p className="text-xs uppercase tracking-[0.3em] text-accent-500 font-bold mb-8">Cameri - Since 1988</p>
-            <div className="mb-10 flex flex-col items-center justify-center"><div className="bg-white p-3 rounded-xl shadow-lg mb-3"><img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.href)}&color=3A3D3F`} alt="QR Code" className="w-32 h-32 object-contain" /></div><p className="text-xs font-bold text-wood-400 uppercase tracking-wider flex items-center gap-2"><QrCode size={14} /> {t('scan_me')}</p></div>
-            <div className="flex justify-center gap-6 mb-10"><a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-accent-500 hover:text-white transition-colors"><Instagram size={18} /></a><a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-accent-500 hover:text-white transition-colors"><Facebook size={18} /></a><a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-accent-500 hover:text-white transition-colors"><Phone size={18} /></a></div>
-            <p className="text-sm opacity-40 max-w-sm mx-auto">© {new Date().getFullYear()} Old West Cameri. {t('all')} rights reserved.<br/>Design by AI Studio.</p>
+            <div className="mt-8 bg-wood-900 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl relative overflow-hidden">
+               <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/wood-pattern.png')] opacity-10"></div>
+               <div className="flex items-center gap-6 relative z-10"><div className="p-4 bg-accent-500 rounded-2xl text-white shadow-lg transform rotate-3"><Wheat size={32} /></div><div><h4 className="font-western text-3xl text-white mb-1">{t('total')}: €{currentTotal.toFixed(2)}</h4><p className="text-xs text-wood-300 font-medium">{t('base_price')} €{DIY_OPTIONS.basePrice.toFixed(2)} + {t('options')}</p></div></div>
+               <button className="relative z-10 w-full md:w-auto bg-white text-wood-900 px-8 py-4 rounded-xl font-bold hover:bg-accent-500 hover:text-white transition-all shadow-lg flex items-center justify-center gap-2"><Utensils size={18} /> {t('order_table')}</button>
+            </div>
           </div>
-        </footer>
+        </div>
       </div>
     );
   };
+
+  const renderHeader = () => (
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${view === 'MENU' ? 'bg-wood-900/95 backdrop-blur-md border-b border-wood-800' : 'bg-wood-900 shadow-md'}`}>
+      <div className="container mx-auto px-4 h-16 md:h-20 flex justify-between items-center">
+        <div className="flex items-center gap-3 group cursor-pointer" onClick={() => setView('MENU')}>
+           <div className="transform group-hover:rotate-12 transition-transform duration-300">
+             <WesternLogo size="md" url={customLogo} />
+           </div>
+           <div className="flex flex-col">
+              <span className="font-western text-xl text-white tracking-wide leading-none">OLD WEST</span>
+              <span className="text-[10px] uppercase tracking-[0.2em] text-accent-500 font-bold">Cameri</span>
+           </div>
+        </div>
+        
+        {view === 'MENU' ? (
+          <div className="flex items-center gap-4">
+             <div className="relative">
+                {isLangMenuOpen && <div className="fixed inset-0 z-40" onClick={() => setIsLangMenuOpen(false)}></div>}
+                <button onClick={() => setIsLangMenuOpen(!isLangMenuOpen)} className="flex items-center gap-2 bg-wood-800 hover:bg-wood-700 transition-colors pl-3 pr-2 py-1.5 rounded-xl border border-wood-700 text-white">
+                   <span className="text-xl leading-none">{LANGUAGES_CONFIG.find(l => l.code === lang)?.flag}</span>
+                   <ChevronDown size={14} className={`text-wood-400 transition-transform ${isLangMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {isLangMenuOpen && (
+                   <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-wood-100 overflow-hidden py-1 z-50 animate-in fade-in zoom-in-95 duration-200">
+                      {LANGUAGES_CONFIG.map((language) => (
+                        <button key={language.code} onClick={() => { setLang(language.code as LanguageCode); setIsLangMenuOpen(false); }} className={`w-full flex items-center justify-between px-4 py-3 hover:bg-wood-50 transition-colors text-left ${lang === language.code ? 'bg-accent-50 text-accent-700' : 'text-wood-700'}`}>
+                           <div className="flex items-center gap-3"><span className="text-2xl leading-none shadow-sm rounded-sm">{language.flag}</span><span className="text-sm font-bold">{language.label}</span></div>
+                           {lang === language.code && <Check size={16} />}
+                        </button>
+                      ))}
+                   </div>
+                )}
+             </div>
+             <button onClick={() => setView('LOGIN')} className="w-10 h-10 rounded-full flex items-center justify-center text-wood-400 hover:text-white hover:bg-wood-800 transition-all" aria-label="Admin Login"><Settings size={20} /></button>
+          </div>
+        ) : (
+          <button onClick={() => { setView('MENU'); setActiveCategory('Tutti'); window.scrollTo(0,0); }} className="flex items-center gap-2 bg-wood-800 text-white px-5 py-2 rounded-full hover:bg-accent-600 transition-colors text-sm font-medium">
+            <LogOut size={16} /> <span className="hidden md:inline">{t('back_to_menu')}</span>
+          </button>
+        )}
+      </div>
+    </nav>
+  );
 
   const renderLogin = () => (
     <div className="min-h-screen bg-wood-900 flex items-center justify-center p-4 animate-in fade-in duration-500">
