@@ -167,7 +167,7 @@ export const UI_TRANSLATIONS: Record<string, Record<LanguageCode, string>> = {
 'classics': { it: 'Classici', en: 'Classics', fr: 'Classiques', de: 'Klassiker' },
 'options': { it: 'Opzioni', en: 'Options', fr: 'Options', de: 'Optionen' },
 'create_your_taste': { it: 'Crea il tuo gusto', en: 'Create your taste', fr: 'Créez votre goût', de: 'Kreieren Sie Ihren Geschmack' },
-'diy_title': { it: 'Crea il tuo Capolavoro', en: 'Create your Masterpiece', fr: 'Créez votre Chef-d'œuvre', de: 'Kreieren Sie Ihr Meisterwerk' },
+'diy_title': { it: 'Crea il tuo Capolavoro', en: 'Create your Masterpiece', fr: "Créez votre Chef-d'œuvre", de: 'Kreieren Sie Ihr Meisterwerk' },
 'diy_subtitle': { it: 'Segui i 4 passaggi per comporre l'hamburger perfetto.', en: 'Follow the 4 steps to build your perfect burger.', fr: 'Suivez les 4 étapes pour composer votre burger parfait.', de: 'Folgen Sie den 4 Schritten zum perfekten Burger.' },
 'total': { it: 'Totale', en: 'Total', fr: 'Total', de: 'Gesamt' },
 'base_price': { it: 'Prezzo base', en: 'Base price', fr: 'Prix de base', de: 'Grundpreis' },
