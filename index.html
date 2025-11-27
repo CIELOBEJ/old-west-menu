@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="it" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Old West Cameri - Menu Digitale</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Rye&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              western: ['"Rye"', 'serif'],
+              sans: ['"DM Sans"', 'sans-serif'],
+            },
+            colors: {
+              wood: {
+                50: '#F4F6F6', 100: '#E3E6E8', 200: '#C7CBCD', 300: '#9DA3A6',
+                400: '#7A8084', 500: '#5C6367', 600: '#4B5054', 700: '#424548',
+                800: '#3F4244', 900: '#3A3D3F',
+              },
+              accent: {
+                50: '#F0F7F4', 100: '#DBEBE4', 500: '#45856C', 600: '#366A55',
+              }
+            },
+            boxShadow: {
+              'soft': '0 10px 40px -10px rgba(0,0,0,0.08)',
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      .bg-texture {
+        background-color: #F4F6F6;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
+      }
+    </style>
+  </head>
+  <body class="bg-texture text-wood-900 font-sans antialiased selection:bg-accent-500 selection:text-white">
+    <div id="root"></div>
+    <script type="module" src="/src/index.tsx"></script>
+  </body>
+</html>
