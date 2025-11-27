@@ -276,7 +276,7 @@ imageUrl: 'https://oldwest.click/wp-content/uploads/2025/11/335-225-tagliata-di-
 isAvailable: true,
 translations: {
 en: { name: 'Irish Angus Steak', description: 'Fine Irish Angus Steak served plated. (side included)' },
-fr: { name: 'Tagliata d'Angus Irlandais', description: "Tagliata d'Angus Irlandais servie sur assiette. (accompagnement inclus)" },
+fr: { name: "Tagliata d'Angus Irlandais", description: "Tagliata d'Angus Irlandais servie sur assiette. (accompagnement inclus)" },
 de: { name: 'Irisches Angus-Steak', description: 'Feines irisches Angus-Steak auf dem Teller serviert. (Beilage inklusive)' }
 }
 },
