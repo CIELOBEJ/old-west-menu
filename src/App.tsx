@@ -10,43 +10,43 @@ import {
   Cookie, 
   Beer, 
   Settings, 
-  Plus,
-  Trash2,
-  LogOut,
-  ChevronLeft,
-  ChevronRight,
-  Lock,
-  Utensils,
-  Star,
-  MapPin,
-  Clock,
-  Instagram,
-  Facebook,
-  Phone,
-  LayoutGrid,
-  ArrowRight,
-  Upload,
-  Image as ImageIcon,
-  Download,
-  FileJson,
-  RotateCcw,
-  CheckCircle2,
-  Save,
-  ChevronDown,
-  ChevronUp,
-  X,
-  Loader2,
-  Pencil,
-  RefreshCw,
-  Wheat,
-  CircleDot,
-  Globe,
-  Languages,
-  Check,
-  Leaf,
-  Flame,
-  Award,
-  QrCode,
+  Plus, 
+  Trash2, 
+  LogOut, 
+  ChevronLeft, 
+  ChevronRight, 
+  Lock, 
+  Utensils, 
+  Star, 
+  MapPin, 
+  Clock, 
+  Instagram, 
+  Facebook, 
+  Phone, 
+  LayoutGrid, 
+  ArrowRight, 
+  Upload, 
+  Image as ImageIcon, 
+  Download, 
+  FileJson, 
+  RotateCcw, 
+  CheckCircle2, 
+  Save, 
+  ChevronDown, 
+  ChevronUp, 
+  X, 
+  Loader2, 
+  Pencil, 
+  RefreshCw, 
+  Wheat, 
+  CircleDot, 
+  Globe, 
+  Languages, 
+  Check, 
+  Leaf, 
+  Flame, 
+  Award, 
+  QrCode, 
   Database,
   Sprout,
   ShoppingBag,
@@ -165,16 +165,19 @@ export default function App() {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [view, setView] = useState<ViewState>('MENU');
   
+  // Navigation State
   const [activeCategory, setActiveCategory] = useState<string>('Tutti');
   const [activeSubCategoryView, setActiveSubCategoryView] = useState<string | null>(null);
   const [diySelections, setDiySelections] = useState<Record<number, string>>({});
   
+  // Cart & Order State
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAddonModalOpen, setIsAddonModalOpen] = useState(false);
   const [editingCartItemIndex, setEditingCartItemIndex] = useState<number | null>(null);
   const [addonSearch, setAddonSearch] = useState('');
 
+  // Filters State
   const [activeFilters, setActiveFilters] = useState<ActiveFilters>({
     vegetarian: false,
     vegan: false,
@@ -182,11 +185,13 @@ export default function App() {
     bestseller: false
   });
 
+  // Carousel Logic
   const carouselRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
 
+  // Admin State
   const [adminPassword, setAdminPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [isProcessingImage, setIsProcessingImage] = useState(false);
@@ -194,12 +199,20 @@ export default function App() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [adminLang, setAdminLang] = useState<LanguageCode>('it');
   
+  // Custom Logo State
   const [customLogo, setCustomLogo] = useState<string>('');
+
+  // Data Loading State
   const [isDataLoaded, setIsDataLoaded] = useState(false);
+
+  // Language State
   const [lang, setLang] = useState<LanguageCode>('it');
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+
+  // Scroll To Top State
   const [showScrollTop, setShowScrollTop] = useState(false);
 
+  // New/Edit Item State
   const [newItem, setNewItem] = useState<Partial<MenuItem>>({
     category: ProductCategory.HAMBURGER,
     isAvailable: true,
@@ -250,6 +263,7 @@ export default function App() {
     });
   };
 
+  // --- Carousel Logic Handlers ---
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!carouselRef.current) return;
     setIsDragging(true);
@@ -313,6 +327,7 @@ export default function App() {
     if (editingCartItemIndex === null) return;
     const newCart = [...cart];
     const currentAddons = newCart[editingCartItemIndex].selectedAddons || [];
+    // Prevent duplicates? Maybe allow. Let's allow.
     newCart[editingCartItemIndex].selectedAddons = [...currentAddons, addon];
     setCart(newCart);
     setIsAddonModalOpen(false);
@@ -328,6 +343,7 @@ export default function App() {
     return subtotal + (cart.length > 0 ? 2.00 : 0); // Coperto
   };
 
+  // --- Translation Helpers ---
   const t = (key: string): string => (UI_TRANSLATIONS[key] && UI_TRANSLATIONS[key][lang]) ? UI_TRANSLATIONS[key][lang] : key;
   const tCategory = (cat: string): string => {
     if (cat === 'Tutti') return UI_TRANSLATIONS['all'][lang];
@@ -349,6 +365,7 @@ export default function App() {
      return opt.translations?.[lang]?.name || opt.name;
   };
 
+  // --- Logic Helpers for Filtering ---
   const checkFilters = (item: MenuItem) => {
     if (activeFilters.vegetarian) {
       const isVeg = item.tags?.includes('Vegetariano') || item.tags?.includes('Vegano') || item.category === ProductCategory.CONTORNI || (item.category === ProductCategory.PIZZA && (item.name === 'Vegetariana' || item.name === 'Margherita' || item.name === 'Marinara' || item.name === 'Verdure'));
@@ -368,6 +385,8 @@ export default function App() {
     }
     return true;
   };
+
+  // --- Handlers ---
 
   const handleCategoryClick = (cat: string) => {
     setActiveCategory(cat);
@@ -517,7 +536,7 @@ export default function App() {
     <div className="container mx-auto px-4 mb-6">
       <div className="flex flex-wrap gap-2">
         <button onClick={() => setActiveFilters(prev => ({...prev, vegetarian: !prev.vegetarian}))} className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all border ${activeFilters.vegetarian ? 'bg-green-100 border-green-200 text-green-700' : 'bg-white border-wood-200 text-wood-500 hover:bg-wood-50'}`}><Leaf size={14} /> {t('filter_veg')}</button>
-        <button onClick={() => setActiveFilters(prev => ({...prev, vegan: !prev.vegan}))} className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all border ${activeFilters.vegan ? 'bg-emerald-100 border-emerald-200 text-emerald-700' : 'bg-white border-wood-200 text-wood-500 hover:bg-wood-50'}`}><Sprout size={14} /> Vegano</button>
+        <button onClick={() => setActiveFilters(prev => ({...prev, vegan: !prev.vegan}))} className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all border ${activeFilters.vegan ? 'bg-emerald-100 border-emerald-200 text-emerald-700' : 'bg-white border-wood-200 text-wood-500 hover:bg-wood-50'}`}><Sprout size={14} /> {t('filter_vegan')}</button>
         <button onClick={() => setActiveFilters(prev => ({...prev, spicy: !prev.spicy}))} className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all border ${activeFilters.spicy ? 'bg-red-100 border-red-200 text-red-700' : 'bg-white border-wood-200 text-wood-500 hover:bg-wood-50'}`}><Flame size={14} /> {t('filter_spicy')}</button>
         <button onClick={() => setActiveFilters(prev => ({...prev, bestseller: !prev.bestseller}))} className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all border ${activeFilters.bestseller ? 'bg-yellow-100 border-yellow-200 text-yellow-700' : 'bg-white border-wood-200 text-wood-500 hover:bg-wood-50'}`}><Award size={14} /> {t('filter_best')}</button>
       </div>
@@ -606,8 +625,7 @@ export default function App() {
     </div>
   )};
 
-  const renderDIYBuilder = () => { /* ... same as before but maybe can trigger add to cart? Skipping for brevity as requested "client chooses pizza..." */
-    // Kept simple for now, can be expanded to add to cart later
+  const renderDIYBuilder = () => {
     let currentTotal = DIY_OPTIONS.basePrice;
     DIY_OPTIONS.steps.forEach(step => {
       const selectedName = diySelections[step.id];
@@ -656,101 +674,164 @@ export default function App() {
     );
   };
 
-  // --- CART DRAWER ---
-  const renderCartDrawer = () => {
-      const addons = items.filter(i => i.category === ProductCategory.AGGIUNTE);
-      const filteredAddons = addons.filter(a => a.name.toLowerCase().includes(addonSearch.toLowerCase()));
+  const renderMenu = () => {
+    const hasAnyItems = items.length > 0;
+    const navCategories = ['Tutti', ...CATEGORIES_LIST];
 
-      return (
-      <>
-        {isCartOpen && <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setIsCartOpen(false)} />}
-        <div className={`fixed bottom-0 left-0 right-0 bg-white rounded-t-[2rem] shadow-2xl transform transition-transform duration-300 z-50 max-h-[85vh] flex flex-col ${isCartOpen ? 'translate-y-0' : 'translate-y-full'}`}>
-           <div className="p-6 flex-1 overflow-y-auto">
-              <div className="flex items-center justify-between mb-6">
-                 <h3 className="text-2xl font-western text-wood-900 flex items-center gap-2"><ShoppingBag size={24} /> {t('my_order')}</h3>
-                 <button onClick={() => setIsCartOpen(false)} className="p-2 bg-wood-100 rounded-full"><X size={20}/></button>
-              </div>
-
-              {cart.length === 0 ? (
-                 <div className="text-center py-10 text-wood-400">{t('empty_cart')}</div>
-              ) : (
-                 <div className="space-y-4">
-                    {cart.map((item, index) => (
-                       <div key={item.cartId} className="flex justify-between items-start border-b border-wood-100 pb-4">
-                          <div className="flex-1">
-                             <div className="flex items-center gap-2">
-                                <span className="font-bold text-wood-900">{item.quantity}x {item.name}</span>
-                                {item.selectedVariant && <span className="text-xs bg-wood-100 px-2 rounded-full text-wood-600">{item.selectedVariant.name}</span>}
-                             </div>
-                             {item.selectedAddons && item.selectedAddons.length > 0 && (
-                                <div className="text-xs text-wood-500 mt-1">
-                                   {item.selectedAddons.map((add, i) => (
-                                      <span key={i} className="block">+ {add.name} (€{add.price.toFixed(2)})</span>
-                                   ))}
-                                </div>
-                             )}
-                             <button onClick={() => openAddonModal(index)} className="text-xs font-bold text-accent-600 mt-2 flex items-center gap-1"><Plus size={10}/> {t('add_ingredient')}</button>
-                          </div>
-                          <div className="flex flex-col items-end gap-2">
-                             <span className="font-mono font-bold">€{((item.selectedVariant ? item.selectedVariant.price : item.price) * item.quantity + (item.selectedAddons?.reduce((s, a) => s + a.price, 0) || 0) * item.quantity).toFixed(2)}</span>
-                             <div className="flex items-center gap-2 bg-wood-50 rounded-lg p-1">
-                                <button onClick={() => { if(item.quantity > 1) updateCartItemQuantity(item.cartId, -1); else removeFromCart(item.cartId); }} className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-wood-600"><Minus size={12}/></button>
-                                <span className="text-xs font-bold w-4 text-center">{item.quantity}</span>
-                                <button onClick={() => updateCartItemQuantity(item.cartId, 1)} className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-wood-600"><Plus size={12}/></button>
-                             </div>
-                          </div>
-                       </div>
-                    ))}
-                    <div className="flex justify-between items-center pt-2">
-                        <span className="text-sm font-bold text-wood-500">{t('cover_charge')}</span>
-                        <span className="font-mono font-bold">€2.00</span>
-                    </div>
-                 </div>
-              )}
-           </div>
-           <div className="p-6 border-t border-wood-100 bg-wood-50">
-              <div className="flex justify-between items-center mb-4">
-                 <span className="text-lg font-bold text-wood-900">{t('total')}</span>
-                 <span className="text-3xl font-western text-accent-600">€{getCartTotal().toFixed(2)}</span>
-              </div>
-              <button className="w-full bg-wood-900 text-white py-4 rounded-2xl font-bold text-lg shadow-lg flex items-center justify-center gap-2">
-                 <Utensils size={20} /> {t('order_table')}
-              </button>
-           </div>
+    return (
+      <div className="min-h-screen pt-16 md:pt-20 pb-24"> 
+        {/* Hero Header */}
+        <div className="relative h-[250px] md:h-[300px] flex items-center justify-center overflow-hidden bg-wood-900">
+          <div className="absolute inset-0 bg-[url('https://oldwest.click/wp-content/uploads/2018/07/background1.jpg')] bg-cover bg-center filter brightness-75"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/80"></div>
+          <div className="relative z-10 text-center px-4 max-w-2xl mx-auto">
+            <h1 className="text-4xl md:text-6xl font-western text-white mb-4 drop-shadow-lg">{t('hero_title')}</h1>
+            <div className="inline-flex flex-wrap justify-center gap-4 md:gap-8 bg-black/60 backdrop-blur-sm p-3 rounded-2xl border border-white/10">
+              <div className="flex items-center gap-2 text-wood-100"><Clock size={18} className="text-accent-500" /><span className="text-sm font-medium">{t('open_hours')}</span></div>
+              <div className="w-px h-5 bg-white/20 hidden md:block"></div>
+              <div className="flex items-center gap-2 text-wood-100"><MapPin size={18} className="text-accent-500" /><span className="text-sm font-medium">Via G. Galilei 35, Cameri</span></div>
+            </div>
+          </div>
         </div>
 
-        {/* Add-on Modal */}
-        {isAddonModalOpen && (
-           <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
-              <div className="bg-white w-full max-w-md rounded-3xl p-6 max-h-[80vh] flex flex-col">
-                 <div className="flex justify-between items-center mb-4">
-                    <h4 className="font-bold text-lg text-wood-900">{t('add_ingredient')}</h4>
-                    <button onClick={() => setIsAddonModalOpen(false)}><X/></button>
+        {/* Sticky Category Bar */}
+        <div className="sticky top-[64px] md:top-[80px] z-40 bg-wood-50/80 backdrop-blur-xl border-b border-wood-200 shadow-sm">
+          <div className="container mx-auto py-4">
+            <div className="flex overflow-x-auto gap-3 px-4 no-scrollbar items-center">
+              {navCategories.map((cat) => {
+                const isActive = activeCategory === cat;
+                return (
+                  <button key={cat} id={`btn-${cat}`} onClick={() => handleCategoryClick(cat)} className={`group flex items-center gap-2 px-5 py-2.5 rounded-full whitespace-nowrap transition-all duration-300 flex-shrink-0 ${isActive ? 'bg-wood-900 text-white shadow-lg ring-2 ring-accent-500 ring-offset-2 ring-offset-wood-50 scale-105' : 'bg-white text-wood-600 hover:bg-wood-200 border border-wood-100'}`}>
+                    <CategoryIcon category={cat as any} className={`w-4 h-4 ${isActive ? 'text-accent-500' : 'text-wood-400 group-hover:text-wood-600'}`} />
+                    <span className={`text-sm font-bold tracking-wide ${isActive ? '' : 'opacity-80'}`}>{tCategory(cat)}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="container mx-auto px-4 py-8 md:py-12 min-h-[50vh]">
+          {/* Banner Ingredienti Extra */}
+          <div className="bg-accent-50 border border-accent-200 rounded-xl p-3 mb-6 flex items-center justify-center text-accent-700 text-sm font-bold text-center shadow-sm">
+              <Plus size={16} className="mr-2" /> {t('addons_banner')}
+          </div>
+          
+          {!hasAnyItems && (
+            <div className="flex flex-col items-center justify-center py-24 text-center opacity-50 bg-white rounded-3xl border border-dashed border-wood-300 mx-auto max-w-lg"><UtensilsCrossed size={48} className="text-wood-400 mb-4" /><h3 className="text-xl font-bold text-wood-800">{t('updating_menu')}</h3><p className="text-wood-500">{t('check_back')}</p></div>
+          )}
+          {activeCategory === 'Tutti' && renderHighlights()}
+          {hasAnyItems && renderFilters()}
+          {activeCategory === 'Tutti' && hasAnyItems && (
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-500">
+               {CATEGORIES_LIST.map((cat) => {
+                 const filteredCategoryItems = items.filter(i => i.category === cat).filter(checkFilters);
+                 const catCount = filteredCategoryItems.length;
+                 if (catCount === 0) return null;
+                 return (
+                   <button key={cat} onClick={() => handleCategoryClick(cat)} className="group bg-white rounded-[2rem] p-6 shadow-soft hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-wood-100 text-left flex items-center justify-between">
+                      <div className="flex items-center gap-5"><div className="w-16 h-16 rounded-2xl bg-wood-50 group-hover:bg-wood-900 transition-colors flex items-center justify-center text-wood-900 group-hover:text-accent-500"><CategoryIcon category={cat as any} className="w-8 h-8" /></div><div><h3 className="text-xl font-western text-wood-900">{tCategory(cat)}</h3><p className="text-wood-500 text-sm font-medium mt-1">{catCount} {t('products_count')}</p></div></div>
+                      <div className="w-10 h-10 rounded-full border border-wood-100 flex items-center justify-center text-wood-300 group-hover:border-accent-500 group-hover:text-accent-500 transition-colors"><ArrowRight size={20} /></div>
+                   </button>
+                 );
+               })}
+             </div>
+          )}
+          {activeCategory !== 'Tutti' && (
+             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+               {activeCategory === ProductCategory.HAMBURGER ? (
+                  <>
+                    {activeSubCategoryView ? (
+                      <div>
+                        <div className="mb-6"><button onClick={() => setActiveSubCategoryView(null)} className="flex items-center gap-2 text-wood-500 hover:text-wood-900 font-bold transition-colors"><ChevronLeft size={20} /> {t('back')}</button></div>
+                        <div className="mb-8 flex items-center gap-4"><div className="w-12 h-12 rounded-full bg-accent-500 text-white flex items-center justify-center shadow-md"><Beef className="w-6 h-6" /></div><div><h2 className="text-3xl font-western text-wood-900">{activeSubCategoryView}</h2>{activeSubCategoryView !== "Hamburger \"Fai da te\"" && (<p className="text-wood-500 text-sm mt-1 font-medium">{items.filter(i => i.category === activeCategory && i.subCategory === activeSubCategoryView).filter(checkFilters).length} {t('products_count')}</p>)}</div></div>
+                        {activeSubCategoryView === "Hamburger \"Fai da te\"" ? renderDIYBuilder() : (<>{renderProductGrid(items.filter(i => i.category === activeCategory && i.subCategory === activeSubCategoryView))}{items.filter(i => i.category === activeCategory && i.subCategory === activeSubCategoryView).filter(checkFilters).length === 0 && (<div className="text-center py-12 text-wood-400 italic bg-wood-50 rounded-3xl border border-dashed border-wood-200">{t('no_products_section')}</div>)}</>)}
+                      </div>
+                    ) : (
+                      <div className="space-y-8">
+                         <div className="flex items-center gap-4"><div className="w-12 h-12 rounded-full bg-wood-200 flex items-center justify-center text-wood-800 shadow-inner"><CategoryIcon category={activeCategory as any} className="w-6 h-6" /></div><div><h2 className="text-3xl font-western text-wood-900">{tCategory(activeCategory)}</h2><p className="text-wood-500 text-sm mt-1 font-medium">{t('select_category')}</p></div></div>
+                         {items.filter(i => i.category === activeCategory && !i.subCategory).filter(checkFilters).length > 0 && (<div className="mb-8"><h3 className="text-xl font-western text-wood-800 mb-4">{t('classics')}</h3>{renderProductGrid(items.filter(i => i.category === activeCategory && !i.subCategory))}</div>)}
+                         <div className="grid grid-cols-1 gap-4">
+                            {HAMBURGER_SUBCATEGORIES.map((subCat) => {
+                               const isDIY = subCat === "Hamburger \"Fai da te\"";
+                               const count = items.filter(i => i.category === activeCategory && i.subCategory === subCat).filter(checkFilters).length;
+                               if (!isDIY && count === 0 && (activeFilters.vegetarian || activeFilters.spicy || activeFilters.bestseller)) return null;
+                               return (
+                                 <button key={subCat} onClick={() => setActiveSubCategoryView(subCat)} className={`group relative overflow-hidden text-white p-3 md:p-6 rounded-3xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 flex items-center justify-between text-left ${isDIY ? 'bg-wood-900' : 'bg-accent-500 hover:bg-accent-600'}`}>
+                                    <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
+                                    <div className="relative z-10 pr-2 flex-1"><div className="flex items-center gap-2 mb-1">{isDIY && <Pencil size={18} className="text-accent-500" />}<h3 className="font-western text-sm sm:text-lg md:text-2xl tracking-wide leading-none whitespace-nowrap">{subCat}</h3></div>{isDIY ? (<span className="text-[10px] md:text-xs font-bold text-wood-300 uppercase tracking-wider">{t('create_your_taste')}</span>) : (<span className="text-[10px] md:text-xs font-bold text-accent-100 uppercase tracking-wider">{count} {t('options')}</span>)}</div>
+                                    <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center backdrop-blur-sm transition-colors z-10 shrink-0 ${isDIY ? 'bg-accent-500 text-white group-hover:bg-accent-400' : 'bg-white/20 group-hover:bg-white group-hover:text-accent-600'}`}><ArrowRight size={18} className="md:w-5 md:h-5" /></div>
+                                 </button>
+                               );
+                            })}
+                         </div>
+                      </div>
+                    )}
+                  </>
+               ) : (
+                 <div>
+                    <div className="mb-8 flex items-center gap-4"><div className="w-12 h-12 rounded-full bg-wood-200 flex items-center justify-center text-wood-800 shadow-inner"><CategoryIcon category={activeCategory as any} className="w-6 h-6" /></div><div><h2 className="text-3xl font-western text-wood-900">{tCategory(activeCategory)}</h2><p className="text-wood-500 text-sm mt-1 font-medium">{items.filter(i => i.category === activeCategory).filter(checkFilters).length} {t('products_available')}</p></div></div>
+                    {renderProductGrid(items.filter(item => item.category === activeCategory))}
                  </div>
-                 <div className="relative mb-4">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-wood-400" size={18}/>
-                    <input 
-                       type="text" 
-                       placeholder={t('search_addon')} 
-                       value={addonSearch}
-                       onChange={(e) => setAddonSearch(e.target.value)}
-                       className="w-full bg-wood-50 rounded-xl py-3 pl-10 pr-4 outline-none focus:ring-2 focus:ring-accent-500"
-                    />
+               )}
+             </div>
+          )}
+        </div>
+
+        {/* STICKY CART BAR */}
+        {cart.length > 0 && (
+           <div onClick={() => setIsCartOpen(true)} className="fixed bottom-4 left-4 right-4 bg-wood-900 text-white rounded-2xl p-4 shadow-2xl z-40 flex items-center justify-between cursor-pointer animate-in slide-in-from-bottom-4 fade-in border border-wood-700">
+              <div className="flex items-center gap-3">
+                 <div className="bg-accent-500 w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow-md">
+                    {cart.reduce((acc, item) => acc + item.quantity, 0)}
                  </div>
-                 <div className="flex-1 overflow-y-auto space-y-2">
-                    {filteredAddons.map(addon => (
-                       <button key={addon.id} onClick={() => addAddonToItem(addon)} className="w-full flex justify-between items-center p-3 hover:bg-wood-50 rounded-xl transition-colors text-left">
-                          <span className="font-medium text-wood-800">{addon.name}</span>
-                          <span className="font-bold text-accent-600">+€{addon.price.toFixed(2)}</span>
-                       </button>
-                    ))}
-                 </div>
+                 <span className="font-bold text-sm">{t('my_order')}</span>
               </div>
+              <span className="font-mono font-bold text-lg text-accent-400">€{getCartTotal().toFixed(2)}</span>
            </div>
         )}
-      </>
-      );
+
+        {/* Cart Drawer */}
+        {renderCartDrawer()}
+
+        {/* Footer */}
+        <footer className="bg-wood-900 text-wood-300 py-16 mt-12 border-t border-wood-800">
+          <div className="container mx-auto px-4 text-center">
+            <div className="mx-auto mb-8 w-fit">
+               <WesternLogo size="md" url={customLogo} />
+            </div>
+            <h2 className="font-western text-3xl mb-2 text-white">OLD WEST</h2>
+            <p className="text-xs uppercase tracking-[0.3em] text-accent-500 font-bold mb-8">Cameri - Since 1988</p>
+            <p className="text-xs text-wood-500 font-bold mb-8">Tel: 0321 510220</p>
+            
+            <div className="mb-10 flex flex-col items-center justify-center">
+               <div className="bg-white p-3 rounded-xl shadow-lg mb-3">
+                  <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(window.location.href)}&color=3A3D3F`} alt="QR Code" className="w-32 h-32 object-contain" />
+               </div>
+               <p className="text-xs font-bold text-wood-400 uppercase tracking-wider flex items-center gap-2"><QrCode size={14} /> {t('scan_me')}</p>
+            </div>
+
+            <div className="flex justify-center gap-6 mb-10"><a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-accent-500 hover:text-white transition-colors"><Instagram size={18} /></a><a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-accent-500 hover:text-white transition-colors"><Facebook size={18} /></a><a href="#" className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-accent-500 hover:text-white transition-colors"><Phone size={18} /></a></div>
+            <p className="text-sm opacity-40 max-w-sm mx-auto">© {new Date().getFullYear()} Old West Cameri. All rights reserved.<br/>Design by AI Studio.</p>
+          </div>
+        </footer>
+      </div>
+    );
   };
+
+  const renderLogin = () => (
+    <div className="min-h-screen bg-wood-900 flex items-center justify-center p-4 animate-in fade-in duration-500">
+      <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-2 bg-accent-500"></div>
+        <div className="text-center mb-8"><div className="flex justify-center mb-4"><WesternLogo size="lg" url={customLogo} /></div><h2 className="text-2xl font-western text-wood-900">{t('admin_area')}</h2><p className="text-wood-500 text-sm mt-2">{t('login_prompt')}</p></div>
+        <form onSubmit={handleLogin} className="space-y-6">
+          <div><div className="relative"><Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-wood-400" size={20} /><input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-wood-50 border border-wood-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-500 text-center text-lg tracking-widest" placeholder="PIN" autoFocus /></div>{loginError && <p className="text-red-500 text-sm mt-2 text-center font-bold bg-red-50 py-2 rounded-lg">{loginError}</p>}</div>
+          <button type="submit" className="w-full bg-wood-900 text-white py-3 rounded-xl font-bold hover:bg-accent-600 transition-colors shadow-lg flex items-center justify-center gap-2">{t('login_btn')} <ArrowRight size={18} /></button>
+        </form>
+        <button onClick={() => setView('MENU')} className="w-full mt-6 text-wood-400 text-sm font-medium hover:text-wood-600 transition-colors flex items-center justify-center gap-2 py-2"><ChevronLeft size={16} /> {t('back_to_menu')}</button>
+      </div>
+    </div>
+  );
 
   const renderAdmin = () => {
     const sortedItems = [...items].sort((a, b) => {
@@ -771,9 +852,29 @@ export default function App() {
           <div className="flex gap-3"><button onClick={handleExportData} className="flex items-center gap-2 bg-white border border-wood-200 text-wood-600 px-4 py-2 rounded-xl hover:bg-wood-100 transition-colors"><Download size={18} /> Backup</button><label className="flex items-center gap-2 bg-white border border-wood-200 text-wood-600 px-4 py-2 rounded-xl hover:bg-wood-100 transition-colors cursor-pointer"><Upload size={18} /> Ripristina<input type="file" onChange={handleImportData} accept=".json" className="hidden" /></label><button onClick={() => setView('MENU')} className="bg-wood-900 text-white px-4 py-2 rounded-xl hover:bg-wood-800 transition-colors">Esci</button></div>
         </div>
 
-        {/* ... Cloud Sync & Settings Cards (Same as before) ... */}
+        {/* Cloud Sync & Settings Cards */}
         <div className="bg-blue-50 border border-blue-100 rounded-3xl p-6 mb-8 shadow-sm">
            <div className="flex items-start gap-4"><div className="p-3 bg-blue-100 rounded-full text-blue-600"><Database size={24} /></div><div className="flex-1"><h3 className="text-xl font-bold text-blue-900 mb-2">Database Cloud (Supabase)</h3><p className="text-blue-700 text-sm mb-4">L'applicazione è collegata al database online. Le modifiche sono visibili a tutti i clienti in tempo reale.</p><button onClick={handleSyncInitialData} disabled={isSyncing} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-md disabled:opacity-50">{isSyncing ? <Loader2 className="animate-spin" size={18} /> : <RefreshCw size={18} />} Sincronizza Menu Iniziale</button><p className="text-[10px] text-blue-400 mt-2 italic">* Usare solo per caricare i prodotti di base la prima volta o per ripristinare.</p></div></div>
+        </div>
+
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-wood-100 mb-8">
+           <h3 className="text-lg font-bold text-wood-900 mb-4 flex items-center gap-2"><Settings size={20} className="text-accent-500" /> Impostazioni Generali</h3>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="bg-wood-50 rounded-2xl p-6 border border-wood-100">
+                 <h4 className="font-bold text-wood-800 mb-4 flex items-center gap-2"><ImageIcon size={18} /> Logo Ristorante</h4>
+                 <div className="flex items-start gap-4">
+                    <WesternLogo size="md" url={customLogo} />
+                    <div className="flex-1">
+                       <p className="text-xs text-wood-500 mb-3">Carica il tuo logo (PNG/JPG). Verrà ridimensionato automaticamente.</p>
+                       <div className="flex gap-2 flex-wrap">
+                          <label className="bg-white border border-wood-200 text-wood-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-wood-100 cursor-pointer transition-colors flex items-center gap-2">{isProcessingImage ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />} Carica Logo<input type="file" onChange={handleLogoUpload} accept="image/*" className="hidden" /></label>
+                          {customLogo && (<><button onClick={handleSaveLogo} className="bg-accent-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-accent-600 transition-colors flex items-center gap-2"><Save size={12} /> Salva</button><button onClick={handleResetLogo} className="bg-red-100 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-200 transition-colors flex items-center gap-2"><RotateCcw size={12} /> Reset</button></>)}
+                       </div>
+                    </div>
+                 </div>
+              </div>
+              <div className="bg-red-50 rounded-2xl p-6 border border-red-100"><h4 className="font-bold text-red-800 mb-2 flex items-center gap-2"><Trash2 size={18} /> Area Pericolo</h4><p className="text-xs text-red-600 mb-4">Ripristina il menu ai valori di default. Tutte le modifiche andranno perse.</p><button onClick={handleFactoryReset} className="w-full bg-white border border-red-200 text-red-600 py-2 rounded-xl text-sm font-bold hover:bg-red-600 hover:text-white transition-colors">Ripristino di Fabbrica</button></div>
+           </div>
         </div>
 
         {/* Product Form */}
@@ -822,7 +923,7 @@ export default function App() {
                     <div className="flex flex-wrap gap-2">{['Vegetariano', 'Vegano', 'Piccante', 'Best Seller', 'Consigliato', 'Senza Glutine'].map(tag => { const isActive = newItem.tags?.includes(tag); return (<button type="button" key={tag} onClick={() => { const currentTags = newItem.tags || []; const newTags = isActive ? currentTags.filter(t => t !== tag) : [...currentTags, tag]; setNewItem({...newItem, tags: newTags}); }} className={`px-3 py-1 rounded-full text-xs font-bold border transition-all ${isActive ? 'bg-accent-500 border-accent-500 text-white' : 'bg-white border-wood-200 text-wood-500 hover:border-accent-300'}`}>{tag}</button>); })}</div>
                  </div>
               </div>
-              {/* ... Right Column (Image & Desc) ... */}
+              
               <div className="space-y-4">
                  <div>
                     <label className="block text-xs font-bold text-wood-500 uppercase tracking-wider mb-1">Immagine</label>
