@@ -7,7 +7,8 @@ export enum ProductCategory {
   BIMBI = 'Menu Bimbi',
   CONTORNI = 'Contorni',
   DOLCI = 'Dolci',
-  BEVANDE = 'Bevande'
+  BEVANDE = 'Bevande',
+  AGGIUNTE = 'Ingredienti Extra'
 }
 
 export type LanguageCode = 'it' | 'en' | 'fr' | 'de';
@@ -24,10 +25,15 @@ export interface ProductVariant {
 
 export interface ActiveFilters {
   vegetarian: boolean;
-  vegan: boolean; // <--- QUESTA RIGA MANCAVA
+  vegan: boolean;
   spicy: boolean;
   bestseller: boolean;
 }
+
+export type AllergenType = 
+  | 'Glutine' | 'Crostacei' | 'Uova' | 'Pesce' | 'Arachidi' 
+  | 'Soia' | 'Latte' | 'Frutta a guscio' | 'Sedano' | 'Senape' 
+  | 'Sesamo' | 'Anidride solforosa' | 'Lupini' | 'Molluschi';
 
 export interface MenuItem {
   id: string;
@@ -41,9 +47,17 @@ export interface MenuItem {
   imageUrl?: string;
   isAvailable: boolean;
   tags?: string[];
+  allergens?: AllergenType[];
   translations?: {
     [key in LanguageCode]?: ProductTranslation;
   };
+}
+
+export interface CartItem extends MenuItem {
+  cartId: string;
+  quantity: number;
+  selectedVariant?: ProductVariant;
+  selectedAddons?: MenuItem[];
 }
 
 export type ViewState = 'MENU' | 'LOGIN' | 'ADMIN';
