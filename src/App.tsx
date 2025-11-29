@@ -420,12 +420,12 @@ export default function App() {
           <div className="bg-wood-900 p-6 text-white text-center relative overflow-hidden">
              {/* FIX: Improved Close Button Visibility */}
              <button 
-                onClick={() => setActiveSubCategoryView(null)} 
-                className="absolute top-6 left-6 z-30 bg-wood-900/80 hover:bg-wood-800 text-white p-3 rounded-full backdrop-blur-md transition-all shadow-lg border-2 border-wood-700"
-                aria-label="Chiudi"
-             >
-                <X size={24} />
-             </button>
+   onClick={() => setActiveSubCategoryView(null)} 
+   className="absolute top-12 left-6 z-50 bg-wood-900 text-white p-4 rounded-full shadow-2xl border-2 border-white/20 hover:scale-110 transition-transform"
+   aria-label="Chiudi"
+>
+   <X size={28} />
+</button>
 
              <div className="absolute inset-0 bg-cover bg-center opacity-20" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=2000')" }}></div>
              <div className="relative z-10 pt-12"> {/* FIX: Added padding top */}
