@@ -120,7 +120,7 @@ export default function App() {
   const carouselRef = useRef<HTMLDivElement>(null);
   const highlightsRef = useRef<HTMLDivElement>(null);
   const diyControlsRef = useRef<HTMLDivElement>(null); 
-  const diyHeaderRef = useRef<HTMLDivElement>(null); // Ref per scrollare in alto nel DIY
+  const diyHeaderRef = useRef<HTMLDivElement>(null); 
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
@@ -143,7 +143,6 @@ export default function App() {
   useEffect(() => { fetchItems(); const savedLogo = localStorage.getItem('oldWestLogoUrl'); if (savedLogo) setCustomLogo(savedLogo); }, []);
   useEffect(() => { const handleScroll = () => { if (window.scrollY > 300) setShowScrollTop(true); else setShowScrollTop(false); }; window.addEventListener('scroll', handleScroll); return () => window.removeEventListener('scroll', handleScroll); }, []);
   
-  // Nuovo Effect: Scrolla in alto quando cambia lo step DIY
   useEffect(() => {
     if (activeSubCategoryView === 'Hamburger "Fai da te"' && diyHeaderRef.current) {
       diyHeaderRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -200,7 +199,6 @@ export default function App() {
   const handleDiyNext = () => {
      if (diyStep < DIY_OPTIONS.steps.length - 1) {
        setDiyStep(diyStep + 1);
-       // Scroll to top gestito dallo useEffect
      } else {
        const totalPrice = DIY_OPTIONS.basePrice + DIY_OPTIONS.steps.reduce((acc, step) => { const selected = diySelections[step.id]; return acc + (selected ? selected.price : 0); }, 0);
        const description = DIY_OPTIONS.steps.map(step => { const selected = diySelections[step.id]; return selected ? `${getDIYOptionContent(selected, lang)}` : ''; }).filter(Boolean).join(' + ');
@@ -420,16 +418,17 @@ export default function App() {
       <div className="container mx-auto px-4 py-8 pb-32" ref={diyHeaderRef}>
         <div className="bg-white rounded-3xl border border-wood-100 shadow-xl overflow-hidden">
           <div className="bg-wood-900 p-6 text-white text-center relative overflow-hidden">
-             {/* Exit Button - Mobile optimized top-left */}
+             {/* FIX: Improved Close Button Visibility */}
              <button 
                 onClick={() => setActiveSubCategoryView(null)} 
-                className="absolute top-4 left-4 z-20 bg-black/30 hover:bg-black/50 text-white p-2 rounded-full backdrop-blur-sm transition-all"
+                className="absolute top-6 left-6 z-30 bg-wood-900/80 hover:bg-wood-800 text-white p-3 rounded-full backdrop-blur-md transition-all shadow-lg border-2 border-wood-700"
+                aria-label="Chiudi"
              >
                 <X size={24} />
              </button>
 
              <div className="absolute inset-0 bg-cover bg-center opacity-20" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=2000')" }}></div>
-             <div className="relative z-10 pt-4">
+             <div className="relative z-10 pt-12"> {/* FIX: Added padding top */}
                 <h2 className="text-3xl font-western mb-2">{t('diy_title', lang)}</h2>
                 <p className="text-wood-300">{t('diy_subtitle', lang)}</p>
                 <div className="flex justify-center gap-2 mt-4">
@@ -497,7 +496,7 @@ export default function App() {
           <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: "url('https://oldwest.click/wp-content/uploads/2018/07/background1.jpg')" }}></div>
           <div className="absolute inset-0 bg-gradient-to-t from-wood-900 via-transparent to-transparent"></div>
           <div className="relative z-10 flex flex-col items-center justify-center h-full text-center text-white pb-10 px-4 pt-16">
-            <h1 className="text-4xl md:text-7xl font-western mb-4 shadow-sm drop-shadow-md tracking-wide pt-10">{t('hero_title', lang)}</h1>
+            <h1 className="text-3xl md:text-7xl font-western mb-4 shadow-sm drop-shadow-md tracking-wide pt-10">{t('hero_title', lang)}</h1>
             <div className="flex flex-col items-center gap-2 text-wood-200 text-base md:text-xl font-medium">
                <p className="flex items-center gap-2"><MapPin size={20} className="text-accent-500" /> Via G. Galilei 35 - Cameri (NO)</p>
                <p className="flex items-center gap-2 text-sm md:text-base opacity-80"><Clock size={16} /> 11:00 - 15:00 | 17:00 - 00:00</p>
