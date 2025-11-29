@@ -272,6 +272,12 @@ export default function App() {
                              </div>
                              {item.selectedVariant && <span className="text-xs bg-wood-100 px-2 py-0.5 rounded text-wood-600 block w-fit mb-1">{item.selectedVariant.name}</span>}
                              
+                             {/* Descrizione per Fai da te */}
+                             {item.id.startsWith('diy-') && (
+                                <p className="text-xs italic text-wood-500 mb-2 leading-relaxed">{item.description}</p>
+                             )}
+
+                             {/* Ingredienti Extra */}
                              {item.selectedAddons && item.selectedAddons.length > 0 && (
                                 <div className="text-sm text-wood-500 mt-1 space-y-0.5">
                                    {item.selectedAddons.map((add, i) => (
@@ -461,12 +467,15 @@ export default function App() {
     return (
       <div className="min-h-screen bg-wood-50 pb-40">
         {/* HERO */}
-        <div className="relative h-64 md:h-80 bg-wood-900 overflow-hidden">
+        <div className="relative h-96 bg-wood-900 overflow-hidden">
           <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1544025162-d76690b67f66?q=80&w=2000')] bg-cover bg-center opacity-40"></div>
           <div className="absolute inset-0 bg-gradient-to-t from-wood-900 via-transparent to-transparent"></div>
-          <div className="relative container mx-auto px-4 h-full flex flex-col justify-end pb-8">
-            <h1 className="text-4xl md:text-6xl font-western text-white mb-2 shadow-sm drop-shadow-md">{t('hero_title', lang)}</h1>
-            <p className="text-wood-200 text-lg md:text-xl max-w-2xl font-medium">Old West - Cameri</p>
+          <div className="relative z-10 flex flex-col items-center justify-center h-full text-center text-white pb-10 px-4">
+            <h1 className="text-5xl md:text-7xl font-western mb-4 shadow-sm drop-shadow-md tracking-wide">{t('hero_title', lang)}</h1>
+            <div className="flex flex-col items-center gap-2 text-wood-200 text-lg md:text-xl font-medium">
+               <p className="flex items-center gap-2"><MapPin size={20} className="text-accent-500" /> Via G. Galilei 35 - Cameri (NO)</p>
+               <p className="flex items-center gap-2 text-base opacity-80"><Clock size={16} /> 11:00 - 15:00 | 17:00 - 00:00</p>
+            </div>
           </div>
         </div>
 
@@ -502,45 +511,74 @@ export default function App() {
            </div>
         </div>
 
-        {/* PRODUCTS GRID */}
+        {/* CONTENT AREA */}
         <div className="container mx-auto px-4 py-8">
-           {filteredItems.length === 0 ? (
-             <div className="text-center py-20"><div className="inline-block p-6 bg-wood-100 rounded-full mb-4"><UtensilsCrossed size={40} className="text-wood-400" /></div><h3 className="text-xl font-bold text-wood-600">{t('no_products_section', lang)}</h3><p className="text-wood-400 mt-2">{t('select_category', lang)}</p></div>
-           ) : (
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-               {filteredItems.map(item => {
-                 const { name, description } = getProductContent(item);
-                 const isAdded = addedItemId === item.id;
-                 return (
-                   <div key={item.id} className="bg-white rounded-3xl border border-wood-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group">
-                     {/* Image */}
-                     <div className="relative h-56 bg-wood-50 overflow-hidden">
-                       {item.imageUrl ? (<img src={item.imageUrl} alt={name} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />) : (<div className="w-full h-full flex items-center justify-center bg-wood-100"><WesternLogo size="lg" className="opacity-50 grayscale" /></div>)}
-                       {item.tags && item.tags.length > 0 && (<div className="absolute top-4 left-4 flex flex-col gap-1">{item.tags.map(tag => (<span key={tag} className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider shadow-sm ${tag === 'Piccante' ? 'bg-red-500 text-white' : tag === 'Vegetariano' || tag === 'Vegano' ? 'bg-green-500 text-white' : 'bg-accent-500 text-white'}`}>{tag}</span>))}</div>)}
-                       <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-lg shadow-sm border border-wood-100 flex items-center gap-1"><span className="text-xs font-bold text-wood-500">€</span><span className="text-xl font-western text-wood-900">{item.price.toFixed(2)}</span></div>
-                     </div>
-                     {/* Content */}
-                     <div className="p-6 flex-1 flex flex-col">
-                       <div className="flex justify-between items-start mb-2"><h3 className="text-xl font-bold text-wood-900 leading-tight">{name}</h3>{item.category === ProductCategory.HAMBURGER && item.subCategory && <span className="text-[10px] font-bold text-wood-400 bg-wood-50 px-2 py-1 rounded-md whitespace-nowrap">{item.subCategory}</span>}</div>
-                       <p className="text-sm text-wood-500 mb-4 line-clamp-3 flex-1">{description}</p>
-                       {/* Allergeni Icons */}
-                       {item.allergens && item.allergens.length > 0 && (
-                         <div className="flex flex-wrap gap-1 mb-4 border-t border-wood-100 pt-2">
-                           {item.allergens.map(a => (
-                             <div key={a} className="group/allergen relative p-1">
-                               <AllergenIcon type={a} className="w-4 h-4 text-wood-400" />
-                               <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-wood-800 text-white text-[10px] rounded opacity-0 group-hover/allergen:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">{a}</span>
-                             </div>
-                           ))}
-                         </div>
-                       )}
-                       {/* Action */}
-                       <button onClick={() => addToCart(item)} className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all duration-200 shadow-lg ${isAdded ? 'bg-green-500 text-white scale-95' : 'bg-wood-900 text-white hover:bg-accent-600 shadow-wood-200'}`}>{isAdded ? <Check size={18} /> : <Plus size={18} />} {t('add_to_cart', lang)}</button>
-                     </div>
-                   </div>
-                 );
-               })}
+           {activeCategory === 'Tutti' ? (
+             // VISTA CATEGORIE (HOME)
+             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {CATEGORIES_LIST.map(cat => (
+                   <button 
+                     key={cat} 
+                     onClick={() => handleCategoryClick(cat)}
+                     className="bg-white border-2 border-wood-100 hover:border-accent-500 rounded-3xl p-6 flex flex-col items-center justify-center gap-4 shadow-sm hover:shadow-xl transition-all group aspect-square"
+                   >
+                      <div className="w-16 h-16 bg-wood-50 rounded-full flex items-center justify-center text-wood-400 group-hover:bg-accent-50 group-hover:text-accent-500 transition-colors">
+                         <CategoryIcon category={cat} className="w-8 h-8" />
+                      </div>
+                      <span className="font-western text-xl text-wood-900">{tCategory(cat, lang)}</span>
+                   </button>
+                ))}
              </div>
+           ) : (
+             // VISTA PRODOTTI
+             <>
+               {filteredItems.length === 0 ? (
+                 <div className="text-center py-20"><div className="inline-block p-6 bg-wood-100 rounded-full mb-4"><UtensilsCrossed size={40} className="text-wood-400" /></div><h3 className="text-xl font-bold text-wood-600">{t('no_products_section', lang)}</h3><p className="text-wood-400 mt-2">{t('select_category', lang)}</p></div>
+               ) : (
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                   {filteredItems.map(item => {
+                     const { name, description } = getProductContent(item);
+                     const isAdded = addedItemId === item.id;
+                     return (
+                       <div key={item.id} className="bg-white rounded-3xl border border-wood-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group">
+                         {/* Image */}
+                         <div className="relative h-56 bg-wood-50 overflow-hidden">
+                           {item.imageUrl ? (<img src={item.imageUrl} alt={name} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />) : (<div className="w-full h-full flex items-center justify-center bg-wood-100"><WesternLogo size="lg" className="opacity-50 grayscale" /></div>)}
+                           {item.tags && item.tags.length > 0 && (<div className="absolute top-4 left-4 flex flex-col gap-1">{item.tags.map(tag => (<span key={tag} className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider shadow-sm ${tag === 'Piccante' ? 'bg-red-500 text-white' : tag === 'Vegetariano' || tag === 'Vegano' ? 'bg-green-500 text-white' : 'bg-accent-500 text-white'}`}>{tag}</span>))}</div>)}
+                           <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-lg shadow-sm border border-wood-100 flex items-center gap-1"><span className="text-xs font-bold text-wood-500">€</span><span className="text-xl font-western text-wood-900">{item.price.toFixed(2)}</span></div>
+                         </div>
+                         {/* Content */}
+                         <div className="p-6 flex-1 flex flex-col">
+                           <div className="flex justify-between items-start mb-2"><h3 className="text-xl font-bold text-wood-900 leading-tight">{name}</h3>{item.category === ProductCategory.HAMBURGER && item.subCategory && <span className="text-[10px] font-bold text-wood-400 bg-wood-50 px-2 py-1 rounded-md whitespace-nowrap">{item.subCategory}</span>}</div>
+                           
+                           <div className="flex-1 mb-4">
+                              <p className="text-sm text-wood-500 line-clamp-3">{description}</p>
+                              {/* Asterisco Info */}
+                              {description.includes('*') && (
+                                 <p className="text-[10px] text-wood-400 italic mt-1">* Prodotto surgelato</p>
+                              )}
+                           </div>
+                           
+                           {/* Allergeni Icons */}
+                           {item.allergens && item.allergens.length > 0 && (
+                             <div className="flex flex-wrap gap-1 mb-4 border-t border-wood-100 pt-2">
+                               {item.allergens.map(a => (
+                                 <div key={a} className="group/allergen relative p-1">
+                                   <AllergenIcon type={a} className="w-4 h-4 text-wood-400" />
+                                   <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-wood-800 text-white text-[10px] rounded opacity-0 group-hover/allergen:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">{a}</span>
+                                 </div>
+                               ))}
+                             </div>
+                           )}
+                           {/* Action */}
+                           <button onClick={() => addToCart(item)} className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all duration-200 shadow-lg ${isAdded ? 'bg-green-500 text-white scale-95' : 'bg-wood-900 text-white hover:bg-accent-600 shadow-wood-200'}`}>{isAdded ? <Check size={18} /> : <Plus size={18} />} {t('add_to_cart', lang)}</button>
+                         </div>
+                       </div>
+                     );
+                   })}
+                 </div>
+               )}
+             </>
            )}
         </div>
 
@@ -548,10 +586,9 @@ export default function App() {
         <div className="bg-wood-900 text-wood-300 py-12 border-t border-wood-800">
            <div className="container mx-auto px-4 text-center">
               <WesternLogo size="lg" className="mx-auto mb-6 opacity-80" />
-              <p className="mb-4 text-sm">{t('frozen_explanation', lang)}</p>
               <div className="flex flex-col gap-2 items-center mb-6 font-bold text-white">
                  <div className="flex items-center gap-2"><Phone size={16} className="text-accent-500" /> 0321 510220</div>
-                 <div className="flex items-center gap-2"><MapPin size={16} className="text-accent-500" /> Cameri (NO)</div>
+                 <div className="flex items-center gap-2"><MapPin size={16} className="text-accent-500" /> Via G. Galilei 35 - Cameri (NO)</div>
               </div>
               <p className="text-xs opacity-50">&copy; {new Date().getFullYear()} Old West. {t('rights_reserved', lang)}</p>
            </div>
@@ -643,51 +680,4 @@ export default function App() {
                  </div>
                  <div className="bg-wood-50 rounded-xl p-4 border border-wood-200">
                     <div className="flex items-center justify-between mb-2"><label className="text-xs font-bold text-wood-500 uppercase tracking-wider flex items-center gap-2"><Globe size={12} /> Descrizione ({LANGUAGES_CONFIG.find(l => l.code === adminLang)?.label})</label><div className="flex bg-white rounded-lg p-0.5 border border-wood-200">{LANGUAGES_CONFIG.map(l => (<button type="button" key={l.code} onClick={() => setAdminLang(l.code as LanguageCode)} className={`w-6 h-6 rounded-md flex items-center justify-center text-xs transition-colors ${adminLang === l.code ? 'bg-accent-500 text-white shadow-sm' : 'text-wood-400 hover:bg-wood-100'}`}>{l.flag}</button>))}</div></div>
-                    {adminLang === 'it' ? (<textarea rows={3} value={newItem.description || ''} onChange={e => setNewItem({...newItem, description: e.target.value})} className="w-full bg-white border border-wood-200 rounded-lg p-3 text-sm focus:outline-none focus:border-accent-500 resize-none" placeholder="Descrizione in Italiano..." />) : (<div className="space-y-2"><input type="text" value={newItem.translations?.[adminLang]?.name || ''} onChange={e => { const newTranslations = { ...newItem.translations }; if (!newTranslations[adminLang]) newTranslations[adminLang] = { name: '', description: '' }; newTranslations[adminLang]!.name = e.target.value; setNewItem({ ...newItem, translations: newTranslations }); }} className="w-full bg-white border border-wood-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent-500" placeholder={`Nome in ${LANGUAGES_CONFIG.find(l => l.code === adminLang)?.label}...`} /><textarea rows={2} value={newItem.translations?.[adminLang]?.description || ''} onChange={e => { const newTranslations = { ...newItem.translations }; if (!newTranslations[adminLang]) newTranslations[adminLang] = { name: '', description: '' }; newTranslations[adminLang]!.description = e.target.value; setNewItem({ ...newItem, translations: newTranslations }); }} className="w-full bg-white border border-wood-200 rounded-lg p-3 text-sm focus:outline-none focus:border-accent-500 resize-none" placeholder={`Descrizione in ${LANGUAGES_CONFIG.find(l => l.code === adminLang)?.label}...`} /></div>)}
-                 </div>
-              </div>
-              <div className="col-span-1 md:col-span-2 flex justify-end gap-3 pt-4 border-t border-wood-100">
-                 {editingId && (<button type="button" onClick={handleCancelEdit} className="px-6 py-3 rounded-xl font-bold text-wood-500 hover:bg-wood-100 transition-colors">Annulla</button>)}
-                 <button type="submit" className="bg-accent-500 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-accent-600 transition-all transform hover:-translate-y-1 flex items-center gap-2"><Save size={18} /> {editingId ? 'Salva Modifiche' : 'Aggiungi Prodotto'}</button>
-              </div>
-           </form>
-        </div>
-        <div>
-           <div className="flex items-center justify-between mb-6">
-             <h3 className="text-2xl font-western text-wood-900">Prodotti nel Menu ({items.length})</h3>
-             <div className="relative"><select value={activeCategory} onChange={e => handleCategoryClick(e.target.value)} className="appearance-none bg-white border border-wood-200 rounded-full px-4 py-2 pr-8 text-sm font-bold text-wood-600 focus:outline-none">{['Tutti', ...CATEGORIES_LIST, ProductCategory.AGGIUNTE].map(cat => (<option key={cat} value={cat}>{tCategory(cat, lang)}</option>))}</select><ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-wood-400 pointer-events-none" size={14} /></div>
-           </div>
-           <div className="space-y-3">
-              {displayItems.map(item => (
-                <div key={item.id} className="bg-white p-4 rounded-xl border border-wood-100 shadow-sm flex items-center gap-4 group hover:border-accent-200 transition-colors">
-                   <div className="w-12 h-12 bg-wood-50 rounded-lg overflow-hidden shrink-0">{item.imageUrl ? (<img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />) : (<div className="w-full h-full flex items-center justify-center text-wood-300"><UtensilsCrossed size={16} /></div>)}</div>
-                   <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2"><h4 className="font-bold text-wood-900 truncate">{item.name}</h4>{item.category === ProductCategory.HAMBURGER && item.subCategory && (<span className="text-[10px] bg-wood-100 text-wood-500 px-2 py-0.5 rounded-full whitespace-nowrap">{item.subCategory}</span>)}</div>
-                      <p className="text-xs text-wood-400 truncate">{item.description}</p>
-                      <div className="flex items-center gap-2 mt-1"><span className="text-sm font-mono font-bold text-accent-600">€{item.price.toFixed(2)}</span><span className="text-[10px] text-wood-300 uppercase tracking-wider bg-wood-50 px-2 rounded-full">{tCategory(item.category, lang)}</span></div>
-                   </div>
-                   <div className="flex items-center gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => handleEditItem(item)} className="w-8 h-8 rounded-lg bg-wood-100 text-wood-600 flex items-center justify-center hover:bg-accent-500 hover:text-white transition-colors" title="Modifica"><Pencil size={14} /></button>
-                      <button onClick={(e) => handleDeleteItem(item.id, e)} className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors" title="Elimina"><Trash2 size={14} /></button>
-                   </div>
-                </div>
-              ))}
-           </div>
-        </div>
-      </div>
-    </div>
-  )};
-
-  return (
-    <>
-      {renderHeader()}
-      {view === 'MENU' && renderMenu()}
-      {view === 'LOGIN' && renderLogin()}
-      {view === 'ADMIN' && renderAdmin()}
-      {renderCartDrawer()}
-      {renderFloatingCartBar()}
-
-      <button onClick={scrollToTop} className={`fixed bottom-24 right-6 z-40 w-10 h-10 bg-wood-800 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:bg-accent-600 hover:scale-110 ${showScrollTop && !isCartOpen ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0 pointer-events-none'}`} aria-label="Scroll to top"><ChevronUp size={20} /></button>
-    </>
-  );
-}
+                    {adminLang === 'it' ? (<textarea rows={3} value={newItem.description || ''} onChange={e => setNewItem({...newItem, description: e.target.value})} className="w-full bg-white border border-wood-200 rounded
