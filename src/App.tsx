@@ -521,6 +521,44 @@ export default function App() {
     </div>
   )};
 
+  const renderLogin = () => (
+    <div className="min-h-screen bg-wood-900 flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl border-4 border-wood-800 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-2 bg-accent-500"></div>
+        <div className="flex flex-col items-center text-center mb-8">
+          <WesternLogo size="lg" url={customLogo} className="mb-4" />
+          <h2 className="text-3xl font-western text-wood-900">{t('admin_area', lang)}</h2>
+          <p className="text-wood-500 mt-2">{t('login_prompt', lang)}</p>
+        </div>
+        <form onSubmit={handleLogin} className="space-y-6">
+          <div className="relative">
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-wood-400" size={20} />
+            <input 
+              type="password" 
+              value={adminPassword} 
+              onChange={(e) => setAdminPassword(e.target.value)} 
+              placeholder="PIN (1234)" 
+              className="w-full bg-wood-50 text-center font-mono text-2xl tracking-widest py-4 rounded-xl border-2 border-wood-100 focus:outline-none focus:border-accent-500 focus:bg-white transition-all text-wood-900"
+              autoFocus
+            />
+          </div>
+          {loginError && (
+            <div className="bg-red-50 text-red-500 px-4 py-3 rounded-xl flex items-center gap-2 text-sm font-bold animate-pulse">
+              <AlertCircle size={16} /> {loginError}
+            </div>
+          )}
+          <button type="submit" className="w-full bg-accent-500 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-accent-600 hover:scale-[1.02] active:scale-[0.98] transition-all">
+            {t('login_btn', lang)}
+          </button>
+        </form>
+        <button onClick={() => setView('MENU')} className="w-full mt-4 py-3 text-wood-400 font-bold hover:text-wood-600 transition-colors">
+          {t('back_to_menu', lang)}
+        </button>
+      </div>
+    </div>
+  );
+  
+
   const renderDIY = () => {
     const currentStepConfig = DIY_OPTIONS.steps[diyStep];
     const { title, description } = getDIYStepContent(currentStepConfig, lang);
