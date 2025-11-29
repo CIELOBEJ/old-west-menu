@@ -10,7 +10,7 @@ import { MenuItem, ProductCategory, ViewState, LanguageCode, ActiveFilters, Cart
 import { INITIAL_MENU_ITEMS, CATEGORIES_LIST, HAMBURGER_SUBCATEGORIES, DIY_OPTIONS, UI_TRANSLATIONS, CATEGORY_TRANSLATIONS, DATA_VERSION, ALLERGENS_CONFIG, EXTRA_INGREDIENTS_ITEMS } from './constants';
 import { supabase } from './supabase';
 
-// --- Helper Functions (Fuori dal componente) ---
+// --- Helper Functions ---
 
 const uploadImageToSupabase = async (file: File): Promise<string | null> => {
   try {
@@ -117,6 +117,7 @@ export default function App() {
   const [addedItemId, setAddedItemId] = useState<string | null>(null);
 
   const carouselRef = useRef<HTMLDivElement>(null);
+  const highlightsRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
@@ -141,11 +142,12 @@ export default function App() {
   const scrollToTop = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
   // 3. LOGIC HANDLERS
-  const handleMouseDown = (e: React.MouseEvent) => { if (!carouselRef.current) return; setIsDragging(true); setStartX(e.pageX - carouselRef.current.offsetLeft); setScrollLeft(carouselRef.current.scrollLeft); };
+  const handleMouseDown = (e: React.MouseEvent, ref: React.RefObject<HTMLDivElement>) => { if (!ref.current) return; setIsDragging(true); setStartX(e.pageX - ref.current.offsetLeft); setScrollLeft(ref.current.scrollLeft); };
   const handleMouseLeave = () => setIsDragging(false);
   const handleMouseUp = () => setIsDragging(false);
-  const handleMouseMove = (e: React.MouseEvent) => { if (!isDragging || !carouselRef.current) return; e.preventDefault(); const x = e.pageX - carouselRef.current.offsetLeft; const walk = (x - startX) * 2; carouselRef.current.scrollLeft = scrollLeft - walk; };
-  const scrollCarousel = (direction: 'left' | 'right') => { if (carouselRef.current) { const scrollAmount = 300; carouselRef.current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' }); } };
+  const handleMouseMove = (e: React.MouseEvent, ref: React.RefObject<HTMLDivElement>) => { if (!isDragging || !ref.current) return; e.preventDefault(); const x = e.pageX - ref.current.offsetLeft; const walk = (x - startX) * 2; ref.current.scrollLeft = scrollLeft - walk; };
+  const scrollCarousel = (direction: 'left' | 'right', ref: React.RefObject<HTMLDivElement>) => { if (ref.current) { const scrollAmount = 300; ref.current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' }); } };
+  
   const getProductContent = (item: MenuItem | Partial<MenuItem>) => { if (lang === 'it') return { name: item.name || '', description: item.description || '' }; const trans = item.translations?.[lang]; return { name: trans?.name || item.name || '', description: trans?.description || item.description || '' }; };
 
   const checkFilters = (item: MenuItem) => {
@@ -208,7 +210,7 @@ export default function App() {
   const handleImportData = () => alert("Import locale disabilitato. Usa sync cloud.");
   const handleFactoryReset = () => alert("Reset locale disabilitato. Gestisci da DB.");
 
-  // --- RENDER FUNCTIONS (Spostati in alto per evitare errori di definizione) ---
+  // --- RENDER FUNCTIONS ---
 
   const renderHeader = () => (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${view === 'MENU' ? 'bg-wood-900/95 backdrop-blur-md border-b border-wood-800' : 'bg-wood-900 shadow-md'}`}>
@@ -272,12 +274,8 @@ export default function App() {
                              </div>
                              {item.selectedVariant && <span className="text-xs bg-wood-100 px-2 py-0.5 rounded text-wood-600 block w-fit mb-1">{item.selectedVariant.name}</span>}
                              
-                             {/* Descrizione per Fai da te */}
-                             {item.id.startsWith('diy-') && (
-                                <p className="text-xs italic text-wood-500 mb-2 leading-relaxed">{item.description}</p>
-                             )}
+                             {item.id.startsWith('diy-') && (<p className="text-xs italic text-wood-500 mb-2 leading-relaxed">{item.description}</p>)}
 
-                             {/* Ingredienti Extra */}
                              {item.selectedAddons && item.selectedAddons.length > 0 && (
                                 <div className="text-sm text-wood-500 mt-1 space-y-0.5">
                                    {item.selectedAddons.map((add, i) => (
@@ -464,6 +462,8 @@ export default function App() {
       return checkFilters(item);
     });
 
+    const highlightedItems = items.filter(i => (i.tags?.includes('Best Seller') || i.tags?.includes('Consigliato')) && i.category !== ProductCategory.AGGIUNTE);
+
     return (
       <div className="min-h-screen bg-wood-50 pb-40">
         {/* HERO */}
@@ -484,12 +484,12 @@ export default function App() {
           <div className="container mx-auto px-4 py-4">
              {/* Carousel */}
              <div className="relative group">
-                <button onClick={() => scrollCarousel('left')} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"><ChevronLeft size={18} /></button>
-                <div ref={carouselRef} className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 pt-1 px-1 cursor-grab active:cursor-grabbing" onMouseDown={handleMouseDown} onMouseLeave={handleMouseLeave} onMouseUp={handleMouseUp} onMouseMove={handleMouseMove}>
+                <button onClick={() => scrollCarousel('left', carouselRef)} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"><ChevronLeft size={18} /></button>
+                <div ref={carouselRef} className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 pt-1 px-1 cursor-grab active:cursor-grabbing" onMouseDown={(e) => handleMouseDown(e, carouselRef)} onMouseLeave={handleMouseLeave} onMouseUp={handleMouseUp} onMouseMove={(e) => handleMouseMove(e, carouselRef)}>
                   <button id="btn-Tutti" onClick={() => handleCategoryClick('Tutti')} className={`flex items-center gap-2 px-5 py-2.5 rounded-full whitespace-nowrap transition-all duration-300 font-bold text-sm shadow-sm select-none ${activeCategory === 'Tutti' ? 'bg-wood-900 text-white scale-105 ring-2 ring-wood-900 ring-offset-2' : 'bg-white text-wood-600 border border-wood-200 hover:border-wood-400'}`}><LayoutGrid size={16} /> {tCategory('Tutti', lang)}</button>
                   {CATEGORIES_LIST.map(cat => (<button key={cat} id={`btn-${cat}`} onClick={() => handleCategoryClick(cat)} className={`flex items-center gap-2 px-5 py-2.5 rounded-full whitespace-nowrap transition-all duration-300 font-bold text-sm shadow-sm select-none ${activeCategory === cat ? 'bg-accent-500 text-white scale-105 ring-2 ring-accent-500 ring-offset-2' : 'bg-white text-wood-600 border border-wood-200 hover:border-accent-300 hover:text-accent-600'}`}><CategoryIcon category={cat} className="w-4 h-4" /> {tCategory(cat, lang)}</button>))}
                 </div>
-                <button onClick={() => scrollCarousel('right')} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"><ChevronRight size={18} /></button>
+                <button onClick={() => scrollCarousel('right', carouselRef)} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"><ChevronRight size={18} /></button>
              </div>
 
              {/* Subcategories & Filters */}
@@ -510,6 +510,39 @@ export default function App() {
               ✨ Aggiunta ingredienti da € 1,00 a € 6,00 ✨
            </div>
         </div>
+
+        {/* HIGHLIGHTS SECTION (IN EVIDENZA) */}
+        {activeCategory === 'Tutti' && highlightedItems.length > 0 && (
+          <div className="container mx-auto px-4 mt-8 mb-4">
+            <h3 className="text-xl font-bold text-wood-900 mb-4 flex items-center gap-2">
+              <Star size={20} className="text-accent-500" fill="currentColor" /> In Evidenza
+            </h3>
+            <div className="relative group/hl">
+                <button onClick={() => scrollCarousel('left', highlightsRef)} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover/hl:opacity-100 transition-opacity disabled:opacity-0"><ChevronLeft size={18} /></button>
+                <div ref={highlightsRef} className="flex gap-4 overflow-x-auto scrollbar-hide pb-4 snap-x px-1" onMouseDown={(e) => handleMouseDown(e, highlightsRef)} onMouseLeave={handleMouseLeave} onMouseUp={handleMouseUp} onMouseMove={(e) => handleMouseMove(e, highlightsRef)}>
+                  {highlightedItems.map(item => {
+                     const { name } = getProductContent(item);
+                     return (
+                       <div key={item.id} className="snap-center shrink-0 w-48 bg-white rounded-2xl border border-wood-100 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col" onClick={() => { setActiveCategory(item.category); document.getElementById(`btn-${item.category}`)?.click(); }}>
+                          <div className="h-32 bg-wood-50 relative">
+                             {item.imageUrl ? (<img src={item.imageUrl} alt={name} className="w-full h-full object-cover" />) : (<div className="w-full h-full flex items-center justify-center text-wood-300"><UtensilsCrossed size={16} /></div>)}
+                             <span className="absolute top-2 left-2 bg-accent-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm">{item.tags?.includes('Best Seller') ? 'BEST' : 'TOP'}</span>
+                          </div>
+                          <div className="p-3 flex flex-col flex-1">
+                             <h4 className="font-bold text-sm text-wood-900 line-clamp-2 mb-1">{name}</h4>
+                             <div className="mt-auto flex justify-between items-center">
+                                <span className="font-mono font-bold text-accent-600 text-sm">€{item.price.toFixed(2)}</span>
+                                <div className="bg-wood-50 p-1 rounded-full text-wood-400"><Plus size={12} /></div>
+                             </div>
+                          </div>
+                       </div>
+                     )
+                  })}
+                </div>
+                <button onClick={() => scrollCarousel('right', highlightsRef)} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover/hl:opacity-100 transition-opacity disabled:opacity-0"><ChevronRight size={18} /></button>
+            </div>
+          </div>
+        )}
 
         {/* CONTENT AREA */}
         <div className="container mx-auto px-4 py-8">
@@ -680,4 +713,55 @@ export default function App() {
                  </div>
                  <div className="bg-wood-50 rounded-xl p-4 border border-wood-200">
                     <div className="flex items-center justify-between mb-2"><label className="text-xs font-bold text-wood-500 uppercase tracking-wider flex items-center gap-2"><Globe size={12} /> Descrizione ({LANGUAGES_CONFIG.find(l => l.code === adminLang)?.label})</label><div className="flex bg-white rounded-lg p-0.5 border border-wood-200">{LANGUAGES_CONFIG.map(l => (<button type="button" key={l.code} onClick={() => setAdminLang(l.code as LanguageCode)} className={`w-6 h-6 rounded-md flex items-center justify-center text-xs transition-colors ${adminLang === l.code ? 'bg-accent-500 text-white shadow-sm' : 'text-wood-400 hover:bg-wood-100'}`}>{l.flag}</button>))}</div></div>
-                    {adminLang === 'it' ? (<textarea rows={3} value={newItem.description || ''} onChange={e => setNewItem({...newItem, description: e.target.value})} className="w-full bg-white border border-wood-200 rounded
+                    {adminLang === 'it' ? (
+                      <textarea rows={3} value={newItem.description || ''} onChange={e => setNewItem({...newItem, description: e.target.value})} className="w-full bg-white border border-wood-200 rounded-lg p-3 text-sm focus:outline-none focus:border-accent-500 resize-none" placeholder="Descrizione in Italiano..." />
+                    ) : (
+                      <div className="space-y-2"><input type="text" value={newItem.translations?.[adminLang]?.name || ''} onChange={e => { const newTranslations = { ...newItem.translations }; if (!newTranslations[adminLang]) newTranslations[adminLang] = { name: '', description: '' }; newTranslations[adminLang]!.name = e.target.value; setNewItem({ ...newItem, translations: newTranslations }); }} className="w-full bg-white border border-wood-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent-500" placeholder={`Nome in ${LANGUAGES_CONFIG.find(l => l.code === adminLang)?.label}...`} /><textarea rows={2} value={newItem.translations?.[adminLang]?.description || ''} onChange={e => { const newTranslations = { ...newItem.translations }; if (!newTranslations[adminLang]) newTranslations[adminLang] = { name: '', description: '' }; newTranslations[adminLang]!.description = e.target.value; setNewItem({ ...newItem, translations: newTranslations }); }} className="w-full bg-white border border-wood-200 rounded-lg p-3 text-sm focus:outline-none focus:border-accent-500 resize-none" placeholder={`Descrizione in ${LANGUAGES_CONFIG.find(l => l.code === adminLang)?.label}...`} /></div>
+                    )}
+                 </div>
+              </div>
+              <div className="col-span-1 md:col-span-2 flex justify-end gap-3 pt-4 border-t border-wood-100">
+                 {editingId && (<button type="button" onClick={handleCancelEdit} className="px-6 py-3 rounded-xl font-bold text-wood-500 hover:bg-wood-100 transition-colors">Annulla</button>)}
+                 <button type="submit" className="bg-accent-500 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-accent-600 transition-all transform hover:-translate-y-1 flex items-center gap-2"><Save size={18} /> {editingId ? 'Salva Modifiche' : 'Aggiungi Prodotto'}</button>
+              </div>
+           </form>
+        </div>
+        <div>
+           <div className="flex items-center justify-between mb-6">
+             <h3 className="text-2xl font-western text-wood-900">Prodotti nel Menu ({items.length})</h3>
+             <div className="relative"><select value={activeCategory} onChange={e => handleCategoryClick(e.target.value)} className="appearance-none bg-white border border-wood-200 rounded-full px-4 py-2 pr-8 text-sm font-bold text-wood-600 focus:outline-none">{['Tutti', ...CATEGORIES_LIST, ProductCategory.AGGIUNTE].map(cat => (<option key={cat} value={cat}>{tCategory(cat, lang)}</option>))}</select><ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-wood-400 pointer-events-none" size={14} /></div>
+           </div>
+           <div className="space-y-3">
+              {displayItems.map(item => (
+                <div key={item.id} className="bg-white p-4 rounded-xl border border-wood-100 shadow-sm flex items-center gap-4 group hover:border-accent-200 transition-colors">
+                   <div className="w-12 h-12 bg-wood-50 rounded-lg overflow-hidden shrink-0">{item.imageUrl ? (<img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />) : (<div className="w-full h-full flex items-center justify-center text-wood-300"><UtensilsCrossed size={16} /></div>)}</div>
+                   <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2"><h4 className="font-bold text-wood-900 truncate">{item.name}</h4>{item.category === ProductCategory.HAMBURGER && item.subCategory && (<span className="text-[10px] bg-wood-100 text-wood-500 px-2 py-0.5 rounded-full whitespace-nowrap">{item.subCategory}</span>)}</div>
+                      <p className="text-xs text-wood-400 truncate">{item.description}</p>
+                      <div className="flex items-center gap-2 mt-1"><span className="text-sm font-mono font-bold text-accent-600">€{item.price.toFixed(2)}</span><span className="text-[10px] text-wood-300 uppercase tracking-wider bg-wood-50 px-2 rounded-full">{tCategory(item.category, lang)}</span></div>
+                   </div>
+                   <div className="flex items-center gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => handleEditItem(item)} className="w-8 h-8 rounded-lg bg-wood-100 text-wood-600 flex items-center justify-center hover:bg-accent-500 hover:text-white transition-colors" title="Modifica"><Pencil size={14} /></button>
+                      <button onClick={(e) => handleDeleteItem(item.id, e)} className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors" title="Elimina"><Trash2 size={14} /></button>
+                   </div>
+                </div>
+              ))}
+           </div>
+        </div>
+      </div>
+    </div>
+  )};
+
+  return (
+    <>
+      {renderHeader()}
+      {view === 'MENU' && renderMenu()}
+      {view === 'LOGIN' && renderLogin()}
+      {view === 'ADMIN' && renderAdmin()}
+      {renderCartDrawer()}
+      {renderFloatingCartBar()}
+
+      <button onClick={scrollToTop} className={`fixed bottom-24 right-6 z-40 w-10 h-10 bg-wood-800 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:bg-accent-600 hover:scale-110 ${showScrollTop && !isCartOpen ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0 pointer-events-none'}`} aria-label="Scroll to top"><ChevronUp size={20} /></button>
+    </>
+  );
+}
