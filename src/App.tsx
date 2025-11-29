@@ -209,10 +209,8 @@ export default function App() {
           return sum + (itemPrice + addonsPrice) * item.quantity; 
       }, 0); 
       
-      // LOGICA COPERTO: Applica €2.00 solo se c'è almeno un prodotto che NON è una bevanda
-      // Se il carrello è vuoto o contiene solo bevande, il coperto è 0.
+      // LOGICA COPERTO
       const hasFood = cart.some(item => item.category !== ProductCategory.BEVANDE);
-      
       return subtotal + (cart.length > 0 && hasFood ? 2.00 : 0); 
   };
 
@@ -298,7 +296,6 @@ export default function App() {
       const addons = items.filter(i => i.category === ProductCategory.AGGIUNTE);
       const filteredAddons = addons.filter(a => a.name.toLowerCase().includes(addonSearch.toLowerCase()));
       
-      // Controllo se esiste almeno un prodotto "Food" nel carrello
       const hasFood = cart.some(item => item.category !== ProductCategory.BEVANDE);
 
       return (
@@ -331,7 +328,6 @@ export default function App() {
                                 </div>
                              )}
                              
-                             {/* MOSTRO IL TASTO AGGIUNGI INGREDIENTE SOLO SE È PIZZA O HAMBURGER */}
                              {(item.category === ProductCategory.HAMBURGER || item.category === ProductCategory.PIZZA) && (
                                  <button onClick={() => openAddonModal(index)} className="text-xs font-bold text-wood-400 mt-3 flex items-center gap-1 hover:text-accent-600 transition-colors border border-wood-200 rounded-lg px-3 py-1.5 w-fit">
                                     <Plus size={12}/> {t('add_ingredient', lang)}
@@ -350,7 +346,6 @@ export default function App() {
                        </div>
                     ))}
                     
-                    {/* Visualizza la riga del Coperto solo se c'è cibo */}
                     {hasFood && (
                         <div className="flex justify-between items-center py-2 px-3 bg-wood-50 rounded-xl border border-wood-100">
                            <span className="text-sm font-bold text-wood-500 uppercase tracking-wider">{t('cover_charge', lang)}</span>
@@ -411,7 +406,6 @@ export default function App() {
   };
 
   const renderAdmin = () => {
-    // Ordinamento alfabetico nel pannello admin
     const sortedItems = [...items].sort((a, b) => a.name.localeCompare(b.name));
     const displayItems = activeCategory === 'Tutti' ? sortedItems : sortedItems.filter(i => i.category === activeCategory);
 
@@ -527,6 +521,73 @@ export default function App() {
       </div>
     </div>
   )};
+
+  const renderDIY = () => {
+    const currentStepConfig = DIY_OPTIONS.steps[diyStep];
+    const { title, description } = getDIYStepContent(currentStepConfig, lang);
+
+    return (
+      <div className="container mx-auto px-4 py-8 pb-32" ref={diyHeaderRef}>
+        <div className="bg-white rounded-3xl border border-wood-100 shadow-xl overflow-hidden">
+          <div className="bg-wood-900 p-6 text-white text-center relative overflow-hidden">
+             {/* TUO PULSANTE X PERSONALIZZATO */}
+             <button 
+                onClick={() => setActiveSubCategoryView(null)} 
+                className="absolute top-12 left-3 z-50 bg-wood-900 text-white p-3 rounded-full shadow-2xl border-2 border-white/20 hover:scale-110 transition-transform"
+                aria-label="Chiudi"
+             >
+                <X size={28} />
+             </button>
+
+             <div className="absolute inset-0 bg-cover bg-center opacity-20" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=2000')" }}></div>
+             <div className="relative z-10 pt-12">
+                <h2 className="text-3xl font-western mb-2">{t('diy_title', lang)}</h2>
+                <p className="text-wood-300">{t('diy_subtitle', lang)}</p>
+                <div className="flex justify-center gap-2 mt-4">
+                  {DIY_OPTIONS.steps.map((s, idx) => (
+                    <div key={s.id} className={`h-1.5 rounded-full transition-all duration-500 ${idx <= diyStep ? 'w-8 bg-accent-500' : 'w-4 bg-wood-700'}`}></div>
+                  ))}
+                </div>
+             </div>
+          </div>
+
+          <div className="p-6 md:p-8">
+             <div className="flex items-center justify-between mb-8">
+                <div>
+                   <span className="text-accent-600 font-bold tracking-widest text-xs uppercase mb-1 block">Step {diyStep + 1}/{DIY_OPTIONS.steps.length}</span>
+                   <h3 className="text-2xl font-bold text-wood-900">{title}</h3>
+                   <p className="text-wood-500">{description}</p>
+                </div>
+             </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {currentStepConfig.options.map((option: any) => {
+                   const isSelected = diySelections[currentStepConfig.id]?.name === option.name;
+                   return (
+                     <button 
+                       key={option.name}
+                       onClick={() => handleDiySelection(currentStepConfig.id, option)}
+                       className={`relative p-6 rounded-2xl border-2 text-left transition-all duration-300 group ${isSelected ? 'border-accent-500 bg-accent-50 shadow-lg scale-[1.02]' : 'border-wood-100 bg-wood-50 hover:border-accent-300 hover:bg-white'}`}
+                     >
+                        <div className="flex justify-between items-center mb-1">
+                           <span className={`font-bold text-lg ${isSelected ? 'text-accent-700' : 'text-wood-800'}`}>{getDIYOptionContent(option, lang)}</span>
+                           {option.price > 0 && <span className="font-mono font-bold text-wood-900">+€{option.price.toFixed(2)}</span>}
+                        </div>
+                        {isSelected && <div className="absolute top-4 right-4 text-accent-500"><Check size={20} /></div>}
+                     </button>
+                   );
+                })}
+             </div>
+
+             <div className="flex justify-between items-center mt-10 pt-6 border-t border-wood-100" ref={diyControlsRef}>
+                <button onClick={() => { if (diyStep > 0) setDiyStep(diyStep - 1); else setActiveSubCategoryView(null); }} className="text-wood-500 font-bold hover:text-wood-800 transition-colors flex items-center gap-2 px-4 py-2"><ChevronLeft size={20} /> {t('back', lang)}</button>
+                <button onClick={handleDiyNext} disabled={!diySelections[currentStepConfig.id]} className="bg-wood-900 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-accent-600 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95">{diyStep === DIY_OPTIONS.steps.length - 1 ? (<>{t('add_to_cart', lang)} <Plus size={20} /></>) : (<>{t('add', lang)} <ArrowRight size={20} /></>)}</button>
+             </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <>
