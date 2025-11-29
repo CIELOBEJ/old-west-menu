@@ -36,7 +36,7 @@ const CategoryIcon = ({ category, className }: { category: ProductCategory | 'Tu
     case ProductCategory.CONTORNI: return <Utensils className={className} />;
     case ProductCategory.DOLCI: return <Cookie className={className} />;
     case ProductCategory.BEVANDE: return <Beer className={className} />;
-    case ProductCategory.AGGIUNTE: return <Plus className={className} />; // Icona per Admin
+    case ProductCategory.AGGIUNTE: return <Plus className={className} />;
     default: return <UtensilsCrossed className={className} />;
   }
 };
@@ -120,6 +120,7 @@ export default function App() {
   const carouselRef = useRef<HTMLDivElement>(null);
   const highlightsRef = useRef<HTMLDivElement>(null);
   const diyControlsRef = useRef<HTMLDivElement>(null); 
+  const diyHeaderRef = useRef<HTMLDivElement>(null); // Ref per scrollare in alto nel DIY
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
@@ -141,6 +142,14 @@ export default function App() {
 
   useEffect(() => { fetchItems(); const savedLogo = localStorage.getItem('oldWestLogoUrl'); if (savedLogo) setCustomLogo(savedLogo); }, []);
   useEffect(() => { const handleScroll = () => { if (window.scrollY > 300) setShowScrollTop(true); else setShowScrollTop(false); }; window.addEventListener('scroll', handleScroll); return () => window.removeEventListener('scroll', handleScroll); }, []);
+  
+  // Nuovo Effect: Scrolla in alto quando cambia lo step DIY
+  useEffect(() => {
+    if (activeSubCategoryView === 'Hamburger "Fai da te"' && diyHeaderRef.current) {
+      diyHeaderRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [diyStep]);
+
   const scrollToTop = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
   // 3. LOGIC HANDLERS
@@ -191,6 +200,7 @@ export default function App() {
   const handleDiyNext = () => {
      if (diyStep < DIY_OPTIONS.steps.length - 1) {
        setDiyStep(diyStep + 1);
+       // Scroll to top gestito dallo useEffect
      } else {
        const totalPrice = DIY_OPTIONS.basePrice + DIY_OPTIONS.steps.reduce((acc, step) => { const selected = diySelections[step.id]; return acc + (selected ? selected.price : 0); }, 0);
        const description = DIY_OPTIONS.steps.map(step => { const selected = diySelections[step.id]; return selected ? `${getDIYOptionContent(selected, lang)}` : ''; }).filter(Boolean).join(' + ');
@@ -407,11 +417,19 @@ export default function App() {
     const { title, description } = getDIYStepContent(currentStepConfig, lang);
 
     return (
-      <div className="container mx-auto px-4 pt-28 pb-32">
+      <div className="container mx-auto px-4 py-8 pb-32" ref={diyHeaderRef}>
         <div className="bg-white rounded-3xl border border-wood-100 shadow-xl overflow-hidden">
           <div className="bg-wood-900 p-6 text-white text-center relative overflow-hidden">
+             {/* Exit Button - Mobile optimized top-left */}
+             <button 
+                onClick={() => setActiveSubCategoryView(null)} 
+                className="absolute top-4 left-4 z-20 bg-black/30 hover:bg-black/50 text-white p-2 rounded-full backdrop-blur-sm transition-all"
+             >
+                <X size={24} />
+             </button>
+
              <div className="absolute inset-0 bg-cover bg-center opacity-20" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=2000')" }}></div>
-             <div className="relative z-10">
+             <div className="relative z-10 pt-4">
                 <h2 className="text-3xl font-western mb-2">{t('diy_title', lang)}</h2>
                 <p className="text-wood-300">{t('diy_subtitle', lang)}</p>
                 <div className="flex justify-center gap-2 mt-4">
