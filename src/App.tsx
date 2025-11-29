@@ -36,6 +36,7 @@ const CategoryIcon = ({ category, className }: { category: ProductCategory | 'Tu
     case ProductCategory.CONTORNI: return <Utensils className={className} />;
     case ProductCategory.DOLCI: return <Cookie className={className} />;
     case ProductCategory.BEVANDE: return <Beer className={className} />;
+    case ProductCategory.AGGIUNTE: return <Plus className={className} />; // Icona per Admin
     default: return <UtensilsCrossed className={className} />;
   }
 };
@@ -118,7 +119,7 @@ export default function App() {
 
   const carouselRef = useRef<HTMLDivElement>(null);
   const highlightsRef = useRef<HTMLDivElement>(null);
-  const diyControlsRef = useRef<HTMLDivElement>(null); // Ref per auto-scroll DIY
+  const diyControlsRef = useRef<HTMLDivElement>(null); 
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
@@ -182,7 +183,6 @@ export default function App() {
 
   const handleDiySelection = (stepId: number, option: any) => { 
     setDiySelections(prev => ({ ...prev, [stepId]: option }));
-    // Auto-scroll to bottom after selection
     setTimeout(() => {
       diyControlsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 200);
@@ -407,7 +407,7 @@ export default function App() {
     const { title, description } = getDIYStepContent(currentStepConfig, lang);
 
     return (
-      <div className="container mx-auto px-4 py-8 pb-32">
+      <div className="container mx-auto px-4 pt-28 pb-32">
         <div className="bg-white rounded-3xl border border-wood-100 shadow-xl overflow-hidden">
           <div className="bg-wood-900 p-6 text-white text-center relative overflow-hidden">
              <div className="absolute inset-0 bg-cover bg-center opacity-20" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=2000')" }}></div>
@@ -476,10 +476,10 @@ export default function App() {
       <div className="min-h-screen bg-wood-50 pb-40">
         {/* HERO */}
         <div className="relative h-96 bg-wood-900 overflow-hidden">
-          <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1544025162-d76690b67f66?q=80&w=2000')" }}></div>
+          <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: "url('https://oldwest.click/wp-content/uploads/2018/07/background1.jpg')" }}></div>
           <div className="absolute inset-0 bg-gradient-to-t from-wood-900 via-transparent to-transparent"></div>
           <div className="relative z-10 flex flex-col items-center justify-center h-full text-center text-white pb-10 px-4 pt-16">
-            <h1 className="text-3xl md:text-7xl font-western mb-4 shadow-sm drop-shadow-md tracking-wide">{t('hero_title', lang)}</h1>
+            <h1 className="text-4xl md:text-7xl font-western mb-4 shadow-sm drop-shadow-md tracking-wide pt-10">{t('hero_title', lang)}</h1>
             <div className="flex flex-col items-center gap-2 text-wood-200 text-base md:text-xl font-medium">
                <p className="flex items-center gap-2"><MapPin size={20} className="text-accent-500" /> Via G. Galilei 35 - Cameri (NO)</p>
                <p className="flex items-center gap-2 text-sm md:text-base opacity-80"><Clock size={16} /> 11:00 - 15:00 | 17:00 - 00:00</p>
