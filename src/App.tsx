@@ -128,8 +128,6 @@ export default function App() {
   const scrollCarousel = (direction: 'left' | 'right') => { if (carouselRef.current) { const scrollAmount = 300; carouselRef.current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' }); } };
   
   const getProductContent = (item: MenuItem | Partial<MenuItem>) => { if (lang === 'it') return { name: item.name || '', description: item.description || '' }; const trans = item.translations?.[lang]; return { name: trans?.name || item.name || '', description: trans?.description || item.description || '' }; };
-  const getDIYStepContent = (step: any) => { if (lang === 'it') return { title: step.title, description: step.description }; const trans = step.translations?.[lang]; return { title: trans?.title || step.title, description: trans?.description || step.description }; };
-  const getDIYOptionContent = (opt: any) => { if (lang === 'it') return opt.name; return opt.translations?.[lang]?.name || opt.name; };
 
   const checkFilters = (item: MenuItem) => {
     if (activeFilters.vegetarian) { const isVeg = item.tags?.includes('Vegetariano') || item.tags?.includes('Vegano') || item.category === ProductCategory.CONTORNI || (item.category === ProductCategory.PIZZA && (item.name === 'Vegetariana' || item.name === 'Margherita' || item.name === 'Marinara' || item.name === 'Verdure')); if (!isVeg) return false; }
@@ -174,28 +172,7 @@ export default function App() {
   const handleImportData = () => alert("Import locale disabilitato. Usa sync cloud.");
   const handleFactoryReset = () => alert("Reset locale disabilitato. Gestisci da DB.");
 
-  // --- RENDER SUB-FUNCTIONS ---
-
-  const renderHeader = () => (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${view === 'MENU' ? 'bg-wood-900/95 backdrop-blur-md border-b border-wood-800' : 'bg-wood-900 shadow-md'}`}>
-      <div className="container mx-auto px-4 h-16 md:h-20 flex justify-between items-center">
-        <div className="flex items-center gap-3 group cursor-pointer" onClick={() => setView('MENU')}>
-           <div className="transform group-hover:rotate-12 transition-transform duration-300"><WesternLogo size="md" url={customLogo} /></div>
-           <div className="flex flex-col"><span className="font-western text-xl text-white tracking-wide leading-none">OLD WEST</span><span className="text-[10px] uppercase tracking-[0.2em] text-accent-500 font-bold">Cameri</span></div>
-        </div>
-        {view === 'MENU' ? (
-          <div className="flex items-center gap-4">
-             <div className="relative">
-                {isLangMenuOpen && <div className="fixed inset-0 z-40" onClick={() => setIsLangMenuOpen(false)}></div>}
-                <button onClick={() => setIsLangMenuOpen(!isLangMenuOpen)} className="flex items-center gap-2 bg-wood-800 hover:bg-wood-700 transition-colors pl-3 pr-2 py-1.5 rounded-xl border border-wood-700 text-white"><span className="text-xl leading-none">{LANGUAGES_CONFIG.find(l => l.code === lang)?.flag}</span><ChevronDown size={14} className={`text-wood-400 transition-transform ${isLangMenuOpen ? 'rotate-180' : ''}`} /></button>
-                {isLangMenuOpen && (<div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-wood-100 overflow-hidden py-1 z-50 animate-in fade-in zoom-in-95 duration-200">{LANGUAGES_CONFIG.map((l) => (<button key={l.code} onClick={() => { setLang(l.code as LanguageCode); setIsLangMenuOpen(false); }} className={`w-full flex items-center justify-between px-4 py-3 hover:bg-wood-50 transition-colors text-left ${lang === l.code ? 'bg-accent-50 text-accent-700' : 'text-wood-700'}`}><div className="flex items-center gap-3"><span className="text-2xl leading-none shadow-sm rounded-sm">{l.flag}</span><span className="text-sm font-bold">{l.label}</span></div>{lang === l.code && <Check size={16} />}</button>))}</div>)}
-             </div>
-             <button onClick={() => setView('LOGIN')} className="w-10 h-10 rounded-full flex items-center justify-center text-wood-400 hover:text-white hover:bg-wood-800 transition-all"><Settings size={20} /></button>
-          </div>
-        ) : (<button onClick={() => { setView('MENU'); setActiveCategory('Tutti'); window.scrollTo(0,0); }} className="flex items-center gap-2 bg-wood-800 text-white px-5 py-2 rounded-full hover:bg-accent-600 transition-colors text-sm font-medium"><LogOut size={16} /> <span className="hidden md:inline">{t('back_to_menu', lang)}</span></button>)}
-      </div>
-    </nav>
-  );
+  // --- RECONSTRUCTED RENDER FUNCTIONS ---
 
   const renderLogin = () => (
     <div className="min-h-screen bg-wood-900 flex items-center justify-center p-4">
@@ -204,7 +181,7 @@ export default function App() {
         <div className="flex flex-col items-center text-center mb-8">
           <WesternLogo size="lg" url={customLogo} className="mb-4" />
           <h2 className="text-3xl font-western text-wood-900">{t('admin_area', lang)}</h2>
-          <p className="text-wood-500 mt-2">Inserisci il PIN per gestire il menu</p>
+          <p className="text-wood-500 mt-2">{t('login_prompt', lang)}</p>
         </div>
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="relative">
@@ -224,43 +201,47 @@ export default function App() {
             </div>
           )}
           <button type="submit" className="w-full bg-accent-500 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-accent-600 hover:scale-[1.02] active:scale-[0.98] transition-all">
-            ACCEDI
+            {t('login_btn', lang)}
           </button>
         </form>
         <button onClick={() => setView('MENU')} className="w-full mt-4 py-3 text-wood-400 font-bold hover:text-wood-600 transition-colors">
-          Torna al Menu
+          {t('back_to_menu', lang)}
         </button>
       </div>
     </div>
   );
 
   const renderMenu = () => {
+    // 1. Logic for filtering
     const filteredItems = items.filter(item => {
+      // Basic Category Filter
       if (activeCategory !== 'Tutti' && item.category !== activeCategory) return false;
+      // Subcategory Filter (Specifically for Hamburgers)
       if (activeCategory === ProductCategory.HAMBURGER && activeSubCategoryView && item.subCategory !== activeSubCategoryView) return false;
+      // Filter Tags (Vegetarian, Vegan, etc.)
       return checkFilters(item);
     });
 
     return (
       <div className="min-h-screen bg-wood-50 pb-32">
-        {/* Hero Section */}
+        {/* HERO SECTION */}
         <div className="relative h-64 md:h-80 bg-wood-900 overflow-hidden">
           <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1544025162-d76690b67f66?q=80&w=2000')] bg-cover bg-center opacity-40"></div>
           <div className="absolute inset-0 bg-gradient-to-t from-wood-900 via-transparent to-transparent"></div>
           <div className="relative container mx-auto px-4 h-full flex flex-col justify-end pb-8">
             <h1 className="text-4xl md:text-6xl font-western text-white mb-2 shadow-sm drop-shadow-md">
-              {t('our_menu', lang)}
+              {t('hero_title', lang)}
             </h1>
             <p className="text-wood-200 text-lg md:text-xl max-w-2xl font-medium">
-              Autentici sapori del vecchio West, preparati con passione e ingredienti di prima scelta.
+              Old West - Cameri
             </p>
           </div>
         </div>
 
-        {/* Sticky Categories */}
+        {/* STICKY NAV SECTION */}
         <div className="sticky top-16 md:top-20 z-40 bg-wood-50/95 backdrop-blur-sm border-b border-wood-200 shadow-sm">
           <div className="container mx-auto px-4 py-4">
-             {/* Category Carousel */}
+             {/* Main Categories Carousel */}
              <div className="relative group">
                 <button onClick={() => scrollCarousel('left')} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"><ChevronLeft size={18} /></button>
                 <div 
@@ -289,32 +270,34 @@ export default function App() {
                 <button onClick={() => scrollCarousel('right')} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"><ChevronRight size={18} /></button>
              </div>
 
-             {/* Subcategories & Filters */}
+             {/* Subcategories (Visible only for Hamburgers) */}
              <div className="mt-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 {activeCategory === ProductCategory.HAMBURGER && (
                    <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-                      <button onClick={() => setActiveSubCategoryView(null)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${activeSubCategoryView === null ? 'bg-wood-800 text-white' : 'bg-wood-200 text-wood-600 hover:bg-wood-300'}`}>Tutti i Burger</button>
+                      <button onClick={() => setActiveSubCategoryView(null)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${activeSubCategoryView === null ? 'bg-wood-800 text-white' : 'bg-wood-200 text-wood-600 hover:bg-wood-300'}`}>{t('all', lang)}</button>
                       {HAMBURGER_SUBCATEGORIES.map(sub => (
                          <button key={sub} onClick={() => setActiveSubCategoryView(sub)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${activeSubCategoryView === sub ? 'bg-wood-800 text-white' : 'bg-wood-200 text-wood-600 hover:bg-wood-300'}`}>{sub}</button>
                       ))}
                    </div>
                 )}
+                
+                {/* Global Filters (Veg, Spicy, etc.) */}
                 <div className="flex gap-2 overflow-x-auto scrollbar-hide ml-auto">
-                   <button onClick={() => setActiveFilters({...activeFilters, vegetarian: !activeFilters.vegetarian})} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all whitespace-nowrap ${activeFilters.vegetarian ? 'bg-green-100 border-green-300 text-green-700' : 'bg-white border-wood-200 text-wood-500 hover:border-wood-400'}`}><Leaf size={12} /> Vegetariano</button>
-                   <button onClick={() => setActiveFilters({...activeFilters, vegan: !activeFilters.vegan})} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all whitespace-nowrap ${activeFilters.vegan ? 'bg-green-100 border-green-300 text-green-700' : 'bg-white border-wood-200 text-wood-500 hover:border-wood-400'}`}><Sprout size={12} /> Vegano</button>
-                   <button onClick={() => setActiveFilters({...activeFilters, spicy: !activeFilters.spicy})} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all whitespace-nowrap ${activeFilters.spicy ? 'bg-red-100 border-red-300 text-red-700' : 'bg-white border-wood-200 text-wood-500 hover:border-wood-400'}`}><Flame size={12} /> Piccante</button>
+                   <button onClick={() => setActiveFilters({...activeFilters, vegetarian: !activeFilters.vegetarian})} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all whitespace-nowrap ${activeFilters.vegetarian ? 'bg-green-100 border-green-300 text-green-700' : 'bg-white border-wood-200 text-wood-500 hover:border-wood-400'}`}><Leaf size={12} /> {t('filter_veg', lang)}</button>
+                   <button onClick={() => setActiveFilters({...activeFilters, vegan: !activeFilters.vegan})} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all whitespace-nowrap ${activeFilters.vegan ? 'bg-green-100 border-green-300 text-green-700' : 'bg-white border-wood-200 text-wood-500 hover:border-wood-400'}`}><Sprout size={12} /> {t('filter_vegan', lang)}</button>
+                   <button onClick={() => setActiveFilters({...activeFilters, spicy: !activeFilters.spicy})} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all whitespace-nowrap ${activeFilters.spicy ? 'bg-red-100 border-red-300 text-red-700' : 'bg-white border-wood-200 text-wood-500 hover:border-wood-400'}`}><Flame size={12} /> {t('filter_spicy', lang)}</button>
                 </div>
              </div>
           </div>
         </div>
 
-        {/* Product Grid */}
+        {/* PRODUCTS GRID */}
         <div className="container mx-auto px-4 py-8">
            {filteredItems.length === 0 ? (
              <div className="text-center py-20">
                <div className="inline-block p-6 bg-wood-100 rounded-full mb-4"><UtensilsCrossed size={40} className="text-wood-400" /></div>
-               <h3 className="text-xl font-bold text-wood-600">Nessun prodotto trovato</h3>
-               <p className="text-wood-400 mt-2">Prova a cambiare categoria o filtri.</p>
+               <h3 className="text-xl font-bold text-wood-600">{t('no_products_section', lang)}</h3>
+               <p className="text-wood-400 mt-2">{t('select_category', lang)}</p>
              </div>
            ) : (
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -322,13 +305,14 @@ export default function App() {
                  const { name, description } = getProductContent(item);
                  return (
                    <div key={item.id} className="bg-white rounded-3xl border border-wood-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group">
-                     {/* Image */}
+                     {/* Product Image */}
                      <div className="relative h-56 bg-wood-50 overflow-hidden">
                        {item.imageUrl ? (
                          <img src={item.imageUrl} alt={name} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />
                        ) : (
                          <div className="w-full h-full flex items-center justify-center bg-wood-100"><WesternLogo size="lg" className="opacity-50 grayscale" /></div>
                        )}
+                       {/* Tags Overlay */}
                        {item.tags && item.tags.length > 0 && (
                          <div className="absolute top-4 left-4 flex flex-col gap-1">
                            {item.tags.map(tag => (
@@ -336,20 +320,23 @@ export default function App() {
                            ))}
                          </div>
                        )}
+                       {/* Price Badge */}
                        <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-lg shadow-sm border border-wood-100 flex items-center gap-1">
                           <span className="text-xs font-bold text-wood-500">€</span>
                           <span className="text-xl font-western text-wood-900">{item.price.toFixed(2)}</span>
                        </div>
                      </div>
-                     {/* Content */}
+                     
+                     {/* Content Body */}
                      <div className="p-6 flex-1 flex flex-col">
                        <div className="flex justify-between items-start mb-2">
                          <h3 className="text-xl font-bold text-wood-900 leading-tight">{name}</h3>
+                         {/* Show subcategory if relevant */}
                          {item.category === ProductCategory.HAMBURGER && item.subCategory && <span className="text-[10px] font-bold text-wood-400 bg-wood-50 px-2 py-1 rounded-md whitespace-nowrap">{item.subCategory}</span>}
                        </div>
                        <p className="text-sm text-wood-500 mb-4 line-clamp-3 flex-1">{description}</p>
                        
-                       {/* Allergens */}
+                       {/* Allergens Icons */}
                        {item.allergens && item.allergens.length > 0 && (
                          <div className="flex flex-wrap gap-1 mb-4">
                            {item.allergens.map(a => (
@@ -361,7 +348,7 @@ export default function App() {
                          </div>
                        )}
 
-                       {/* Action */}
+                       {/* Action Button */}
                        <button onClick={() => addToCart(item)} className="w-full bg-wood-900 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 group-hover:bg-accent-600 transition-colors shadow-lg shadow-wood-200">
                           <Plus size={18} /> {t('add_to_cart', lang)}
                        </button>
@@ -386,6 +373,27 @@ export default function App() {
       </div>
     );
   };
+
+  const renderHeader = () => (
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${view === 'MENU' ? 'bg-wood-900/95 backdrop-blur-md border-b border-wood-800' : 'bg-wood-900 shadow-md'}`}>
+      <div className="container mx-auto px-4 h-16 md:h-20 flex justify-between items-center">
+        <div className="flex items-center gap-3 group cursor-pointer" onClick={() => setView('MENU')}>
+           <div className="transform group-hover:rotate-12 transition-transform duration-300"><WesternLogo size="md" url={customLogo} /></div>
+           <div className="flex flex-col"><span className="font-western text-xl text-white tracking-wide leading-none">OLD WEST</span><span className="text-[10px] uppercase tracking-[0.2em] text-accent-500 font-bold">Cameri</span></div>
+        </div>
+        {view === 'MENU' ? (
+          <div className="flex items-center gap-4">
+             <div className="relative">
+                {isLangMenuOpen && <div className="fixed inset-0 z-40" onClick={() => setIsLangMenuOpen(false)}></div>}
+                <button onClick={() => setIsLangMenuOpen(!isLangMenuOpen)} className="flex items-center gap-2 bg-wood-800 hover:bg-wood-700 transition-colors pl-3 pr-2 py-1.5 rounded-xl border border-wood-700 text-white"><span className="text-xl leading-none">{LANGUAGES_CONFIG.find(l => l.code === lang)?.flag}</span><ChevronDown size={14} className={`text-wood-400 transition-transform ${isLangMenuOpen ? 'rotate-180' : ''}`} /></button>
+                {isLangMenuOpen && (<div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-wood-100 overflow-hidden py-1 z-50 animate-in fade-in zoom-in-95 duration-200">{LANGUAGES_CONFIG.map((l) => (<button key={l.code} onClick={() => { setLang(l.code as LanguageCode); setIsLangMenuOpen(false); }} className={`w-full flex items-center justify-between px-4 py-3 hover:bg-wood-50 transition-colors text-left ${lang === l.code ? 'bg-accent-50 text-accent-700' : 'text-wood-700'}`}><div className="flex items-center gap-3"><span className="text-2xl leading-none shadow-sm rounded-sm">{l.flag}</span><span className="text-sm font-bold">{l.label}</span></div>{lang === l.code && <Check size={16} />}</button>))}</div>)}
+             </div>
+             <button onClick={() => setView('LOGIN')} className="w-10 h-10 rounded-full flex items-center justify-center text-wood-400 hover:text-white hover:bg-wood-800 transition-all"><Settings size={20} /></button>
+          </div>
+        ) : (<button onClick={() => { setView('MENU'); setActiveCategory('Tutti'); window.scrollTo(0,0); }} className="flex items-center gap-2 bg-wood-800 text-white px-5 py-2 rounded-full hover:bg-accent-600 transition-colors text-sm font-medium"><LogOut size={16} /> <span className="hidden md:inline">{t('back_to_menu', lang)}</span></button>)}
+      </div>
+    </nav>
+  );
 
   const renderCartDrawer = () => {
       const addons = items.filter(i => i.category === ProductCategory.AGGIUNTE);
