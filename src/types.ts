@@ -8,7 +8,7 @@ export enum ProductCategory {
   CONTORNI = 'Contorni',
   DOLCI = 'Dolci',
   BEVANDE = 'Bevande',
-  AGGIUNTE = 'Ingredienti Extra'
+  AGGIUNTE = 'Ingredienti Extra' // Categoria nascosta al cliente nel menu principale
 }
 
 export type LanguageCode = 'it' | 'en' | 'fr' | 'de';
@@ -57,7 +57,7 @@ export interface CartItem extends MenuItem {
   cartId: string;
   quantity: number;
   selectedVariant?: ProductVariant;
-  selectedAddons?: MenuItem[];
+  selectedAddons?: MenuItem[]; // Ingredienti aggiunti (es. Funghi)
 }
 
 export type ViewState = 'MENU' | 'LOGIN' | 'ADMIN';
