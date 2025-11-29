@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   UtensilsCrossed, Pizza, Beef, Fish, Salad, Baby, Cookie, Beer, Settings, Plus, Minus, Trash2, LogOut, 
-  ChevronLeft, ChevronRight, Lock, Utensils, LayoutGrid, 
+  ChevronLeft, ChevronRight, Lock, Utensils, Star, MapPin, Clock, Instagram, Facebook, Phone, LayoutGrid, 
   ArrowRight, Upload, Image as ImageIcon, Download, RotateCcw, Save, ChevronDown, ChevronUp, X, Loader2, 
-  Pencil, RefreshCw, Wheat, CircleDot, Globe, Check, Leaf, Flame, Database, Sprout, ShoppingBag, 
+  Pencil, RefreshCw, Wheat, CircleDot, Globe, Languages, Check, Leaf, Flame, Award, QrCode, Database, Sprout, ShoppingBag, 
   Milk, Egg, Nut, Bean, AlertCircle, Wine, Shell, Info, Search 
 } from 'lucide-react';
 import { MenuItem, ProductCategory, ViewState, LanguageCode, ActiveFilters, CartItem, AllergenType, ProductVariant } from './types';
-import { INITIAL_MENU_ITEMS, CATEGORIES_LIST, HAMBURGER_SUBCATEGORIES, DIY_OPTIONS, UI_TRANSLATIONS, CATEGORY_TRANSLATIONS, ALLERGENS_CONFIG, EXTRA_INGREDIENTS_ITEMS } from './constants';
+import { INITIAL_MENU_ITEMS, CATEGORIES_LIST, HAMBURGER_SUBCATEGORIES, DIY_OPTIONS, UI_TRANSLATIONS, CATEGORY_TRANSLATIONS, DATA_VERSION, ALLERGENS_CONFIG, EXTRA_INGREDIENTS_ITEMS } from './constants';
 import { supabase } from './supabase';
 
-// --- Helper Functions ---
+// --- Helper Functions (Fuori dal componente) ---
 
 const uploadImageToSupabase = async (file: File): Promise<string | null> => {
   try {
@@ -69,7 +69,6 @@ const LANGUAGES_CONFIG = [
   { code: 'de', label: 'Deutsch', flag: '🇩🇪' }
 ] as const;
 
-// --- Helper for translations ---
 const t = (key: string, lang: LanguageCode): string => (UI_TRANSLATIONS[key] && UI_TRANSLATIONS[key][lang]) ? UI_TRANSLATIONS[key][lang] : key;
 const tCategory = (cat: string, lang: LanguageCode): string => {
   if (cat === 'Tutti') return UI_TRANSLATIONS['all'][lang];
@@ -77,7 +76,6 @@ const tCategory = (cat: string, lang: LanguageCode): string => {
   return cat;
 };
 
-// --- Helper per contenuti DIY ---
 const getDIYStepContent = (step: any, lang: LanguageCode) => { 
   if (lang === 'it') return { title: step.title, description: step.description }; 
   const trans = step.translations?.[lang]; 
@@ -88,16 +86,16 @@ const getDIYOptionContent = (opt: any, lang: LanguageCode) => {
   return opt.translations?.[lang]?.name || opt.name; 
 };
 
+// --- MAIN COMPONENT ---
+
 export default function App() {
+  // 1. STATE DEFINITIONS
   const [items, setItems] = useState<MenuItem[]>([]);
   const [view, setView] = useState<ViewState>('MENU');
   const [activeCategory, setActiveCategory] = useState<string>('Tutti');
   const [activeSubCategoryView, setActiveSubCategoryView] = useState<string | null>(null);
-  
-  // DIY State
   const [diyStep, setDiyStep] = useState(0);
   const [diySelections, setDiySelections] = useState<Record<number, any>>({});
-  
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAddonModalOpen, setIsAddonModalOpen] = useState(false);
@@ -116,8 +114,6 @@ export default function App() {
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [newItem, setNewItem] = useState<Partial<MenuItem>>({ category: ProductCategory.HAMBURGER, isAvailable: true, subCategory: HAMBURGER_SUBCATEGORIES[0], translations: {}, allergens: [] });
-  
-  // Visual Feedback State
   const [addedItemId, setAddedItemId] = useState<string | null>(null);
 
   const carouselRef = useRef<HTMLDivElement>(null);
@@ -125,7 +121,7 @@ export default function App() {
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
 
-  // -- Fetch Data --
+  // 2. EFFECTS
   const fetchItems = async () => {
     try {
       const { data, error } = await supabase.from('menu_items').select('*');
@@ -144,24 +140,20 @@ export default function App() {
   useEffect(() => { const handleScroll = () => { if (window.scrollY > 300) setShowScrollTop(true); else setShowScrollTop(false); }; window.addEventListener('scroll', handleScroll); return () => window.removeEventListener('scroll', handleScroll); }, []);
   const scrollToTop = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
-  // -- Logic Handlers --
+  // 3. LOGIC HANDLERS
   const handleMouseDown = (e: React.MouseEvent) => { if (!carouselRef.current) return; setIsDragging(true); setStartX(e.pageX - carouselRef.current.offsetLeft); setScrollLeft(carouselRef.current.scrollLeft); };
   const handleMouseLeave = () => setIsDragging(false);
   const handleMouseUp = () => setIsDragging(false);
   const handleMouseMove = (e: React.MouseEvent) => { if (!isDragging || !carouselRef.current) return; e.preventDefault(); const x = e.pageX - carouselRef.current.offsetLeft; const walk = (x - startX) * 2; carouselRef.current.scrollLeft = scrollLeft - walk; };
   const scrollCarousel = (direction: 'left' | 'right') => { if (carouselRef.current) { const scrollAmount = 300; carouselRef.current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' }); } };
-  
   const getProductContent = (item: MenuItem | Partial<MenuItem>) => { if (lang === 'it') return { name: item.name || '', description: item.description || '' }; const trans = item.translations?.[lang]; return { name: trans?.name || item.name || '', description: trans?.description || item.description || '' }; };
 
   const checkFilters = (item: MenuItem) => {
     if (activeFilters.vegetarian) { const isVeg = item.tags?.includes('Vegetariano') || item.tags?.includes('Vegano') || item.category === ProductCategory.CONTORNI || (item.category === ProductCategory.PIZZA && (item.name === 'Vegetariana' || item.name === 'Margherita' || item.name === 'Marinara' || item.name === 'Verdure')); if (!isVeg) return false; }
     if (activeFilters.vegan) { const isVegan = item.tags?.includes('Vegano') || (item.category === ProductCategory.CONTORNI && item.name !== 'Patatine Fritte') || (item.category === ProductCategory.PIZZA && item.name === 'Marinara'); if (!isVegan) return false; }
-    // FIX: Escludi salamella dalla logica "piccante" automatica, controlla solo i tag o la descrizione
     if (activeFilters.spicy) { 
         const nameLower = item.name.toLowerCase();
-        // Se è salamella, non è piccante a meno che non abbia il tag esplicito
         if (nameLower.includes('salamella') && !item.tags?.includes('Piccante')) return false;
-        
         const isSpicy = item.tags?.includes('Piccante') || item.description.toLowerCase().includes('piccante') || item.description.toLowerCase().includes('nduja'); 
         if (!isSpicy) return false; 
     }
@@ -172,43 +164,19 @@ export default function App() {
   const handleCategoryClick = (cat: string) => { setActiveCategory(cat); setActiveSubCategoryView(null); if (view === 'MENU') { const listStart = 300; if (window.scrollY > listStart) window.scrollTo({ top: listStart, behavior: 'smooth' }); } };
   useEffect(() => { const activeBtn = document.getElementById(`btn-${activeCategory}`); if (activeBtn) activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); }, [activeCategory]);
   
-  // -- Cart Handlers --
   const addToCart = (item: MenuItem, variant?: ProductVariant) => {
-    // Visual Feedback
     setAddedItemId(item.id);
     setTimeout(() => setAddedItemId(null), 1000);
-
     const existingItemIndex = cart.findIndex((i) => i.id === item.id && (variant ? i.selectedVariant?.name === variant.name : !i.selectedVariant) && (!i.selectedAddons || i.selectedAddons.length === 0));
     if (existingItemIndex > -1) { const newCart = [...cart]; newCart[existingItemIndex].quantity += 1; setCart(newCart); } else { setCart([...cart, { ...item, cartId: Math.random().toString(), quantity: 1, selectedVariant: variant }]); }
-    // Nota: Non apriamo più il carrello automaticamente, usiamo la barra in basso
   };
   
   const removeFromCart = (cartId: string) => setCart(cart.filter(i => i.cartId !== cartId));
   const updateCartItemQuantity = (cartId: string, delta: number) => { setCart(cart.map(item => { if (item.cartId === cartId) { const newQty = item.quantity + delta; return newQty > 0 ? { ...item, quantity: newQty } : item; } return item; })); };
-  
   const openAddonModal = (index: number) => { setEditingCartItemIndex(index); setAddonSearch(''); setIsAddonModalOpen(true); };
-  
-  const addAddonToItem = (addon: MenuItem) => { 
-      if (editingCartItemIndex === null) return; 
-      const newCart = [...cart]; 
-      const currentAddons = newCart[editingCartItemIndex].selectedAddons || []; 
-      newCart[editingCartItemIndex].selectedAddons = [...currentAddons, addon]; 
-      setCart(newCart); 
-      setIsAddonModalOpen(false); 
-      setEditingCartItemIndex(null); 
-  };
-  
-  const getCartTotal = () => { 
-      const subtotal = cart.reduce((sum, item) => { 
-          const itemPrice = item.selectedVariant ? item.selectedVariant.price : item.price; 
-          const addonsPrice = item.selectedAddons?.reduce((aSum, addon) => aSum + addon.price, 0) || 0; 
-          return sum + (itemPrice + addonsPrice) * item.quantity; 
-      }, 0); 
-      // Aggiunta Coperto € 2.00 solo se il carrello non è vuoto
-      return subtotal + (cart.length > 0 ? 2.00 : 0); 
-  };
+  const addAddonToItem = (addon: MenuItem) => { if (editingCartItemIndex === null) return; const newCart = [...cart]; const currentAddons = newCart[editingCartItemIndex].selectedAddons || []; newCart[editingCartItemIndex].selectedAddons = [...currentAddons, addon]; setCart(newCart); setIsAddonModalOpen(false); setEditingCartItemIndex(null); };
+  const getCartTotal = () => { const subtotal = cart.reduce((sum, item) => { const itemPrice = item.selectedVariant ? item.selectedVariant.price : item.price; const addonsPrice = item.selectedAddons?.reduce((aSum, addon) => aSum + addon.price, 0) || 0; return sum + (itemPrice + addonsPrice) * item.quantity; }, 0); return subtotal + (cart.length > 0 ? 2.00 : 0); };
 
-  // DIY Logic
   const handleDiySelection = (stepId: number, option: any) => { setDiySelections(prev => ({ ...prev, [stepId]: option })); };
   const handleDiyNext = () => {
      if (diyStep < DIY_OPTIONS.steps.length - 1) {
@@ -217,22 +185,16 @@ export default function App() {
        const totalPrice = DIY_OPTIONS.basePrice + DIY_OPTIONS.steps.reduce((acc, step) => { const selected = diySelections[step.id]; return acc + (selected ? selected.price : 0); }, 0);
        const description = DIY_OPTIONS.steps.map(step => { const selected = diySelections[step.id]; return selected ? `${getDIYOptionContent(selected, lang)}` : ''; }).filter(Boolean).join(' + ');
        const diyItem: MenuItem = { id: `diy-${Date.now()}`, name: t('create_your_taste', lang), description: description, price: totalPrice, category: ProductCategory.HAMBURGER, isAvailable: true, imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/hamburger-fai-da-te.jpg' };
-       addToCart(diyItem);
-       setDiySelections({});
-       setDiyStep(0);
-       setActiveSubCategoryView(null);
+       addToCart(diyItem); setDiySelections({}); setDiyStep(0); setActiveSubCategoryView(null);
      }
   };
 
-  // -- Admin Handlers --
   const handleLogin = (e: React.FormEvent) => { e.preventDefault(); if (adminPassword === '1234') { setView('ADMIN'); setAdminPassword(''); setLoginError(''); setActiveCategory('Tutti'); setLang('it'); } else { setLoginError('PIN non valido'); } };
-  
   const handleSaveItem = async (e: React.FormEvent) => {
     e.preventDefault(); if (!newItem.name || !newItem.price) return;
     const itemToSave = { name: newItem.name, description: newItem.description, price: Number(newItem.price), category: newItem.category, subCategory: newItem.category === ProductCategory.HAMBURGER ? newItem.subCategory : undefined, imageUrl: newItem.imageUrl, isAvailable: newItem.isAvailable !== undefined ? newItem.isAvailable : true, tags: newItem.tags || [], brand: newItem.brand || null, variants: newItem.variants || null, translations: newItem.translations || null, allergens: newItem.allergens || [] };
     try { if (editingId) { await supabase.from('menu_items').update(itemToSave).eq('id', editingId); alert('Prodotto modificato!'); } else { await supabase.from('menu_items').insert([itemToSave]); alert('Prodotto aggiunto!'); } fetchItems(); setEditingId(null); setNewItem({ category: ProductCategory.HAMBURGER, subCategory: HAMBURGER_SUBCATEGORIES[0], isAvailable: true, name: '', description: '', price: 0, imageUrl: '', translations: {}, brand: undefined, variants: undefined, allergens: [] }); setAdminLang('it'); } catch (error) { console.error(error); alert('Errore database.'); }
   };
-  
   const handleEditItem = (item: MenuItem) => { setNewItem({ ...item }); setEditingId(item.id); setAdminLang('it'); document.getElementById('new-product-form')?.scrollIntoView({ behavior: 'smooth' }); };
   const handleCancelEdit = () => { setEditingId(null); setNewItem({ category: ProductCategory.HAMBURGER, subCategory: HAMBURGER_SUBCATEGORIES[0], isAvailable: true, name: '', description: '', price: 0, imageUrl: '', translations: {}, brand: undefined, variants: undefined, allergens: [] }); setAdminLang('it'); };
   const handleDeleteItem = async (id: string, e?: React.MouseEvent) => { if (e) { e.preventDefault(); e.stopPropagation(); } if (window.confirm('Eliminare?')) { try { await supabase.from('menu_items').delete().eq('id', id); fetchItems(); if (editingId === id) handleCancelEdit(); } catch (error) { console.error(error); alert('Errore eliminazione.'); } } };
@@ -246,7 +208,150 @@ export default function App() {
   const handleImportData = () => alert("Import locale disabilitato. Usa sync cloud.");
   const handleFactoryReset = () => alert("Reset locale disabilitato. Gestisci da DB.");
 
-  // --- RENDER FUNCTIONS ---
+  // --- RENDER FUNCTIONS (Spostati in alto per evitare errori di definizione) ---
+
+  const renderHeader = () => (
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${view === 'MENU' ? 'bg-wood-900/95 backdrop-blur-md border-b border-wood-800' : 'bg-wood-900 shadow-md'}`}>
+      <div className="container mx-auto px-4 h-16 md:h-20 flex justify-between items-center">
+        <div className="flex items-center gap-3 group cursor-pointer" onClick={() => setView('MENU')}>
+           <div className="transform group-hover:rotate-12 transition-transform duration-300"><WesternLogo size="md" url={customLogo} /></div>
+           <div className="flex flex-col"><span className="font-western text-xl text-white tracking-wide leading-none">OLD WEST</span><span className="text-[10px] uppercase tracking-[0.2em] text-accent-500 font-bold">Cameri</span></div>
+        </div>
+        {view === 'MENU' ? (
+          <div className="flex items-center gap-4">
+             <div className="relative">
+                {isLangMenuOpen && <div className="fixed inset-0 z-40" onClick={() => setIsLangMenuOpen(false)}></div>}
+                <button onClick={() => setIsLangMenuOpen(!isLangMenuOpen)} className="flex items-center gap-2 bg-wood-800 hover:bg-wood-700 transition-colors pl-3 pr-2 py-1.5 rounded-xl border border-wood-700 text-white"><span className="text-xl leading-none">{LANGUAGES_CONFIG.find(l => l.code === lang)?.flag}</span><ChevronDown size={14} className={`text-wood-400 transition-transform ${isLangMenuOpen ? 'rotate-180' : ''}`} /></button>
+                {isLangMenuOpen && (<div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-wood-100 overflow-hidden py-1 z-50 animate-in fade-in zoom-in-95 duration-200">{LANGUAGES_CONFIG.map((l) => (<button key={l.code} onClick={() => { setLang(l.code as LanguageCode); setIsLangMenuOpen(false); }} className={`w-full flex items-center justify-between px-4 py-3 hover:bg-wood-50 transition-colors text-left ${lang === l.code ? 'bg-accent-50 text-accent-700' : 'text-wood-700'}`}><div className="flex items-center gap-3"><span className="text-2xl leading-none shadow-sm rounded-sm">{l.flag}</span><span className="text-sm font-bold">{l.label}</span></div>{lang === l.code && <Check size={16} />}</button>))}</div>)}
+             </div>
+             <button onClick={() => setView('LOGIN')} className="w-10 h-10 rounded-full flex items-center justify-center text-wood-400 hover:text-white hover:bg-wood-800 transition-all"><Settings size={20} /></button>
+          </div>
+        ) : (<button onClick={() => { setView('MENU'); setActiveCategory('Tutti'); window.scrollTo(0,0); }} className="flex items-center gap-2 bg-wood-800 text-white px-5 py-2 rounded-full hover:bg-accent-600 transition-colors text-sm font-medium"><LogOut size={16} /> <span className="hidden md:inline">{t('back_to_menu', lang)}</span></button>)}
+      </div>
+    </nav>
+  );
+
+  const renderFloatingCartBar = () => {
+     if (cart.length === 0 || isCartOpen) return null;
+     const itemCount = cart.reduce((a, b) => a + b.quantity, 0);
+     const total = getCartTotal();
+
+     return (
+        <div className="fixed bottom-0 left-0 right-0 p-4 z-50 animate-in slide-in-from-bottom-20 duration-300">
+           <button onClick={() => setIsCartOpen(true)} className="w-full bg-wood-900 text-white rounded-2xl shadow-2xl p-4 flex items-center justify-between border border-wood-700 hover:bg-wood-800 transition-colors">
+              <div className="flex items-center gap-3">
+                 <div className="bg-accent-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-sm">{itemCount}</div>
+                 <span className="font-bold text-sm text-wood-100">{t('items', lang)}</span>
+              </div>
+              <span className="font-bold text-lg font-mono">€{total.toFixed(2)}</span>
+           </button>
+        </div>
+     );
+  };
+
+  const renderCartDrawer = () => {
+      const addons = items.filter(i => i.category === ProductCategory.AGGIUNTE);
+      const filteredAddons = addons.filter(a => a.name.toLowerCase().includes(addonSearch.toLowerCase()));
+      return (
+      <>
+        {isCartOpen && <div className="fixed inset-0 bg-black/60 z-50 backdrop-blur-sm transition-opacity" onClick={() => setIsCartOpen(false)} />}
+        <div className={`fixed bottom-0 left-0 right-0 bg-white rounded-t-[2rem] shadow-2xl transform transition-transform duration-300 z-50 max-h-[90vh] flex flex-col ${isCartOpen ? 'translate-y-0' : 'translate-y-full'}`}>
+           <div className="p-6 flex-1 overflow-y-auto">
+              <div className="flex items-center justify-between mb-6">
+                 <h3 className="text-2xl font-western text-wood-900 flex items-center gap-2"><ShoppingBag size={24} /> {t('my_order', lang)}</h3>
+                 <button onClick={() => setIsCartOpen(false)} className="p-2 bg-wood-100 rounded-full hover:bg-wood-200 transition-colors"><X size={20}/></button>
+              </div>
+              
+              {cart.length === 0 ? (<div className="text-center py-10 text-wood-400">{t('empty_cart', lang)}</div>) : (
+                 <div className="space-y-6">
+                    {cart.map((item, index) => (
+                       <div key={item.cartId} className="flex justify-between items-start border-b border-wood-100 pb-6">
+                          <div className="flex-1 pr-4">
+                             <div className="flex items-center gap-2 mb-1">
+                                <span className="font-bold text-wood-900 text-lg">{item.quantity}x {item.name}</span>
+                             </div>
+                             {item.selectedVariant && <span className="text-xs bg-wood-100 px-2 py-0.5 rounded text-wood-600 block w-fit mb-1">{item.selectedVariant.name}</span>}
+                             
+                             {item.selectedAddons && item.selectedAddons.length > 0 && (
+                                <div className="text-sm text-wood-500 mt-1 space-y-0.5">
+                                   {item.selectedAddons.map((add, i) => (
+                                      <div key={i} className="flex items-center gap-1 text-accent-600 font-medium"><Plus size={10} /> {add.name} (+€{add.price.toFixed(2)})</div>
+                                   ))}
+                                </div>
+                             )}
+                             
+                             <button onClick={() => openAddonModal(index)} className="text-xs font-bold text-wood-400 mt-3 flex items-center gap-1 hover:text-accent-600 transition-colors border border-wood-200 rounded-lg px-3 py-1.5 w-fit">
+                                <Plus size={12}/> {t('add_ingredient', lang)}
+                             </button>
+                          </div>
+                          
+                          <div className="flex flex-col items-end gap-3">
+                             <span className="font-mono font-bold text-lg">€{((item.selectedVariant ? item.selectedVariant.price : item.price) * item.quantity + (item.selectedAddons?.reduce((s, a) => s + a.price, 0) || 0) * item.quantity).toFixed(2)}</span>
+                             <div className="flex items-center gap-3 bg-wood-50 rounded-xl p-1 shadow-inner">
+                                <button onClick={() => { if(item.quantity > 1) updateCartItemQuantity(item.cartId, -1); else removeFromCart(item.cartId); }} className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm text-wood-600 hover:text-red-500"><Minus size={14}/></button>
+                                <span className="text-sm font-bold w-4 text-center">{item.quantity}</span>
+                                <button onClick={() => updateCartItemQuantity(item.cartId, 1)} className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm text-wood-600 hover:text-green-500"><Plus size={14}/></button>
+                             </div>
+                          </div>
+                       </div>
+                    ))}
+                    
+                    <div className="flex justify-between items-center py-2 px-3 bg-wood-50 rounded-xl border border-wood-100">
+                       <span className="text-sm font-bold text-wood-500 uppercase tracking-wider">{t('cover_charge', lang)}</span>
+                       <span className="font-mono font-bold text-wood-900">€2.00</span>
+                    </div>
+                 </div>
+              )}
+           </div>
+           
+           <div className="p-6 border-t border-wood-100 bg-wood-50 pb-8">
+              <div className="flex justify-between items-center mb-6">
+                 <span className="text-xl font-bold text-wood-900">{t('total', lang)}</span>
+                 <span className="text-4xl font-western text-accent-600">€{getCartTotal().toFixed(2)}</span>
+              </div>
+              <button className="w-full bg-wood-900 text-white py-4 rounded-2xl font-bold text-xl shadow-lg flex items-center justify-center gap-3 hover:bg-accent-600 transition-colors">
+                 <Utensils size={24} /> {t('order_table', lang)}
+              </button>
+           </div>
+        </div>
+
+        {isAddonModalOpen && (
+           <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-end md:justify-center p-0 md:p-4">
+              <div className="bg-white w-full md:max-w-md h-[80vh] md:h-auto md:rounded-3xl rounded-t-3xl p-6 flex flex-col animate-in slide-in-from-bottom-20 duration-300">
+                 <div className="flex justify-between items-center mb-4">
+                    <h4 className="font-bold text-xl text-wood-900">{t('add_ingredient', lang)}</h4>
+                    <button onClick={() => setIsAddonModalOpen(false)} className="p-2 bg-wood-50 rounded-full"><X/></button>
+                 </div>
+                 
+                 <div className="relative mb-4">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-wood-400" size={18}/>
+                    <input 
+                       type="text" 
+                       placeholder={t('search_addon', lang)} 
+                       value={addonSearch} 
+                       onChange={(e) => setAddonSearch(e.target.value)} 
+                       className="w-full bg-wood-50 rounded-xl py-3 pl-10 pr-4 outline-none focus:ring-2 focus:ring-accent-500 border border-wood-100"
+                       autoFocus 
+                    />
+                 </div>
+                 
+                 <div className="flex-1 overflow-y-auto space-y-2">
+                    {filteredAddons.map(addon => (
+                       <button key={addon.id} onClick={() => addAddonToItem(addon)} className="w-full flex justify-between items-center p-4 hover:bg-accent-50 hover:border-accent-200 border border-transparent rounded-xl transition-all text-left group">
+                          <span className="font-medium text-wood-800 group-hover:text-accent-700">{addon.name}</span>
+                          <span className="font-bold text-accent-600 bg-accent-50 px-2 py-1 rounded group-hover:bg-white">+€{addon.price.toFixed(2)}</span>
+                       </button>
+                    ))}
+                    {filteredAddons.length === 0 && (
+                       <div className="text-center py-8 text-wood-400">Nessun ingrediente trovato.</div>
+                    )}
+                 </div>
+              </div>
+           </div>
+        )}
+      </>
+      );
+  };
 
   const renderLogin = () => (
     <div className="min-h-screen bg-wood-900 flex items-center justify-center p-4">
@@ -292,7 +397,6 @@ export default function App() {
     return (
       <div className="container mx-auto px-4 py-8 pb-32">
         <div className="bg-white rounded-3xl border border-wood-100 shadow-xl overflow-hidden">
-          {/* Header */}
           <div className="bg-wood-900 p-6 text-white text-center relative overflow-hidden">
              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=2000')] bg-cover bg-center opacity-20"></div>
              <div className="relative z-10">
@@ -335,23 +439,8 @@ export default function App() {
              </div>
 
              <div className="flex justify-between items-center mt-10 pt-6 border-t border-wood-100">
-                <button 
-                  onClick={() => { if (diyStep > 0) setDiyStep(diyStep - 1); else setActiveSubCategoryView(null); }}
-                  className="text-wood-500 font-bold hover:text-wood-800 transition-colors flex items-center gap-2 px-4 py-2"
-                >
-                   <ChevronLeft size={20} /> {t('back', lang)}
-                </button>
-                <button 
-                  onClick={handleDiyNext}
-                  disabled={!diySelections[currentStepConfig.id]}
-                  className="bg-wood-900 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-accent-600 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95"
-                >
-                   {diyStep === DIY_OPTIONS.steps.length - 1 ? (
-                     <>{t('add_to_cart', lang)} <Plus size={20} /></>
-                   ) : (
-                     <>{t('add', lang)} <ArrowRight size={20} /></>
-                   )}
-                </button>
+                <button onClick={() => { if (diyStep > 0) setDiyStep(diyStep - 1); else setActiveSubCategoryView(null); }} className="text-wood-500 font-bold hover:text-wood-800 transition-colors flex items-center gap-2 px-4 py-2"><ChevronLeft size={20} /> {t('back', lang)}</button>
+                <button onClick={handleDiyNext} disabled={!diySelections[currentStepConfig.id]} className="bg-wood-900 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-accent-600 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95">{diyStep === DIY_OPTIONS.steps.length - 1 ? (<>{t('add_to_cart', lang)} <Plus size={20} /></>) : (<>{t('add', lang)} <ArrowRight size={20} /></>)}</button>
              </div>
           </div>
         </div>
@@ -360,29 +449,23 @@ export default function App() {
   };
 
   const renderMenu = () => {
-    if (activeCategory === ProductCategory.HAMBURGER && activeSubCategoryView === 'Hamburger "Fai da te"') {
-       return renderDIY();
-    }
+    if (activeCategory === ProductCategory.HAMBURGER && activeSubCategoryView === 'Hamburger "Fai da te"') { return renderDIY(); }
 
     const filteredItems = items.filter(item => {
-      // Exclude Hidden category from main menu logic
       if (item.category === ProductCategory.AGGIUNTE) return false;
-
       if (activeCategory !== 'Tutti' && item.category !== activeCategory) return false;
       if (activeCategory === ProductCategory.HAMBURGER && activeSubCategoryView && item.subCategory !== activeSubCategoryView) return false;
       return checkFilters(item);
     });
 
     return (
-      <div className="min-h-screen bg-wood-50 pb-40"> {/* pb-40 to leave space for sticky bar */}
+      <div className="min-h-screen bg-wood-50 pb-40">
         {/* HERO */}
         <div className="relative h-64 md:h-80 bg-wood-900 overflow-hidden">
           <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1544025162-d76690b67f66?q=80&w=2000')] bg-cover bg-center opacity-40"></div>
           <div className="absolute inset-0 bg-gradient-to-t from-wood-900 via-transparent to-transparent"></div>
           <div className="relative container mx-auto px-4 h-full flex flex-col justify-end pb-8">
-            <h1 className="text-4xl md:text-6xl font-western text-white mb-2 shadow-sm drop-shadow-md">
-              {t('hero_title', lang)}
-            </h1>
+            <h1 className="text-4xl md:text-6xl font-western text-white mb-2 shadow-sm drop-shadow-md">{t('hero_title', lang)}</h1>
             <p className="text-wood-200 text-lg md:text-xl max-w-2xl font-medium">Old West - Cameri</p>
           </div>
         </div>
@@ -440,7 +523,6 @@ export default function App() {
                      <div className="p-6 flex-1 flex flex-col">
                        <div className="flex justify-between items-start mb-2"><h3 className="text-xl font-bold text-wood-900 leading-tight">{name}</h3>{item.category === ProductCategory.HAMBURGER && item.subCategory && <span className="text-[10px] font-bold text-wood-400 bg-wood-50 px-2 py-1 rounded-md whitespace-nowrap">{item.subCategory}</span>}</div>
                        <p className="text-sm text-wood-500 mb-4 line-clamp-3 flex-1">{description}</p>
-                       
                        {/* Allergeni Icons */}
                        {item.allergens && item.allergens.length > 0 && (
                          <div className="flex flex-wrap gap-1 mb-4 border-t border-wood-100 pt-2">
@@ -452,11 +534,8 @@ export default function App() {
                            ))}
                          </div>
                        )}
-
                        {/* Action */}
-                       <button onClick={() => addToCart(item)} className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all duration-200 shadow-lg ${isAdded ? 'bg-green-500 text-white scale-95' : 'bg-wood-900 text-white hover:bg-accent-600 shadow-wood-200'}`}>
-                          {isAdded ? <Check size={18} /> : <Plus size={18} />} {t('add_to_cart', lang)}
-                       </button>
+                       <button onClick={() => addToCart(item)} className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all duration-200 shadow-lg ${isAdded ? 'bg-green-500 text-white scale-95' : 'bg-wood-900 text-white hover:bg-accent-600 shadow-wood-200'}`}>{isAdded ? <Check size={18} /> : <Plus size={18} />} {t('add_to_cart', lang)}</button>
                      </div>
                    </div>
                  );
@@ -481,142 +560,10 @@ export default function App() {
     );
   };
 
-  const renderFloatingCartBar = () => {
-     if (cart.length === 0 || isCartOpen) return null;
-     const itemCount = cart.reduce((a, b) => a + b.quantity, 0);
-     const total = getCartTotal();
-
-     return (
-        <div className="fixed bottom-0 left-0 right-0 p-4 z-50 animate-in slide-in-from-bottom-20 duration-300">
-           <button onClick={() => setIsCartOpen(true)} className="w-full bg-wood-900 text-white rounded-2xl shadow-2xl p-4 flex items-center justify-between border border-wood-700 hover:bg-wood-800 transition-colors">
-              <div className="flex items-center gap-3">
-                 <div className="bg-accent-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-sm">{itemCount}</div>
-                 <span className="font-bold text-sm text-wood-100">{t('items', lang)}</span>
-              </div>
-              <span className="font-bold text-lg font-mono">€{total.toFixed(2)}</span>
-           </button>
-        </div>
-     );
-  };
-
-  const renderCartDrawer = () => {
-      // Logic: Filter items that are in "AGGIUNTE" category for search
-      const addons = items.filter(i => i.category === ProductCategory.AGGIUNTE);
-      const filteredAddons = addons.filter(a => a.name.toLowerCase().includes(addonSearch.toLowerCase()));
-      
-      return (
-      <>
-        {isCartOpen && <div className="fixed inset-0 bg-black/60 z-50 backdrop-blur-sm transition-opacity" onClick={() => setIsCartOpen(false)} />}
-        <div className={`fixed bottom-0 left-0 right-0 bg-white rounded-t-[2rem] shadow-2xl transform transition-transform duration-300 z-50 max-h-[90vh] flex flex-col ${isCartOpen ? 'translate-y-0' : 'translate-y-full'}`}>
-           <div className="p-6 flex-1 overflow-y-auto">
-              <div className="flex items-center justify-between mb-6">
-                 <h3 className="text-2xl font-western text-wood-900 flex items-center gap-2"><ShoppingBag size={24} /> {t('my_order', lang)}</h3>
-                 <button onClick={() => setIsCartOpen(false)} className="p-2 bg-wood-100 rounded-full hover:bg-wood-200 transition-colors"><X size={20}/></button>
-              </div>
-              
-              {cart.length === 0 ? (<div className="text-center py-10 text-wood-400">{t('empty_cart', lang)}</div>) : (
-                 <div className="space-y-6">
-                    {cart.map((item, index) => (
-                       <div key={item.cartId} className="flex justify-between items-start border-b border-wood-100 pb-6">
-                          <div className="flex-1 pr-4">
-                             <div className="flex items-center gap-2 mb-1">
-                                <span className="font-bold text-wood-900 text-lg">{item.quantity}x {item.name}</span>
-                             </div>
-                             {item.selectedVariant && <span className="text-xs bg-wood-100 px-2 py-0.5 rounded text-wood-600 block w-fit mb-1">{item.selectedVariant.name}</span>}
-                             
-                             {/* Mostra ingredienti aggiunti */}
-                             {item.selectedAddons && item.selectedAddons.length > 0 && (
-                                <div className="text-sm text-wood-500 mt-1 space-y-0.5">
-                                   {item.selectedAddons.map((add, i) => (
-                                      <div key={i} className="flex items-center gap-1 text-accent-600 font-medium">
-                                         <Plus size={10} /> {add.name} (+€{add.price.toFixed(2)})
-                                      </div>
-                                   ))}
-                                </div>
-                             )}
-                             
-                             <button onClick={() => openAddonModal(index)} className="text-xs font-bold text-wood-400 mt-3 flex items-center gap-1 hover:text-accent-600 transition-colors border border-wood-200 rounded-lg px-3 py-1.5 w-fit">
-                                <Plus size={12}/> {t('add_ingredient', lang)}
-                             </button>
-                          </div>
-                          
-                          <div className="flex flex-col items-end gap-3">
-                             <span className="font-mono font-bold text-lg">€{((item.selectedVariant ? item.selectedVariant.price : item.price) * item.quantity + (item.selectedAddons?.reduce((s, a) => s + a.price, 0) || 0) * item.quantity).toFixed(2)}</span>
-                             <div className="flex items-center gap-3 bg-wood-50 rounded-xl p-1 shadow-inner">
-                                <button onClick={() => { if(item.quantity > 1) updateCartItemQuantity(item.cartId, -1); else removeFromCart(item.cartId); }} className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm text-wood-600 hover:text-red-500"><Minus size={14}/></button>
-                                <span className="text-sm font-bold w-4 text-center">{item.quantity}</span>
-                                <button onClick={() => updateCartItemQuantity(item.cartId, 1)} className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm text-wood-600 hover:text-green-500"><Plus size={14}/></button>
-                             </div>
-                          </div>
-                       </div>
-                    ))}
-                    
-                    {/* COPERTO ROW */}
-                    <div className="flex justify-between items-center py-2 px-3 bg-wood-50 rounded-xl border border-wood-100">
-                       <span className="text-sm font-bold text-wood-500 uppercase tracking-wider">{t('cover_charge', lang)}</span>
-                       <span className="font-mono font-bold text-wood-900">€2.00</span>
-                    </div>
-                 </div>
-              )}
-           </div>
-           
-           <div className="p-6 border-t border-wood-100 bg-wood-50 pb-8">
-              <div className="flex justify-between items-center mb-6">
-                 <span className="text-xl font-bold text-wood-900">{t('total', lang)}</span>
-                 <span className="text-4xl font-western text-accent-600">€{getCartTotal().toFixed(2)}</span>
-              </div>
-              <button className="w-full bg-wood-900 text-white py-4 rounded-2xl font-bold text-xl shadow-lg flex items-center justify-center gap-3 hover:bg-accent-600 transition-colors">
-                 <Utensils size={24} /> {t('order_table', lang)}
-              </button>
-           </div>
-        </div>
-
-        {/* Modal per aggiunta ingredienti */}
-        {isAddonModalOpen && (
-           <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-end md:justify-center p-0 md:p-4">
-              <div className="bg-white w-full md:max-w-md h-[80vh] md:h-auto md:rounded-3xl rounded-t-3xl p-6 flex flex-col animate-in slide-in-from-bottom-20 duration-300">
-                 <div className="flex justify-between items-center mb-4">
-                    <h4 className="font-bold text-xl text-wood-900">{t('add_ingredient', lang)}</h4>
-                    <button onClick={() => setIsAddonModalOpen(false)} className="p-2 bg-wood-50 rounded-full"><X/></button>
-                 </div>
-                 
-                 <div className="relative mb-4">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-wood-400" size={18}/>
-                    <input 
-                       type="text" 
-                       placeholder={t('search_addon', lang)} 
-                       value={addonSearch} 
-                       onChange={(e) => setAddonSearch(e.target.value)} 
-                       className="w-full bg-wood-50 rounded-xl py-3 pl-10 pr-4 outline-none focus:ring-2 focus:ring-accent-500 border border-wood-100"
-                       autoFocus 
-                    />
-                 </div>
-                 
-                 <div className="flex-1 overflow-y-auto space-y-2">
-                    {filteredAddons.map(addon => (
-                       <button key={addon.id} onClick={() => addAddonToItem(addon)} className="w-full flex justify-between items-center p-4 hover:bg-accent-50 hover:border-accent-200 border border-transparent rounded-xl transition-all text-left group">
-                          <span className="font-medium text-wood-800 group-hover:text-accent-700">{addon.name}</span>
-                          <span className="font-bold text-accent-600 bg-accent-50 px-2 py-1 rounded group-hover:bg-white">+€{addon.price.toFixed(2)}</span>
-                       </button>
-                    ))}
-                    {filteredAddons.length === 0 && (
-                       <div className="text-center py-8 text-wood-400">Nessun ingrediente trovato.</div>
-                    )}
-                 </div>
-              </div>
-           </div>
-        )}
-      </>
-      );
-  };
-
   const renderAdmin = () => {
-    // FIX: Ordinamento alfabetico
+    // Ordinamento alfabetico nel pannello admin
     const sortedItems = [...items].sort((a, b) => a.name.localeCompare(b.name));
-
-    const displayItems = activeCategory === 'Tutti' 
-      ? sortedItems 
-      : sortedItems.filter(i => i.category === activeCategory);
+    const displayItems = activeCategory === 'Tutti' ? sortedItems : sortedItems.filter(i => i.category === activeCategory);
 
     return (
     <div className="min-h-screen bg-wood-50 pt-20 pb-20">
@@ -662,7 +609,7 @@ export default function App() {
                     <div><label className="block text-xs font-bold text-wood-500 uppercase tracking-wider mb-1">Brand (Opzionale)</label><input type="text" value={newItem.brand || ''} onChange={e => setNewItem({...newItem, brand: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500" placeholder="Es. Chianina" /></div>
                  </div>
                  
-                 {/* Allergeni Section (Checkbox per Admin) */}
+                 {/* Allergens Section (Admin Checkboxes) */}
                  <div>
                     <label className="block text-xs font-bold text-wood-500 uppercase tracking-wider mb-2">Allergeni</label>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2 bg-wood-50 p-3 rounded-xl border border-wood-200 max-h-40 overflow-y-auto">
