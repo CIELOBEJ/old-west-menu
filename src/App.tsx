@@ -185,9 +185,37 @@ export default function App() {
   
   const removeFromCart = (cartId: string) => setCart(cart.filter(i => i.cartId !== cartId));
   const updateCartItemQuantity = (cartId: string, delta: number) => { setCart(cart.map(item => { if (item.cartId === cartId) { const newQty = item.quantity + delta; return newQty > 0 ? { ...item, quantity: newQty } : item; } return item; })); };
+  
   const openAddonModal = (index: number) => { setEditingCartItemIndex(index); setAddonSearch(''); setIsAddonModalOpen(true); };
-  const addAddonToItem = (addon: MenuItem) => { if (editingCartItemIndex === null) return; const newCart = [...cart]; const currentAddons = newCart[editingCartItemIndex].selectedAddons || []; newCart[editingCartItemIndex].selectedAddons = [...currentAddons, addon]; setCart(newCart); setIsAddonModalOpen(false); setEditingCartItemIndex(null); };
-  const getCartTotal = () => { const subtotal = cart.reduce((sum, item) => { const itemPrice = item.selectedVariant ? item.selectedVariant.price : item.price; const addonsPrice = item.selectedAddons?.reduce((aSum, addon) => aSum + addon.price, 0) || 0; return sum + (itemPrice + addonsPrice) * item.quantity; }, 0); return subtotal + (cart.length > 0 ? 2.00 : 0); };
+  
+  // FIX: Aggiornamento sicuro del carrello per i prezzi
+  const addAddonToItem = (addon: MenuItem) => { 
+      if (editingCartItemIndex === null) return; 
+      
+      const newCart = [...cart]; 
+      // Clonazione profonda dell'oggetto da modificare per triggerare il re-render di React
+      const updatedItem = { ...newCart[editingCartItemIndex] };
+      
+      const currentAddons = updatedItem.selectedAddons || []; 
+      updatedItem.selectedAddons = [...currentAddons, addon]; 
+      
+      newCart[editingCartItemIndex] = updatedItem;
+      setCart(newCart); 
+      
+      setIsAddonModalOpen(false); 
+      setEditingCartItemIndex(null); 
+  };
+  
+  // FIX: Calcolo robusto del totale
+  const getCartTotal = () => { 
+      const subtotal = cart.reduce((sum, item) => { 
+          const itemPrice = item.selectedVariant ? item.selectedVariant.price : item.price; 
+          // Forziamo il cast a Number per sicurezza
+          const addonsPrice = item.selectedAddons?.reduce((aSum, addon) => aSum + Number(addon.price), 0) || 0; 
+          return sum + (itemPrice + addonsPrice) * item.quantity; 
+      }, 0); 
+      return subtotal + (cart.length > 0 ? 2.00 : 0); 
+  };
 
   const handleDiySelection = (stepId: number, option: any) => { 
     setDiySelections(prev => ({ ...prev, [stepId]: option }));
@@ -306,7 +334,7 @@ export default function App() {
                           </div>
                           
                           <div className="flex flex-col items-end gap-3">
-                             <span className="font-mono font-bold text-lg">€{((item.selectedVariant ? item.selectedVariant.price : item.price) * item.quantity + (item.selectedAddons?.reduce((s, a) => s + a.price, 0) || 0) * item.quantity).toFixed(2)}</span>
+                             <span className="font-mono font-bold text-lg">€{((item.selectedVariant ? item.selectedVariant.price : item.price) * item.quantity + (item.selectedAddons?.reduce((s, a) => s + Number(a.price), 0) || 0) * item.quantity).toFixed(2)}</span>
                              <div className="flex items-center gap-3 bg-wood-50 rounded-xl p-1 shadow-inner">
                                 <button onClick={() => { if(item.quantity > 1) updateCartItemQuantity(item.cartId, -1); else removeFromCart(item.cartId); }} className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm text-wood-600 hover:text-red-500"><Minus size={14}/></button>
                                 <span className="text-sm font-bold w-4 text-center">{item.quantity}</span>
@@ -418,17 +446,17 @@ export default function App() {
       <div className="container mx-auto px-4 py-8 pb-32" ref={diyHeaderRef}>
         <div className="bg-white rounded-3xl border border-wood-100 shadow-xl overflow-hidden">
           <div className="bg-wood-900 p-6 text-white text-center relative overflow-hidden">
-             {/* FIX: Improved Close Button Visibility */}
+             {/* TUO PULSANTE X PERSONALIZZATO - MANTENUTO */}
              <button 
-   onClick={() => setActiveSubCategoryView(null)} 
-   className="absolute top-12 left-3 z-50 bg-wood-900 text-white p-3 rounded-full shadow-2xl border-2 border-white/20 hover:scale-110 transition-transform"
-   aria-label="Chiudi"
->
-   <X size={28} />
-</button>
+                onClick={() => setActiveSubCategoryView(null)} 
+                className="absolute top-12 left-3 z-50 bg-wood-900 text-white p-3 rounded-full shadow-2xl border-2 border-white/20 hover:scale-110 transition-transform"
+                aria-label="Chiudi"
+             >
+                <X size={28} />
+             </button>
 
              <div className="absolute inset-0 bg-cover bg-center opacity-20" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=2000')" }}></div>
-             <div className="relative z-10 pt-12"> {/* FIX: Added padding top */}
+             <div className="relative z-10 pt-12">
                 <h2 className="text-3xl font-western mb-2">{t('diy_title', lang)}</h2>
                 <p className="text-wood-300">{t('diy_subtitle', lang)}</p>
                 <div className="flex justify-center gap-2 mt-4">
