@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import ReactDOM from 'react-dom/client';
 import { 
   UtensilsCrossed, Pizza, Beef, Fish, Salad, Baby, Cookie, Beer, Settings, Plus, Minus, Trash2, LogOut, 
   ChevronLeft, ChevronRight, Lock, Utensils, Star, MapPin, Clock, Instagram, Facebook, Phone, LayoutGrid, 
@@ -147,6 +146,7 @@ export default function App() {
   const addToCart = (item: MenuItem, variant?: ProductVariant) => {
     const existingItemIndex = cart.findIndex((i) => i.id === item.id && (variant ? i.selectedVariant?.name === variant.name : !i.selectedVariant) && (!i.selectedAddons || i.selectedAddons.length === 0));
     if (existingItemIndex > -1) { const newCart = [...cart]; newCart[existingItemIndex].quantity += 1; setCart(newCart); } else { setCart([...cart, { ...item, cartId: Math.random().toString(), quantity: 1, selectedVariant: variant }]); }
+    setIsCartOpen(true);
   };
   const removeFromCart = (cartId: string) => setCart(cart.filter(i => i.cartId !== cartId));
   const updateCartItemQuantity = (cartId: string, delta: number) => { setCart(cart.map(item => { if (item.cartId === cartId) { const newQty = item.quantity + delta; return newQty > 0 ? { ...item, quantity: newQty } : item; } return item; })); };
@@ -196,6 +196,196 @@ export default function App() {
       </div>
     </nav>
   );
+
+  const renderLogin = () => (
+    <div className="min-h-screen bg-wood-900 flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl border-4 border-wood-800 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-2 bg-accent-500"></div>
+        <div className="flex flex-col items-center text-center mb-8">
+          <WesternLogo size="lg" url={customLogo} className="mb-4" />
+          <h2 className="text-3xl font-western text-wood-900">{t('admin_area', lang)}</h2>
+          <p className="text-wood-500 mt-2">Inserisci il PIN per gestire il menu</p>
+        </div>
+        <form onSubmit={handleLogin} className="space-y-6">
+          <div className="relative">
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-wood-400" size={20} />
+            <input 
+              type="password" 
+              value={adminPassword} 
+              onChange={(e) => setAdminPassword(e.target.value)} 
+              placeholder="PIN (1234)" 
+              className="w-full bg-wood-50 text-center font-mono text-2xl tracking-widest py-4 rounded-xl border-2 border-wood-100 focus:outline-none focus:border-accent-500 focus:bg-white transition-all text-wood-900"
+              autoFocus
+            />
+          </div>
+          {loginError && (
+            <div className="bg-red-50 text-red-500 px-4 py-3 rounded-xl flex items-center gap-2 text-sm font-bold animate-pulse">
+              <AlertCircle size={16} /> {loginError}
+            </div>
+          )}
+          <button type="submit" className="w-full bg-accent-500 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-accent-600 hover:scale-[1.02] active:scale-[0.98] transition-all">
+            ACCEDI
+          </button>
+        </form>
+        <button onClick={() => setView('MENU')} className="w-full mt-4 py-3 text-wood-400 font-bold hover:text-wood-600 transition-colors">
+          Torna al Menu
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderMenu = () => {
+    const filteredItems = items.filter(item => {
+      if (activeCategory !== 'Tutti' && item.category !== activeCategory) return false;
+      if (activeCategory === ProductCategory.HAMBURGER && activeSubCategoryView && item.subCategory !== activeSubCategoryView) return false;
+      return checkFilters(item);
+    });
+
+    return (
+      <div className="min-h-screen bg-wood-50 pb-32">
+        {/* Hero Section */}
+        <div className="relative h-64 md:h-80 bg-wood-900 overflow-hidden">
+          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1544025162-d76690b67f66?q=80&w=2000')] bg-cover bg-center opacity-40"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-wood-900 via-transparent to-transparent"></div>
+          <div className="relative container mx-auto px-4 h-full flex flex-col justify-end pb-8">
+            <h1 className="text-4xl md:text-6xl font-western text-white mb-2 shadow-sm drop-shadow-md">
+              {t('our_menu', lang)}
+            </h1>
+            <p className="text-wood-200 text-lg md:text-xl max-w-2xl font-medium">
+              Autentici sapori del vecchio West, preparati con passione e ingredienti di prima scelta.
+            </p>
+          </div>
+        </div>
+
+        {/* Sticky Categories */}
+        <div className="sticky top-16 md:top-20 z-40 bg-wood-50/95 backdrop-blur-sm border-b border-wood-200 shadow-sm">
+          <div className="container mx-auto px-4 py-4">
+             {/* Category Carousel */}
+             <div className="relative group">
+                <button onClick={() => scrollCarousel('left')} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"><ChevronLeft size={18} /></button>
+                <div 
+                  ref={carouselRef}
+                  className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 pt-1 px-1 cursor-grab active:cursor-grabbing"
+                  onMouseDown={handleMouseDown} onMouseLeave={handleMouseLeave} onMouseUp={handleMouseUp} onMouseMove={handleMouseMove}
+                >
+                  <button 
+                    id="btn-Tutti"
+                    onClick={() => handleCategoryClick('Tutti')}
+                    className={`flex items-center gap-2 px-5 py-2.5 rounded-full whitespace-nowrap transition-all duration-300 font-bold text-sm shadow-sm select-none ${activeCategory === 'Tutti' ? 'bg-wood-900 text-white scale-105 ring-2 ring-wood-900 ring-offset-2' : 'bg-white text-wood-600 border border-wood-200 hover:border-wood-400'}`}
+                  >
+                    <LayoutGrid size={16} /> {tCategory('Tutti', lang)}
+                  </button>
+                  {CATEGORIES_LIST.map(cat => (
+                    <button
+                      key={cat}
+                      id={`btn-${cat}`}
+                      onClick={() => handleCategoryClick(cat)}
+                      className={`flex items-center gap-2 px-5 py-2.5 rounded-full whitespace-nowrap transition-all duration-300 font-bold text-sm shadow-sm select-none ${activeCategory === cat ? 'bg-accent-500 text-white scale-105 ring-2 ring-accent-500 ring-offset-2' : 'bg-white text-wood-600 border border-wood-200 hover:border-accent-300 hover:text-accent-600'}`}
+                    >
+                      <CategoryIcon category={cat} className="w-4 h-4" /> {tCategory(cat, lang)}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={() => scrollCarousel('right')} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"><ChevronRight size={18} /></button>
+             </div>
+
+             {/* Subcategories & Filters */}
+             <div className="mt-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                {activeCategory === ProductCategory.HAMBURGER && (
+                   <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+                      <button onClick={() => setActiveSubCategoryView(null)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${activeSubCategoryView === null ? 'bg-wood-800 text-white' : 'bg-wood-200 text-wood-600 hover:bg-wood-300'}`}>Tutti i Burger</button>
+                      {HAMBURGER_SUBCATEGORIES.map(sub => (
+                         <button key={sub} onClick={() => setActiveSubCategoryView(sub)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${activeSubCategoryView === sub ? 'bg-wood-800 text-white' : 'bg-wood-200 text-wood-600 hover:bg-wood-300'}`}>{sub}</button>
+                      ))}
+                   </div>
+                )}
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide ml-auto">
+                   <button onClick={() => setActiveFilters({...activeFilters, vegetarian: !activeFilters.vegetarian})} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all whitespace-nowrap ${activeFilters.vegetarian ? 'bg-green-100 border-green-300 text-green-700' : 'bg-white border-wood-200 text-wood-500 hover:border-wood-400'}`}><Leaf size={12} /> Vegetariano</button>
+                   <button onClick={() => setActiveFilters({...activeFilters, vegan: !activeFilters.vegan})} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all whitespace-nowrap ${activeFilters.vegan ? 'bg-green-100 border-green-300 text-green-700' : 'bg-white border-wood-200 text-wood-500 hover:border-wood-400'}`}><Sprout size={12} /> Vegano</button>
+                   <button onClick={() => setActiveFilters({...activeFilters, spicy: !activeFilters.spicy})} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all whitespace-nowrap ${activeFilters.spicy ? 'bg-red-100 border-red-300 text-red-700' : 'bg-white border-wood-200 text-wood-500 hover:border-wood-400'}`}><Flame size={12} /> Piccante</button>
+                </div>
+             </div>
+          </div>
+        </div>
+
+        {/* Product Grid */}
+        <div className="container mx-auto px-4 py-8">
+           {filteredItems.length === 0 ? (
+             <div className="text-center py-20">
+               <div className="inline-block p-6 bg-wood-100 rounded-full mb-4"><UtensilsCrossed size={40} className="text-wood-400" /></div>
+               <h3 className="text-xl font-bold text-wood-600">Nessun prodotto trovato</h3>
+               <p className="text-wood-400 mt-2">Prova a cambiare categoria o filtri.</p>
+             </div>
+           ) : (
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+               {filteredItems.map(item => {
+                 const { name, description } = getProductContent(item);
+                 return (
+                   <div key={item.id} className="bg-white rounded-3xl border border-wood-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group">
+                     {/* Image */}
+                     <div className="relative h-56 bg-wood-50 overflow-hidden">
+                       {item.imageUrl ? (
+                         <img src={item.imageUrl} alt={name} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />
+                       ) : (
+                         <div className="w-full h-full flex items-center justify-center bg-wood-100"><WesternLogo size="lg" className="opacity-50 grayscale" /></div>
+                       )}
+                       {item.tags && item.tags.length > 0 && (
+                         <div className="absolute top-4 left-4 flex flex-col gap-1">
+                           {item.tags.map(tag => (
+                             <span key={tag} className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider shadow-sm ${tag === 'Piccante' ? 'bg-red-500 text-white' : tag === 'Vegetariano' || tag === 'Vegano' ? 'bg-green-500 text-white' : 'bg-accent-500 text-white'}`}>{tag}</span>
+                           ))}
+                         </div>
+                       )}
+                       <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-lg shadow-sm border border-wood-100 flex items-center gap-1">
+                          <span className="text-xs font-bold text-wood-500">€</span>
+                          <span className="text-xl font-western text-wood-900">{item.price.toFixed(2)}</span>
+                       </div>
+                     </div>
+                     {/* Content */}
+                     <div className="p-6 flex-1 flex flex-col">
+                       <div className="flex justify-between items-start mb-2">
+                         <h3 className="text-xl font-bold text-wood-900 leading-tight">{name}</h3>
+                         {item.category === ProductCategory.HAMBURGER && item.subCategory && <span className="text-[10px] font-bold text-wood-400 bg-wood-50 px-2 py-1 rounded-md whitespace-nowrap">{item.subCategory}</span>}
+                       </div>
+                       <p className="text-sm text-wood-500 mb-4 line-clamp-3 flex-1">{description}</p>
+                       
+                       {/* Allergens */}
+                       {item.allergens && item.allergens.length > 0 && (
+                         <div className="flex flex-wrap gap-1 mb-4">
+                           {item.allergens.map(a => (
+                             <div key={a} className="group/allergen relative">
+                               <div className="p-1.5 bg-wood-50 rounded-full text-wood-400 border border-wood-100 hover:border-accent-300 hover:text-accent-500 transition-colors"><AllergenIcon type={a} className="w-3.5 h-3.5" /></div>
+                               <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-wood-800 text-white text-[10px] rounded opacity-0 group-hover/allergen:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">{a}</span>
+                             </div>
+                           ))}
+                         </div>
+                       )}
+
+                       {/* Action */}
+                       <button onClick={() => addToCart(item)} className="w-full bg-wood-900 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 group-hover:bg-accent-600 transition-colors shadow-lg shadow-wood-200">
+                          <Plus size={18} /> {t('add_to_cart', lang)}
+                       </button>
+                     </div>
+                   </div>
+                 );
+               })}
+             </div>
+           )}
+        </div>
+        
+        {/* Floating Cart Button */}
+        {cart.length > 0 && !isCartOpen && (
+           <button onClick={() => setIsCartOpen(true)} className="fixed bottom-6 right-6 md:right-20 z-40 bg-accent-500 text-white px-6 py-4 rounded-full shadow-2xl flex items-center gap-3 animate-in slide-in-from-bottom-10 hover:scale-105 transition-transform">
+              <div className="relative">
+                 <ShoppingBag size={24} />
+                 <span className="absolute -top-2 -right-2 bg-white text-accent-600 w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center shadow-sm">{cart.reduce((a, b) => a + b.quantity, 0)}</span>
+              </div>
+              <span className="font-bold text-lg">€{getCartTotal().toFixed(2)}</span>
+           </button>
+        )}
+      </div>
+    );
+  };
 
   const renderCartDrawer = () => {
       const addons = items.filter(i => i.category === ProductCategory.AGGIUNTE);
@@ -369,6 +559,7 @@ export default function App() {
       {view === 'MENU' && renderMenu()}
       {view === 'LOGIN' && renderLogin()}
       {view === 'ADMIN' && renderAdmin()}
+      {renderCartDrawer()}
 
       <button onClick={scrollToTop} className={`fixed bottom-6 right-6 z-50 w-12 h-12 bg-accent-500 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:bg-accent-600 hover:scale-110 ${showScrollTop && !isCartOpen ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0 pointer-events-none'}`} aria-label="Scroll to top"><ChevronUp size={24} /></button>
     </>
