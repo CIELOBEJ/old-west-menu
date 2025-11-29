@@ -421,7 +421,7 @@ export default function App() {
              {/* FIX: Improved Close Button Visibility */}
              <button 
    onClick={() => setActiveSubCategoryView(null)} 
-   className="absolute top-12 left-6 z-50 bg-wood-900 text-white p-4 rounded-full shadow-2xl border-2 border-white/20 hover:scale-110 transition-transform"
+   className="absolute top-12 left-3 z-50 bg-wood-900 text-white p-3 rounded-full shadow-2xl border-2 border-white/20 hover:scale-110 transition-transform"
    aria-label="Chiudi"
 >
    <X size={28} />
