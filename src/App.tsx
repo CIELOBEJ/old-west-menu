@@ -118,6 +118,7 @@ export default function App() {
 
   const carouselRef = useRef<HTMLDivElement>(null);
   const highlightsRef = useRef<HTMLDivElement>(null);
+  const diyControlsRef = useRef<HTMLDivElement>(null); // Ref per auto-scroll DIY
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
@@ -179,7 +180,14 @@ export default function App() {
   const addAddonToItem = (addon: MenuItem) => { if (editingCartItemIndex === null) return; const newCart = [...cart]; const currentAddons = newCart[editingCartItemIndex].selectedAddons || []; newCart[editingCartItemIndex].selectedAddons = [...currentAddons, addon]; setCart(newCart); setIsAddonModalOpen(false); setEditingCartItemIndex(null); };
   const getCartTotal = () => { const subtotal = cart.reduce((sum, item) => { const itemPrice = item.selectedVariant ? item.selectedVariant.price : item.price; const addonsPrice = item.selectedAddons?.reduce((aSum, addon) => aSum + addon.price, 0) || 0; return sum + (itemPrice + addonsPrice) * item.quantity; }, 0); return subtotal + (cart.length > 0 ? 2.00 : 0); };
 
-  const handleDiySelection = (stepId: number, option: any) => { setDiySelections(prev => ({ ...prev, [stepId]: option })); };
+  const handleDiySelection = (stepId: number, option: any) => { 
+    setDiySelections(prev => ({ ...prev, [stepId]: option }));
+    // Auto-scroll to bottom after selection
+    setTimeout(() => {
+      diyControlsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 200);
+  };
+  
   const handleDiyNext = () => {
      if (diyStep < DIY_OPTIONS.steps.length - 1) {
        setDiyStep(diyStep + 1);
@@ -402,7 +410,7 @@ export default function App() {
       <div className="container mx-auto px-4 py-8 pb-32">
         <div className="bg-white rounded-3xl border border-wood-100 shadow-xl overflow-hidden">
           <div className="bg-wood-900 p-6 text-white text-center relative overflow-hidden">
-             <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=2000')] bg-cover bg-center opacity-20"></div>
+             <div className="absolute inset-0 bg-cover bg-center opacity-20" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=2000')" }}></div>
              <div className="relative z-10">
                 <h2 className="text-3xl font-western mb-2">{t('diy_title', lang)}</h2>
                 <p className="text-wood-300">{t('diy_subtitle', lang)}</p>
@@ -442,7 +450,7 @@ export default function App() {
                 })}
              </div>
 
-             <div className="flex justify-between items-center mt-10 pt-6 border-t border-wood-100">
+             <div className="flex justify-between items-center mt-10 pt-6 border-t border-wood-100" ref={diyControlsRef}>
                 <button onClick={() => { if (diyStep > 0) setDiyStep(diyStep - 1); else setActiveSubCategoryView(null); }} className="text-wood-500 font-bold hover:text-wood-800 transition-colors flex items-center gap-2 px-4 py-2"><ChevronLeft size={20} /> {t('back', lang)}</button>
                 <button onClick={handleDiyNext} disabled={!diySelections[currentStepConfig.id]} className="bg-wood-900 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-accent-600 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95">{diyStep === DIY_OPTIONS.steps.length - 1 ? (<>{t('add_to_cart', lang)} <Plus size={20} /></>) : (<>{t('add', lang)} <ArrowRight size={20} /></>)}</button>
              </div>
@@ -468,13 +476,13 @@ export default function App() {
       <div className="min-h-screen bg-wood-50 pb-40">
         {/* HERO */}
         <div className="relative h-96 bg-wood-900 overflow-hidden">
-          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1544025162-d76690b67f66?q=80&w=2000')] bg-cover bg-center opacity-40"></div>
+          <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1544025162-d76690b67f66?q=80&w=2000')" }}></div>
           <div className="absolute inset-0 bg-gradient-to-t from-wood-900 via-transparent to-transparent"></div>
-          <div className="relative z-10 flex flex-col items-center justify-center h-full text-center text-white pb-10 px-4">
-            <h1 className="text-5xl md:text-7xl font-western mb-4 shadow-sm drop-shadow-md tracking-wide">{t('hero_title', lang)}</h1>
-            <div className="flex flex-col items-center gap-2 text-wood-200 text-lg md:text-xl font-medium">
+          <div className="relative z-10 flex flex-col items-center justify-center h-full text-center text-white pb-10 px-4 pt-16">
+            <h1 className="text-3xl md:text-7xl font-western mb-4 shadow-sm drop-shadow-md tracking-wide">{t('hero_title', lang)}</h1>
+            <div className="flex flex-col items-center gap-2 text-wood-200 text-base md:text-xl font-medium">
                <p className="flex items-center gap-2"><MapPin size={20} className="text-accent-500" /> Via G. Galilei 35 - Cameri (NO)</p>
-               <p className="flex items-center gap-2 text-base opacity-80"><Clock size={16} /> 11:00 - 15:00 | 17:00 - 00:00</p>
+               <p className="flex items-center gap-2 text-sm md:text-base opacity-80"><Clock size={16} /> 11:00 - 15:00 | 17:00 - 00:00</p>
             </div>
           </div>
         </div>
@@ -553,12 +561,12 @@ export default function App() {
                    <button 
                      key={cat} 
                      onClick={() => handleCategoryClick(cat)}
-                     className="bg-white border-2 border-wood-100 hover:border-accent-500 rounded-3xl p-6 flex flex-col items-center justify-center gap-4 shadow-sm hover:shadow-xl transition-all group aspect-square"
+                     className="bg-white border-2 border-wood-100 hover:border-accent-500 rounded-3xl p-4 flex flex-col items-center justify-center gap-3 shadow-sm hover:shadow-xl transition-all group aspect-square"
                    >
-                      <div className="w-16 h-16 bg-wood-50 rounded-full flex items-center justify-center text-wood-400 group-hover:bg-accent-50 group-hover:text-accent-500 transition-colors">
-                         <CategoryIcon category={cat} className="w-8 h-8" />
+                      <div className="w-14 h-14 bg-wood-50 rounded-full flex items-center justify-center text-wood-400 group-hover:bg-accent-50 group-hover:text-accent-500 transition-colors">
+                         <CategoryIcon category={cat} className="w-7 h-7" />
                       </div>
-                      <span className="font-western text-xl text-wood-900">{tCategory(cat, lang)}</span>
+                      <span className="font-western text-sm md:text-xl text-wood-900 text-center leading-tight">{tCategory(cat, lang)}</span>
                    </button>
                 ))}
              </div>
@@ -713,11 +721,7 @@ export default function App() {
                  </div>
                  <div className="bg-wood-50 rounded-xl p-4 border border-wood-200">
                     <div className="flex items-center justify-between mb-2"><label className="text-xs font-bold text-wood-500 uppercase tracking-wider flex items-center gap-2"><Globe size={12} /> Descrizione ({LANGUAGES_CONFIG.find(l => l.code === adminLang)?.label})</label><div className="flex bg-white rounded-lg p-0.5 border border-wood-200">{LANGUAGES_CONFIG.map(l => (<button type="button" key={l.code} onClick={() => setAdminLang(l.code as LanguageCode)} className={`w-6 h-6 rounded-md flex items-center justify-center text-xs transition-colors ${adminLang === l.code ? 'bg-accent-500 text-white shadow-sm' : 'text-wood-400 hover:bg-wood-100'}`}>{l.flag}</button>))}</div></div>
-                    {adminLang === 'it' ? (
-                      <textarea rows={3} value={newItem.description || ''} onChange={e => setNewItem({...newItem, description: e.target.value})} className="w-full bg-white border border-wood-200 rounded-lg p-3 text-sm focus:outline-none focus:border-accent-500 resize-none" placeholder="Descrizione in Italiano..." />
-                    ) : (
-                      <div className="space-y-2"><input type="text" value={newItem.translations?.[adminLang]?.name || ''} onChange={e => { const newTranslations = { ...newItem.translations }; if (!newTranslations[adminLang]) newTranslations[adminLang] = { name: '', description: '' }; newTranslations[adminLang]!.name = e.target.value; setNewItem({ ...newItem, translations: newTranslations }); }} className="w-full bg-white border border-wood-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent-500" placeholder={`Nome in ${LANGUAGES_CONFIG.find(l => l.code === adminLang)?.label}...`} /><textarea rows={2} value={newItem.translations?.[adminLang]?.description || ''} onChange={e => { const newTranslations = { ...newItem.translations }; if (!newTranslations[adminLang]) newTranslations[adminLang] = { name: '', description: '' }; newTranslations[adminLang]!.description = e.target.value; setNewItem({ ...newItem, translations: newTranslations }); }} className="w-full bg-white border border-wood-200 rounded-lg p-3 text-sm focus:outline-none focus:border-accent-500 resize-none" placeholder={`Descrizione in ${LANGUAGES_CONFIG.find(l => l.code === adminLang)?.label}...`} /></div>
-                    )}
+                    {adminLang === 'it' ? (<textarea rows={3} value={newItem.description || ''} onChange={e => setNewItem({...newItem, description: e.target.value})} className="w-full bg-white border border-wood-200 rounded-lg p-3 text-sm focus:outline-none focus:border-accent-500 resize-none" placeholder="Descrizione in Italiano..." />) : (<div className="space-y-2"><input type="text" value={newItem.translations?.[adminLang]?.name || ''} onChange={e => { const newTranslations = { ...newItem.translations }; if (!newTranslations[adminLang]) newTranslations[adminLang] = { name: '', description: '' }; newTranslations[adminLang]!.name = e.target.value; setNewItem({ ...newItem, translations: newTranslations }); }} className="w-full bg-white border border-wood-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent-500" placeholder={`Nome in ${LANGUAGES_CONFIG.find(l => l.code === adminLang)?.label}...`} /><textarea rows={2} value={newItem.translations?.[adminLang]?.description || ''} onChange={e => { const newTranslations = { ...newItem.translations }; if (!newTranslations[adminLang]) newTranslations[adminLang] = { name: '', description: '' }; newTranslations[adminLang]!.description = e.target.value; setNewItem({ ...newItem, translations: newTranslations }); }} className="w-full bg-white border border-wood-200 rounded-lg p-3 text-sm focus:outline-none focus:border-accent-500 resize-none" placeholder={`Descrizione in ${LANGUAGES_CONFIG.find(l => l.code === adminLang)?.label}...`} /></div>)}
                  </div>
               </div>
               <div className="col-span-1 md:col-span-2 flex justify-end gap-3 pt-4 border-t border-wood-100">
