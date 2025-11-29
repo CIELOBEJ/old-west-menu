@@ -87,6 +87,8 @@ const getDIYOptionContent = (opt: any, lang: LanguageCode) => {
   return opt.translations?.[lang]?.name || opt.name; 
 };
 
+// --- MAIN COMPONENT ---
+
 export default function App() {
   // 1. STATE DEFINITIONS
   const [items, setItems] = useState<MenuItem[]>([]);
@@ -187,12 +189,15 @@ export default function App() {
   
   const addAddonToItem = (addon: MenuItem) => { 
       if (editingCartItemIndex === null) return; 
+      
       const newCart = [...cart]; 
       const updatedItem = { ...newCart[editingCartItemIndex] };
       const currentAddons = updatedItem.selectedAddons || []; 
       updatedItem.selectedAddons = [...currentAddons, addon]; 
+      
       newCart[editingCartItemIndex] = updatedItem;
       setCart(newCart); 
+      
       setIsAddonModalOpen(false); 
       setEditingCartItemIndex(null); 
   };
@@ -210,7 +215,9 @@ export default function App() {
 
   const handleDiySelection = (stepId: number, option: any) => { 
     setDiySelections(prev => ({ ...prev, [stepId]: option }));
-    setTimeout(() => { diyControlsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 200);
+    setTimeout(() => {
+      diyControlsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 200);
   };
   
   const handleDiyNext = () => {
@@ -242,6 +249,8 @@ export default function App() {
   const handleExportData = () => { const dataStr = JSON.stringify(items, null, 2); const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr); const link = document.createElement('a'); link.setAttribute('href', dataUri); link.setAttribute('download', `backup_${new Date().toISOString().slice(0,10)}.json`); link.click(); };
   const handleImportData = () => alert("Import locale disabilitato. Usa sync cloud.");
   const handleFactoryReset = () => alert("Reset locale disabilitato. Gestisci da DB.");
+
+  // --- RENDER FUNCTIONS ---
 
   const renderHeader = () => (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${view === 'MENU' ? 'bg-wood-900/95 backdrop-blur-md border-b border-wood-800' : 'bg-wood-900 shadow-md'}`}>
@@ -296,23 +305,34 @@ export default function App() {
                  <h3 className="text-2xl font-western text-wood-900 flex items-center gap-2"><ShoppingBag size={24} /> {t('my_order', lang)}</h3>
                  <button onClick={() => setIsCartOpen(false)} className="p-2 bg-wood-100 rounded-full hover:bg-wood-200 transition-colors"><X size={20}/></button>
               </div>
+              
               {cart.length === 0 ? (<div className="text-center py-10 text-wood-400">{t('empty_cart', lang)}</div>) : (
                  <div className="space-y-6">
                     {cart.map((item, index) => (
                        <div key={item.cartId} className="flex justify-between items-start border-b border-wood-100 pb-6">
                           <div className="flex-1 pr-4">
-                             <div className="flex items-center gap-2 mb-1"><span className="font-bold text-wood-900 text-lg">{item.quantity}x {item.name}</span></div>
+                             <div className="flex items-center gap-2 mb-1">
+                                <span className="font-bold text-wood-900 text-lg">{item.quantity}x {item.name}</span>
+                             </div>
                              {item.selectedVariant && <span className="text-xs bg-wood-100 px-2 py-0.5 rounded text-wood-600 block w-fit mb-1">{item.selectedVariant.name}</span>}
+                             
                              {item.id.startsWith('diy-') && (<p className="text-xs italic text-wood-500 mb-2 leading-relaxed">{item.description}</p>)}
+
                              {item.selectedAddons && item.selectedAddons.length > 0 && (
                                 <div className="text-sm text-wood-500 mt-1 space-y-0.5">
-                                   {item.selectedAddons.map((add, i) => (<div key={i} className="flex items-center gap-1 text-accent-600 font-medium"><Plus size={10} /> {add.name} (+€{add.price.toFixed(2)})</div>))}
+                                   {item.selectedAddons.map((add, i) => (
+                                      <div key={i} className="flex items-center gap-1 text-accent-600 font-medium"><Plus size={10} /> {add.name} (+€{add.price.toFixed(2)})</div>
+                                   ))}
                                 </div>
                              )}
+                             
                              {(item.category === ProductCategory.HAMBURGER || item.category === ProductCategory.PIZZA) && (
-                                 <button onClick={() => openAddonModal(index)} className="text-xs font-bold text-wood-400 mt-3 flex items-center gap-1 hover:text-accent-600 transition-colors border border-wood-200 rounded-lg px-3 py-1.5 w-fit"><Plus size={12}/> {t('add_ingredient', lang)}</button>
+                                 <button onClick={() => openAddonModal(index)} className="text-xs font-bold text-wood-400 mt-3 flex items-center gap-1 hover:text-accent-600 transition-colors border border-wood-200 rounded-lg px-3 py-1.5 w-fit">
+                                    <Plus size={12}/> {t('add_ingredient', lang)}
+                                 </button>
                              )}
                           </div>
+                          
                           <div className="flex flex-col items-end gap-3">
                              <span className="font-mono font-bold text-lg">€{((item.selectedVariant ? item.selectedVariant.price : item.price) * item.quantity + (item.selectedAddons?.reduce((s, a) => s + Number(a.price), 0) || 0) * item.quantity).toFixed(2)}</span>
                              <div className="flex items-center gap-3 bg-wood-50 rounded-xl p-1 shadow-inner">
@@ -323,21 +343,59 @@ export default function App() {
                           </div>
                        </div>
                     ))}
-                    {hasFood && (<div className="flex justify-between items-center py-2 px-3 bg-wood-50 rounded-xl border border-wood-100"><span className="text-sm font-bold text-wood-500 uppercase tracking-wider">{t('cover_charge', lang)}</span><span className="font-mono font-bold text-wood-900">€2.00</span></div>)}
+                    
+                    {hasFood && (
+                        <div className="flex justify-between items-center py-2 px-3 bg-wood-50 rounded-xl border border-wood-100">
+                           <span className="text-sm font-bold text-wood-500 uppercase tracking-wider">{t('cover_charge', lang)}</span>
+                           <span className="font-mono font-bold text-wood-900">€2.00</span>
+                        </div>
+                    )}
                  </div>
               )}
            </div>
+           
            <div className="p-6 border-t border-wood-100 bg-wood-50 pb-8">
-              <div className="flex justify-between items-center mb-6"><span className="text-xl font-bold text-wood-900">{t('total', lang)}</span><span className="text-4xl font-western text-accent-600">€{getCartTotal().toFixed(2)}</span></div>
-              <button className="w-full bg-wood-900 text-white py-4 rounded-2xl font-bold text-xl shadow-lg flex items-center justify-center gap-3 hover:bg-accent-600 transition-colors"><Utensils size={24} /> {t('order_table', lang)}</button>
+              <div className="flex justify-between items-center mb-6">
+                 <span className="text-xl font-bold text-wood-900">{t('total', lang)}</span>
+                 <span className="text-4xl font-western text-accent-600">€{getCartTotal().toFixed(2)}</span>
+              </div>
+              <button className="w-full bg-wood-900 text-white py-4 rounded-2xl font-bold text-xl shadow-lg flex items-center justify-center gap-3 hover:bg-accent-600 transition-colors">
+                 <Utensils size={24} /> {t('order_table', lang)}
+              </button>
            </div>
         </div>
+
         {isAddonModalOpen && (
            <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-end md:justify-center p-0 md:p-4">
               <div className="bg-white w-full md:max-w-md h-[80vh] md:h-auto md:rounded-3xl rounded-t-3xl p-6 flex flex-col animate-in slide-in-from-bottom-20 duration-300">
-                 <div className="flex justify-between items-center mb-4"><h4 className="font-bold text-xl text-wood-900">{t('add_ingredient', lang)}</h4><button onClick={() => setIsAddonModalOpen(false)} className="p-2 bg-wood-50 rounded-full"><X/></button></div>
-                 <div className="relative mb-4"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-wood-400" size={18}/><input type="text" placeholder={t('search_addon', lang)} value={addonSearch} onChange={(e) => setAddonSearch(e.target.value)} className="w-full bg-wood-50 rounded-xl py-3 pl-10 pr-4 outline-none focus:ring-2 focus:ring-accent-500 border border-wood-100" autoFocus /></div>
-                 <div className="flex-1 overflow-y-auto space-y-2">{filteredAddons.map(addon => (<button key={addon.id} onClick={() => addAddonToItem(addon)} className="w-full flex justify-between items-center p-4 hover:bg-accent-50 hover:border-accent-200 border border-transparent rounded-xl transition-all text-left group"><span className="font-medium text-wood-800 group-hover:text-accent-700">{addon.name}</span><span className="font-bold text-accent-600 bg-accent-50 px-2 py-1 rounded group-hover:bg-white">+€{addon.price.toFixed(2)}</span></button>))}</div>
+                 <div className="flex justify-between items-center mb-4">
+                    <h4 className="font-bold text-xl text-wood-900">{t('add_ingredient', lang)}</h4>
+                    <button onClick={() => setIsAddonModalOpen(false)} className="p-2 bg-wood-50 rounded-full"><X/></button>
+                 </div>
+                 
+                 <div className="relative mb-4">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-wood-400" size={18}/>
+                    <input 
+                       type="text" 
+                       placeholder={t('search_addon', lang)} 
+                       value={addonSearch} 
+                       onChange={(e) => setAddonSearch(e.target.value)} 
+                       className="w-full bg-wood-50 rounded-xl py-3 pl-10 pr-4 outline-none focus:ring-2 focus:ring-accent-500 border border-wood-100"
+                       autoFocus 
+                    />
+                 </div>
+                 
+                 <div className="flex-1 overflow-y-auto space-y-2">
+                    {filteredAddons.map(addon => (
+                       <button key={addon.id} onClick={() => addAddonToItem(addon)} className="w-full flex justify-between items-center p-4 hover:bg-accent-50 hover:border-accent-200 border border-transparent rounded-xl transition-all text-left group">
+                          <span className="font-medium text-wood-800 group-hover:text-accent-700">{addon.name}</span>
+                          <span className="font-bold text-accent-600 bg-accent-50 px-2 py-1 rounded group-hover:bg-white">+€{addon.price.toFixed(2)}</span>
+                       </button>
+                    ))}
+                    {filteredAddons.length === 0 && (
+                       <div className="text-center py-8 text-wood-400">Nessun ingrediente trovato.</div>
+                    )}
+                 </div>
               </div>
            </div>
         )}
@@ -345,27 +403,123 @@ export default function App() {
       );
   };
 
-  const renderLogin = () => (
-    <div className="min-h-screen bg-wood-900 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl border-4 border-wood-800 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-2 bg-accent-500"></div>
-        <div className="flex flex-col items-center text-center mb-8">
-          <WesternLogo size="lg" url={customLogo} className="mb-4" />
-          <h2 className="text-3xl font-western text-wood-900">{t('admin_area', lang)}</h2>
-          <p className="text-wood-500 mt-2">{t('login_prompt', lang)}</p>
+  const renderAdmin = () => {
+    // Ordinamento alfabetico nel pannello admin
+    const sortedItems = [...items].sort((a, b) => a.name.localeCompare(b.name));
+    const displayItems = activeCategory === 'Tutti' ? sortedItems : sortedItems.filter(i => i.category === activeCategory);
+
+    return (
+    <div className="min-h-screen bg-wood-50 pt-20 pb-20">
+      <div className="container mx-auto px-4 max-w-5xl">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+          <div><h1 className="text-3xl font-western text-wood-900">{t('admin_area', lang)}</h1><p className="text-wood-500">Gestione Menu & Impostazioni</p></div>
+          <div className="flex gap-3"><button onClick={handleExportData} className="flex items-center gap-2 bg-white border border-wood-200 text-wood-600 px-4 py-2 rounded-xl hover:bg-wood-100 transition-colors"><Download size={18} /> Backup</button><label className="flex items-center gap-2 bg-white border border-wood-200 text-wood-600 px-4 py-2 rounded-xl hover:bg-wood-100 transition-colors cursor-pointer"><Upload size={18} /> Ripristina<input type="file" onChange={handleImportData} accept=".json" className="hidden" /></label><button onClick={() => setView('MENU')} className="bg-wood-900 text-white px-4 py-2 rounded-xl hover:bg-wood-800 transition-colors">Esci</button></div>
         </div>
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div className="relative">
-            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-wood-400" size={20} />
-            <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} placeholder="PIN (1234)" className="w-full bg-wood-50 text-center font-mono text-2xl tracking-widest py-4 rounded-xl border-2 border-wood-100 focus:outline-none focus:border-accent-500 focus:bg-white transition-all text-wood-900" autoFocus />
-          </div>
-          {loginError && (<div className="bg-red-50 text-red-500 px-4 py-3 rounded-xl flex items-center gap-2 text-sm font-bold animate-pulse"><AlertCircle size={16} /> {loginError}</div>)}
-          <button type="submit" className="w-full bg-accent-500 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-accent-600 hover:scale-[1.02] active:scale-[0.98] transition-all">{t('login_btn', lang)}</button>
-        </form>
-        <button onClick={() => setView('MENU')} className="w-full mt-4 py-3 text-wood-400 font-bold hover:text-wood-600 transition-colors">{t('back_to_menu', lang)}</button>
+        <div className="bg-blue-50 border border-blue-100 rounded-3xl p-6 mb-8 shadow-sm">
+           <div className="flex items-start gap-4"><div className="p-3 bg-blue-100 rounded-full text-blue-600"><Database size={24} /></div><div className="flex-1"><h3 className="text-xl font-bold text-blue-900 mb-2">Database Cloud (Supabase)</h3><p className="text-blue-700 text-sm mb-4">L'applicazione è collegata al database online. Le modifiche sono visibili a tutti i clienti in tempo reale.</p><button onClick={handleSyncInitialData} disabled={isSyncing} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-md disabled:opacity-50">{isSyncing ? <Loader2 className="animate-spin" size={18} /> : <RefreshCw size={18} />} Sincronizza Menu Iniziale</button><p className="text-[10px] text-blue-400 mt-2 italic">* Usare solo per caricare i prodotti di base la prima volta o per ripristinare.</p></div></div>
+        </div>
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-wood-100 mb-8">
+           <h3 className="text-lg font-bold text-wood-900 mb-4 flex items-center gap-2"><Settings size={20} className="text-accent-500" /> Impostazioni Generali</h3>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="bg-wood-50 rounded-2xl p-6 border border-wood-100">
+                 <h4 className="font-bold text-wood-800 mb-4 flex items-center gap-2"><ImageIcon size={18} /> Logo Ristorante</h4>
+                 <div className="flex items-start gap-4">
+                    <WesternLogo size="md" url={customLogo} />
+                    <div className="flex-1">
+                       <p className="text-xs text-wood-500 mb-3">Carica il tuo logo (PNG/JPG). Verrà ridimensionato automaticamente.</p>
+                       <div className="flex gap-2 flex-wrap">
+                          <label className="bg-white border border-wood-200 text-wood-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-wood-100 cursor-pointer transition-colors flex items-center gap-2">{isProcessingImage ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />} Carica Logo<input type="file" onChange={handleLogoUpload} accept="image/*" className="hidden" /></label>
+                          {customLogo && (<><button onClick={handleSaveLogo} className="bg-accent-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-accent-600 transition-colors flex items-center gap-2"><Save size={12} /> Salva</button><button onClick={handleResetLogo} className="bg-red-100 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-200 transition-colors flex items-center gap-2"><RotateCcw size={12} /> Reset</button></>)}
+                       </div>
+                    </div>
+                 </div>
+              </div>
+              <div className="bg-red-50 rounded-2xl p-6 border border-red-100"><h4 className="font-bold text-red-800 mb-2 flex items-center gap-2"><Trash2 size={18} /> Area Pericolo</h4><p className="text-xs text-red-600 mb-4">Ripristina il menu ai valori di default. Tutte le modifiche andranno perse.</p><button onClick={handleFactoryReset} className="w-full bg-white border border-red-200 text-red-600 py-2 rounded-xl text-sm font-bold hover:bg-red-600 hover:text-white transition-colors">Ripristino di Fabbrica</button></div>
+           </div>
+        </div>
+        <div id="new-product-form" className="bg-white rounded-3xl p-6 md:p-8 shadow-lg border-2 border-accent-100 mb-12 relative overflow-hidden">
+           <div className="absolute top-0 left-0 w-full h-2 bg-accent-500"></div>
+           <h3 className="text-2xl font-western text-wood-900 mb-6 flex items-center gap-2">{editingId ? <Pencil size={24} className="text-accent-500" /> : <Plus size={24} className="text-accent-500" />} {editingId ? 'Modifica Prodotto' : 'Nuovo Prodotto'}</h3>
+           <form onSubmit={handleSaveItem} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                 <div className="grid grid-cols-2 gap-4">
+                    <div><label className="block text-xs font-bold text-wood-500 uppercase tracking-wider mb-1">Categoria</label><div className="relative"><select value={newItem.category} onChange={e => setNewItem({...newItem, category: e.target.value as ProductCategory})} className="w-full appearance-none bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 pr-8 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500">{CATEGORIES_LIST.concat([ProductCategory.AGGIUNTE]).map(cat => (<option key={cat} value={cat}>{tCategory(cat, lang)}</option>))}</select><ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-wood-400 pointer-events-none" size={16} /></div></div>
+                    {newItem.category === ProductCategory.HAMBURGER && (<div><label className="block text-xs font-bold text-wood-500 uppercase tracking-wider mb-1">Sotto-Categoria</label><div className="relative"><select value={newItem.subCategory} onChange={e => setNewItem({...newItem, subCategory: e.target.value})} className="w-full appearance-none bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 pr-8 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500">{HAMBURGER_SUBCATEGORIES.map(sub => (<option key={sub} value={sub}>{sub}</option>))}</select><ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-wood-400 pointer-events-none" size={16} /></div></div>)}
+                 </div>
+                 <div><label className="block text-xs font-bold text-wood-500 uppercase tracking-wider mb-1">Nome Prodotto</label><input type="text" required value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500 font-medium" placeholder="Es. Old West Burger" /></div>
+                 <div className="grid grid-cols-2 gap-4">
+                    <div><label className="block text-xs font-bold text-wood-500 uppercase tracking-wider mb-1">Prezzo (€)</label><input type="number" step="0.01" required value={newItem.price} onChange={e => setNewItem({...newItem, price: parseFloat(e.target.value)})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500 font-mono" /></div>
+                    <div><label className="block text-xs font-bold text-wood-500 uppercase tracking-wider mb-1">Brand (Opzionale)</label><input type="text" value={newItem.brand || ''} onChange={e => setNewItem({...newItem, brand: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500" placeholder="Es. Chianina" /></div>
+                 </div>
+                 
+                 {/* Allergens Section (Admin Checkboxes) */}
+                 <div>
+                    <label className="block text-xs font-bold text-wood-500 uppercase tracking-wider mb-2">Allergeni</label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 bg-wood-50 p-3 rounded-xl border border-wood-200 max-h-40 overflow-y-auto">
+                       {(Object.keys(ALLERGENS_CONFIG) as AllergenType[]).map(allergen => {
+                          const isSelected = newItem.allergens?.includes(allergen);
+                          return (
+                             <button type="button" key={allergen} onClick={() => { const current = newItem.allergens || []; const updated = isSelected ? current.filter(a => a !== allergen) : [...current, allergen]; setNewItem({ ...newItem, allergens: updated }); }} className={`px-2 py-2 rounded-lg text-[10px] font-bold flex items-center gap-2 border transition-all text-left ${isSelected ? 'bg-red-100 border-red-200 text-red-700' : 'bg-white border-wood-200 text-wood-500 hover:bg-wood-100'}`}>
+                                <div className="shrink-0"><AllergenIcon type={allergen} className="w-4 h-4" /></div>
+                                {allergen}
+                             </button>
+                          )
+                       })}
+                    </div>
+                 </div>
+
+                 {/* Tags */}
+                 <div>
+                    <label className="block text-xs font-bold text-wood-500 uppercase tracking-wider mb-2">Etichette</label>
+                    <div className="flex flex-wrap gap-2">{['Vegetariano', 'Vegano', 'Piccante', 'Best Seller', 'Consigliato', 'Senza Glutine'].map(tag => { const isActive = newItem.tags?.includes(tag); return (<button type="button" key={tag} onClick={() => { const currentTags = newItem.tags || []; const newTags = isActive ? currentTags.filter(t => t !== tag) : [...currentTags, tag]; setNewItem({...newItem, tags: newTags}); }} className={`px-3 py-1 rounded-full text-xs font-bold border transition-all ${isActive ? 'bg-accent-500 border-accent-500 text-white' : 'bg-white border-wood-200 text-wood-500 hover:border-accent-300'}`}>{tag}</button>); })}</div>
+                 </div>
+              </div>
+              <div className="space-y-4">
+                 <div>
+                    <label className="block text-xs font-bold text-wood-500 uppercase tracking-wider mb-1">Immagine</label>
+                    <div className="flex items-start gap-4 p-4 bg-wood-50 border border-wood-200 rounded-xl border-dashed">
+                       <div className="w-20 h-20 bg-white rounded-lg border border-wood-100 flex items-center justify-center overflow-hidden shrink-0 relative">
+                          {isProcessingImage ? (<Loader2 className="animate-spin text-accent-500" />) : newItem.imageUrl ? (<><img src={newItem.imageUrl} alt="Preview" className="w-full h-full object-cover" /><button type="button" onClick={handleRemoveProductImage} className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"><Trash2 size={16} /></button></>) : (<ImageIcon className="text-wood-300" />)}
+                       </div>
+                       <div className="flex-1"><input type="text" value={newItem.imageUrl || ''} onChange={e => setNewItem({...newItem, imageUrl: e.target.value})} className="w-full bg-white border border-wood-200 rounded-lg px-3 py-2 text-sm mb-2 focus:outline-none focus:border-accent-500" placeholder="URL Immagine o Carica ->" /><label className="inline-flex items-center gap-2 bg-white border border-wood-200 text-wood-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-wood-100 cursor-pointer transition-colors"><Upload size={12} /> Carica da Dispositivo<input type="file" onChange={handleProductImageUpload} accept="image/*" className="hidden" /></label></div>
+                    </div>
+                 </div>
+                 <div className="bg-wood-50 rounded-xl p-4 border border-wood-200">
+                    <div className="flex items-center justify-between mb-2"><label className="text-xs font-bold text-wood-500 uppercase tracking-wider flex items-center gap-2"><Globe size={12} /> Descrizione ({LANGUAGES_CONFIG.find(l => l.code === adminLang)?.label})</label><div className="flex bg-white rounded-lg p-0.5 border border-wood-200">{LANGUAGES_CONFIG.map(l => (<button type="button" key={l.code} onClick={() => setAdminLang(l.code as LanguageCode)} className={`w-6 h-6 rounded-md flex items-center justify-center text-xs transition-colors ${adminLang === l.code ? 'bg-accent-500 text-white shadow-sm' : 'text-wood-400 hover:bg-wood-100'}`}>{l.flag}</button>))}</div></div>
+                    {adminLang === 'it' ? (<textarea rows={3} value={newItem.description || ''} onChange={e => setNewItem({...newItem, description: e.target.value})} className="w-full bg-white border border-wood-200 rounded-lg p-3 text-sm focus:outline-none focus:border-accent-500 resize-none" placeholder="Descrizione in Italiano..." />) : (<div className="space-y-2"><input type="text" value={newItem.translations?.[adminLang]?.name || ''} onChange={e => { const newTranslations = { ...newItem.translations }; if (!newTranslations[adminLang]) newTranslations[adminLang] = { name: '', description: '' }; newTranslations[adminLang]!.name = e.target.value; setNewItem({ ...newItem, translations: newTranslations }); }} className="w-full bg-white border border-wood-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent-500" placeholder={`Nome in ${LANGUAGES_CONFIG.find(l => l.code === adminLang)?.label}...`} /><textarea rows={2} value={newItem.translations?.[adminLang]?.description || ''} onChange={e => { const newTranslations = { ...newItem.translations }; if (!newTranslations[adminLang]) newTranslations[adminLang] = { name: '', description: '' }; newTranslations[adminLang]!.description = e.target.value; setNewItem({ ...newItem, translations: newTranslations }); }} className="w-full bg-white border border-wood-200 rounded-lg p-3 text-sm focus:outline-none focus:border-accent-500 resize-none" placeholder={`Descrizione in ${LANGUAGES_CONFIG.find(l => l.code === adminLang)?.label}...`} /></div>)}
+                 </div>
+              </div>
+              <div className="col-span-1 md:col-span-2 flex justify-end gap-3 pt-4 border-t border-wood-100">
+                 {editingId && (<button type="button" onClick={handleCancelEdit} className="px-6 py-3 rounded-xl font-bold text-wood-500 hover:bg-wood-100 transition-colors">Annulla</button>)}
+                 <button type="submit" className="bg-accent-500 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-accent-600 transition-all transform hover:-translate-y-1 flex items-center gap-2"><Save size={18} /> {editingId ? 'Salva Modifiche' : 'Aggiungi Prodotto'}</button>
+              </div>
+           </form>
+        </div>
+        <div>
+           <div className="flex items-center justify-between mb-6">
+             <h3 className="text-2xl font-western text-wood-900">Prodotti nel Menu ({items.length})</h3>
+             <div className="relative"><select value={activeCategory} onChange={e => handleCategoryClick(e.target.value)} className="appearance-none bg-white border border-wood-200 rounded-full px-4 py-2 pr-8 text-sm font-bold text-wood-600 focus:outline-none">{['Tutti', ...CATEGORIES_LIST, ProductCategory.AGGIUNTE].map(cat => (<option key={cat} value={cat}>{tCategory(cat, lang)}</option>))}</select><ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-wood-400 pointer-events-none" size={14} /></div>
+           </div>
+           <div className="space-y-3">
+              {displayItems.map(item => (
+                <div key={item.id} className="bg-white p-4 rounded-xl border border-wood-100 shadow-sm flex items-center gap-4 group hover:border-accent-200 transition-colors">
+                   <div className="w-12 h-12 bg-wood-50 rounded-lg overflow-hidden shrink-0">{item.imageUrl ? (<img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />) : (<div className="w-full h-full flex items-center justify-center text-wood-300"><UtensilsCrossed size={16} /></div>)}</div>
+                   <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2"><h4 className="font-bold text-wood-900 truncate">{item.name}</h4>{item.category === ProductCategory.HAMBURGER && item.subCategory && (<span className="text-[10px] bg-wood-100 text-wood-500 px-2 py-0.5 rounded-full whitespace-nowrap">{item.subCategory}</span>)}</div>
+                      <p className="text-xs text-wood-400 truncate">{item.description}</p>
+                      <div className="flex items-center gap-2 mt-1"><span className="text-sm font-mono font-bold text-accent-600">€{item.price.toFixed(2)}</span><span className="text-[10px] text-wood-300 uppercase tracking-wider bg-wood-50 px-2 rounded-full">{tCategory(item.category, lang)}</span></div>
+                   </div>
+                   <div className="flex items-center gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => handleEditItem(item)} className="w-8 h-8 rounded-lg bg-wood-100 text-wood-600 flex items-center justify-center hover:bg-accent-500 hover:text-white transition-colors" title="Modifica"><Pencil size={14} /></button>
+                      <button onClick={(e) => handleDeleteItem(item.id, e)} className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors" title="Elimina"><Trash2 size={14} /></button>
+                   </div>
+                </div>
+              ))}
+           </div>
+        </div>
       </div>
     </div>
-  );
+  )};
 
   const renderDIY = () => {
     const currentStepConfig = DIY_OPTIONS.steps[diyStep];
@@ -396,7 +550,7 @@ export default function App() {
     );
   };
 
-const renderMenu = () => {
+  const renderMenu = () => {
     if (activeCategory === ProductCategory.HAMBURGER && activeSubCategoryView === 'Hamburger "Fai da te"') { return renderDIY(); }
 
     const filteredItems = items.filter(item => {
@@ -414,7 +568,7 @@ const renderMenu = () => {
           <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: "url('https://oldwest.click/wp-content/uploads/2018/07/background1.jpg')" }}></div>
           <div className="absolute inset-0 bg-gradient-to-t from-wood-900 via-transparent to-transparent"></div>
           <div className="relative z-10 flex flex-col items-center justify-center h-full text-center text-white pb-10 px-4 pt-16">
-            <h1 className="text-3xl md:text-7xl font-western mb-4 shadow-sm drop-shadow-md tracking-wide pt-10">{t('hero_title', lang)}</h1>
+            <h1 className="text-4xl md:text-7xl font-western mb-4 shadow-sm drop-shadow-md tracking-wide pt-10">{t('hero_title', lang)}</h1>
             <div className="flex flex-col items-center gap-2 text-wood-200 text-base md:text-xl font-medium">
                <p className="flex items-center gap-2"><MapPin size={20} className="text-accent-500" /> Via G. Galilei 35 - Cameri (NO)</p>
                <p className="flex items-center gap-2 text-sm md:text-base opacity-80"><Clock size={16} /> 11:00 - 15:00 | 17:00 - 00:00</p>
@@ -491,17 +645,27 @@ const renderMenu = () => {
                    {filteredItems.map(item => {
                      const { name, description } = getProductContent(item);
                      const isAdded = addedItemId === item.id;
+                     const isDrink = item.category === ProductCategory.BEVANDE;
+
                      return (
                        <div key={item.id} className="bg-white rounded-3xl border border-wood-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group">
-                         <div className="relative h-56 bg-wood-50 overflow-hidden">
-                           {item.imageUrl ? (<img src={item.imageUrl} alt={name} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />) : (<div className="w-full h-full flex items-center justify-center bg-wood-100"><WesternLogo size="lg" className="opacity-50 grayscale" /></div>)}
-                           {item.tags && item.tags.length > 0 && (<div className="absolute top-4 left-4 flex flex-col gap-1">{item.tags.map(tag => (<span key={tag} className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider shadow-sm ${tag === 'Piccante' ? 'bg-red-500 text-white' : tag === 'Vegetariano' || tag === 'Vegano' ? 'bg-green-500 text-white' : 'bg-accent-500 text-white'}`}>{tag}</span>))}</div>)}
-                           <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-lg shadow-sm border border-wood-100 flex items-center gap-1"><span className="text-xs font-bold text-wood-500">€</span><span className="text-xl font-western text-wood-900">{item.price.toFixed(2)}</span></div>
-                         </div>
+                         {!isDrink && (
+                           <div className="relative h-56 bg-wood-50 overflow-hidden">
+                             {item.imageUrl ? (<img src={item.imageUrl} alt={name} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />) : (<div className="w-full h-full flex items-center justify-center bg-wood-100"><WesternLogo size="lg" className="opacity-50 grayscale" /></div>)}
+                             {item.tags && item.tags.length > 0 && (<div className="absolute top-4 left-4 flex flex-col gap-1">{item.tags.map(tag => (<span key={tag} className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider shadow-sm ${tag === 'Piccante' ? 'bg-red-500 text-white' : tag === 'Vegetariano' || tag === 'Vegano' ? 'bg-green-500 text-white' : 'bg-accent-500 text-white'}`}>{tag}</span>))}</div>)}
+                             <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-lg shadow-sm border border-wood-100 flex items-center gap-1"><span className="text-xs font-bold text-wood-500">€</span><span className="text-xl font-western text-wood-900">{item.price.toFixed(2)}</span></div>
+                           </div>
+                         )}
                          <div className="p-6 flex-1 flex flex-col">
-                           <div className="flex justify-between items-start mb-2"><h3 className="text-xl font-bold text-wood-900 leading-tight">{name}</h3>{item.category === ProductCategory.HAMBURGER && item.subCategory && <span className="text-[10px] font-bold text-wood-400 bg-wood-50 px-2 py-1 rounded-md whitespace-nowrap">{item.subCategory}</span>}</div>
+                           <div className="flex justify-between items-start mb-2">
+                              <div className="flex-1">
+                                <h3 className="text-xl font-bold text-wood-900 leading-tight">{name}</h3>
+                                {item.category === ProductCategory.HAMBURGER && item.subCategory && <span className="text-[10px] font-bold text-wood-400 bg-wood-50 px-2 py-1 rounded-md whitespace-nowrap">{item.subCategory}</span>}
+                              </div>
+                              {isDrink && (<div className="flex items-center gap-1 pl-2"><span className="text-sm font-bold text-wood-500">€</span><span className="text-xl font-western text-wood-900">{item.price.toFixed(2)}</span></div>)}
+                           </div>
                            <div className="flex-1 mb-4">
-                              <p className="text-sm text-wood-500 line-clamp-3">{description}</p>
+                              {description && <p className="text-sm text-wood-500 line-clamp-3">{description}</p>}
                               {description.includes('*') && (<p className="text-[10px] text-wood-400 italic mt-1">* Prodotto surgelato</p>)}
                            </div>
                            {item.allergens && item.allergens.length > 0 && (<div className="flex flex-wrap gap-1 mb-4 border-t border-wood-100 pt-2">{item.allergens.map(a => (<div key={a} className="group/allergen relative p-1"><AllergenIcon type={a} className="w-4 h-4 text-wood-400" /><span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-wood-800 text-white text-[10px] rounded opacity-0 group-hover/allergen:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">{a}</span></div>))}</div>)}
@@ -526,97 +690,6 @@ const renderMenu = () => {
       </div>
     );
   };
-
-  const renderAdmin = () => {
-    const sortedItems = [...items].sort((a, b) => a.name.localeCompare(b.name));
-    const displayItems = activeCategory === 'Tutti' ? sortedItems : sortedItems.filter(i => i.category === activeCategory);
-
-    return (
-    <div className="min-h-screen bg-wood-50 pt-20 pb-20">
-      <div className="container mx-auto px-4 max-w-5xl">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-          <div><h1 className="text-3xl font-western text-wood-900">{t('admin_area', lang)}</h1><p className="text-wood-500">Gestione Menu & Impostazioni</p></div>
-          <div className="flex gap-3"><button onClick={handleExportData} className="flex items-center gap-2 bg-white border border-wood-200 text-wood-600 px-4 py-2 rounded-xl hover:bg-wood-100 transition-colors"><Download size={18} /> Backup</button><label className="flex items-center gap-2 bg-white border border-wood-200 text-wood-600 px-4 py-2 rounded-xl hover:bg-wood-100 transition-colors cursor-pointer"><Upload size={18} /> Ripristina<input type="file" onChange={handleImportData} accept=".json" className="hidden" /></label><button onClick={() => setView('MENU')} className="bg-wood-900 text-white px-4 py-2 rounded-xl hover:bg-wood-800 transition-colors">Esci</button></div>
-        </div>
-        <div className="bg-blue-50 border border-blue-100 rounded-3xl p-6 mb-8 shadow-sm">
-           <div className="flex items-start gap-4"><div className="p-3 bg-blue-100 rounded-full text-blue-600"><Database size={24} /></div><div className="flex-1"><h3 className="text-xl font-bold text-blue-900 mb-2">Database Cloud (Supabase)</h3><p className="text-blue-700 text-sm mb-4">L'applicazione è collegata al database online. Le modifiche sono visibili a tutti i clienti in tempo reale.</p><button onClick={handleSyncInitialData} disabled={isSyncing} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-md disabled:opacity-50">{isSyncing ? <Loader2 className="animate-spin" size={18} /> : <RefreshCw size={18} />} Sincronizza Menu Iniziale</button><p className="text-[10px] text-blue-400 mt-2 italic">* Usare solo per caricare i prodotti di base la prima volta o per ripristinare.</p></div></div>
-        </div>
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-wood-100 mb-8">
-           <h3 className="text-lg font-bold text-wood-900 mb-4 flex items-center gap-2"><Settings size={20} className="text-accent-500" /> Impostazioni Generali</h3>
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="bg-wood-50 rounded-2xl p-6 border border-wood-100">
-                 <h4 className="font-bold text-wood-800 mb-4 flex items-center gap-2"><ImageIcon size={18} /> Logo Ristorante</h4>
-                 <div className="flex items-start gap-4">
-                    <WesternLogo size="md" url={customLogo} />
-                    <div className="flex-1"><p className="text-xs text-wood-500 mb-3">Carica il tuo logo (PNG/JPG).</p><div className="flex gap-2 flex-wrap"><label className="bg-white border border-wood-200 text-wood-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-wood-100 cursor-pointer transition-colors flex items-center gap-2">{isProcessingImage ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />} Carica Logo<input type="file" onChange={handleLogoUpload} accept="image/*" className="hidden" /></label>{customLogo && (<><button onClick={handleSaveLogo} className="bg-accent-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-accent-600 transition-colors flex items-center gap-2"><Save size={12} /> Salva</button><button onClick={handleResetLogo} className="bg-red-100 text-red-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-200 transition-colors flex items-center gap-2"><RotateCcw size={12} /> Reset</button></>)}</div></div>
-                 </div>
-              </div>
-              <div className="bg-red-50 rounded-2xl p-6 border border-red-100"><h4 className="font-bold text-red-800 mb-2 flex items-center gap-2"><Trash2 size={18} /> Area Pericolo</h4><p className="text-xs text-red-600 mb-4">Ripristina il menu ai valori di default.</p><button onClick={handleFactoryReset} className="w-full bg-white border border-red-200 text-red-600 py-2 rounded-xl text-sm font-bold hover:bg-red-600 hover:text-white transition-colors">Ripristino di Fabbrica</button></div>
-           </div>
-        </div>
-        <div id="new-product-form" className="bg-white rounded-3xl p-6 md:p-8 shadow-lg border-2 border-accent-100 mb-12 relative overflow-hidden">
-           <div className="absolute top-0 left-0 w-full h-2 bg-accent-500"></div>
-           <h3 className="text-2xl font-western text-wood-900 mb-6 flex items-center gap-2">{editingId ? <Pencil size={24} className="text-accent-500" /> : <Plus size={24} className="text-accent-500" />} {editingId ? 'Modifica Prodotto' : 'Nuovo Prodotto'}</h3>
-           <form onSubmit={handleSaveItem} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                 <div className="grid grid-cols-2 gap-4">
-                    <div><label className="block text-xs font-bold text-wood-500 uppercase tracking-wider mb-1">Categoria</label><div className="relative"><select value={newItem.category} onChange={e => setNewItem({...newItem, category: e.target.value as ProductCategory})} className="w-full appearance-none bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 pr-8 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500">{CATEGORIES_LIST.concat([ProductCategory.AGGIUNTE]).map(cat => (<option key={cat} value={cat}>{tCategory(cat, lang)}</option>))}</select><ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-wood-400 pointer-events-none" size={16} /></div></div>
-                    {newItem.category === ProductCategory.HAMBURGER && (<div><label className="block text-xs font-bold text-wood-500 uppercase tracking-wider mb-1">Sotto-Categoria</label><div className="relative"><select value={newItem.subCategory} onChange={e => setNewItem({...newItem, subCategory: e.target.value})} className="w-full appearance-none bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 pr-8 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500">{HAMBURGER_SUBCATEGORIES.map(sub => (<option key={sub} value={sub}>{sub}</option>))}</select><ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-wood-400 pointer-events-none" size={16} /></div></div>)}
-                 </div>
-                 <div><label className="block text-xs font-bold text-wood-500 uppercase tracking-wider mb-1">Nome Prodotto</label><input type="text" required value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500 font-medium" placeholder="Es. Old West Burger" /></div>
-                 <div className="grid grid-cols-2 gap-4">
-                    <div><label className="block text-xs font-bold text-wood-500 uppercase tracking-wider mb-1">Prezzo (€)</label><input type="number" step="0.01" required value={newItem.price} onChange={e => setNewItem({...newItem, price: parseFloat(e.target.value)})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500 font-mono" /></div>
-                    <div><label className="block text-xs font-bold text-wood-500 uppercase tracking-wider mb-1">Brand (Opzionale)</label><input type="text" value={newItem.brand || ''} onChange={e => setNewItem({...newItem, brand: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500" placeholder="Es. Chianina" /></div>
-                 </div>
-                 <div><label className="block text-xs font-bold text-wood-500 uppercase tracking-wider mb-2">Allergeni</label><div className="grid grid-cols-2 md:grid-cols-3 gap-2 bg-wood-50 p-3 rounded-xl border border-wood-200 max-h-40 overflow-y-auto">{(Object.keys(ALLERGENS_CONFIG) as AllergenType[]).map(allergen => { const isSelected = newItem.allergens?.includes(allergen); return (<button type="button" key={allergen} onClick={() => { const current = newItem.allergens || []; const updated = isSelected ? current.filter(a => a !== allergen) : [...current, allergen]; setNewItem({ ...newItem, allergens: updated }); }} className={`px-2 py-2 rounded-lg text-[10px] font-bold flex items-center gap-2 border transition-all text-left ${isSelected ? 'bg-red-100 border-red-200 text-red-700' : 'bg-white border-wood-200 text-wood-500 hover:bg-wood-100'}`}><div className="shrink-0"><AllergenIcon type={allergen} className="w-4 h-4" /></div>{allergen}</button>) })}</div></div>
-                 <div><label className="block text-xs font-bold text-wood-500 uppercase tracking-wider mb-2">Etichette</label><div className="flex flex-wrap gap-2">{['Vegetariano', 'Vegano', 'Piccante', 'Best Seller', 'Consigliato', 'Senza Glutine'].map(tag => { const isActive = newItem.tags?.includes(tag); return (<button type="button" key={tag} onClick={() => { const currentTags = newItem.tags || []; const newTags = isActive ? currentTags.filter(t => t !== tag) : [...currentTags, tag]; setNewItem({...newItem, tags: newTags}); }} className={`px-3 py-1 rounded-full text-xs font-bold border transition-all ${isActive ? 'bg-accent-500 border-accent-500 text-white' : 'bg-white border-wood-200 text-wood-500 hover:border-accent-300'}`}>{tag}</button>); })}</div></div>
-              </div>
-              <div className="space-y-4">
-                 <div>
-                    <label className="block text-xs font-bold text-wood-500 uppercase tracking-wider mb-1">Immagine</label>
-                    <div className="flex items-start gap-4 p-4 bg-wood-50 border border-wood-200 rounded-xl border-dashed">
-                       <div className="w-20 h-20 bg-white rounded-lg border border-wood-100 flex items-center justify-center overflow-hidden shrink-0 relative">
-                          {isProcessingImage ? (<Loader2 className="animate-spin text-accent-500" />) : newItem.imageUrl ? (<><img src={newItem.imageUrl} alt="Preview" className="w-full h-full object-cover" /><button type="button" onClick={handleRemoveProductImage} className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"><Trash2 size={16} /></button></>) : (<ImageIcon className="text-wood-300" />)}
-                       </div>
-                       <div className="flex-1"><input type="text" value={newItem.imageUrl || ''} onChange={e => setNewItem({...newItem, imageUrl: e.target.value})} className="w-full bg-white border border-wood-200 rounded-lg px-3 py-2 text-sm mb-2 focus:outline-none focus:border-accent-500" placeholder="URL Immagine o Carica ->" /><label className="inline-flex items-center gap-2 bg-white border border-wood-200 text-wood-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-wood-100 cursor-pointer transition-colors"><Upload size={12} /> Carica da Dispositivo<input type="file" onChange={handleProductImageUpload} accept="image/*" className="hidden" /></label></div>
-                    </div>
-                 </div>
-                 <div className="bg-wood-50 rounded-xl p-4 border border-wood-200">
-                    <div className="flex items-center justify-between mb-2"><label className="text-xs font-bold text-wood-500 uppercase tracking-wider flex items-center gap-2"><Globe size={12} /> Descrizione ({LANGUAGES_CONFIG.find(l => l.code === adminLang)?.label})</label><div className="flex bg-white rounded-lg p-0.5 border border-wood-200">{LANGUAGES_CONFIG.map(l => (<button type="button" key={l.code} onClick={() => setAdminLang(l.code as LanguageCode)} className={`w-6 h-6 rounded-md flex items-center justify-center text-xs transition-colors ${adminLang === l.code ? 'bg-accent-500 text-white shadow-sm' : 'text-wood-400 hover:bg-wood-100'}`}>{l.flag}</button>))}</div></div>
-                    {adminLang === 'it' ? (<textarea rows={3} value={newItem.description || ''} onChange={e => setNewItem({...newItem, description: e.target.value})} className="w-full bg-white border border-wood-200 rounded-lg p-3 text-sm focus:outline-none focus:border-accent-500 resize-none" placeholder="Descrizione in Italiano..." />) : (<div className="space-y-2"><input type="text" value={newItem.translations?.[adminLang]?.name || ''} onChange={e => { const newTranslations = { ...newItem.translations }; if (!newTranslations[adminLang]) newTranslations[adminLang] = { name: '', description: '' }; newTranslations[adminLang]!.name = e.target.value; setNewItem({ ...newItem, translations: newTranslations }); }} className="w-full bg-white border border-wood-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent-500" placeholder={`Nome in ${LANGUAGES_CONFIG.find(l => l.code === adminLang)?.label}...`} /><textarea rows={2} value={newItem.translations?.[adminLang]?.description || ''} onChange={e => { const newTranslations = { ...newItem.translations }; if (!newTranslations[adminLang]) newTranslations[adminLang] = { name: '', description: '' }; newTranslations[adminLang]!.description = e.target.value; setNewItem({ ...newItem, translations: newTranslations }); }} className="w-full bg-white border border-wood-200 rounded-lg p-3 text-sm focus:outline-none focus:border-accent-500 resize-none" placeholder={`Descrizione in ${LANGUAGES_CONFIG.find(l => l.code === adminLang)?.label}...`} /></div>)}
-                 </div>
-              </div>
-              <div className="col-span-1 md:col-span-2 flex justify-end gap-3 pt-4 border-t border-wood-100">
-                 {editingId && (<button type="button" onClick={handleCancelEdit} className="px-6 py-3 rounded-xl font-bold text-wood-500 hover:bg-wood-100 transition-colors">Annulla</button>)}
-                 <button type="submit" className="bg-accent-500 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-accent-600 transition-all transform hover:-translate-y-1 flex items-center gap-2"><Save size={18} /> {editingId ? 'Salva Modifiche' : 'Aggiungi Prodotto'}</button>
-              </div>
-           </form>
-        </div>
-        <div>
-           <div className="flex items-center justify-between mb-6">
-             <h3 className="text-2xl font-western text-wood-900">Prodotti nel Menu ({items.length})</h3>
-             <div className="relative"><select value={activeCategory} onChange={e => handleCategoryClick(e.target.value)} className="appearance-none bg-white border border-wood-200 rounded-full px-4 py-2 pr-8 text-sm font-bold text-wood-600 focus:outline-none">{['Tutti', ...CATEGORIES_LIST, ProductCategory.AGGIUNTE].map(cat => (<option key={cat} value={cat}>{tCategory(cat, lang)}</option>))}</select><ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-wood-400 pointer-events-none" size={14} /></div>
-           </div>
-           <div className="space-y-3">
-              {displayItems.map(item => (
-                <div key={item.id} className="bg-white p-4 rounded-xl border border-wood-100 shadow-sm flex items-center gap-4 group hover:border-accent-200 transition-colors">
-                   <div className="w-12 h-12 bg-wood-50 rounded-lg overflow-hidden shrink-0">{item.imageUrl ? (<img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />) : (<div className="w-full h-full flex items-center justify-center text-wood-300"><UtensilsCrossed size={16} /></div>)}</div>
-                   <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2"><h4 className="font-bold text-wood-900 truncate">{item.name}</h4>{item.category === ProductCategory.HAMBURGER && item.subCategory && (<span className="text-[10px] bg-wood-100 text-wood-500 px-2 py-0.5 rounded-full whitespace-nowrap">{item.subCategory}</span>)}</div>
-                      <p className="text-xs text-wood-400 truncate">{item.description}</p>
-                      <div className="flex items-center gap-2 mt-1"><span className="text-sm font-mono font-bold text-accent-600">€{item.price.toFixed(2)}</span><span className="text-[10px] text-wood-300 uppercase tracking-wider bg-wood-50 px-2 rounded-full">{tCategory(item.category, lang)}</span></div>
-                   </div>
-                   <div className="flex items-center gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => handleEditItem(item)} className="w-8 h-8 rounded-lg bg-wood-100 text-wood-600 flex items-center justify-center hover:bg-accent-500 hover:text-white transition-colors" title="Modifica"><Pencil size={14} /></button>
-                      <button onClick={(e) => handleDeleteItem(item.id, e)} className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors" title="Elimina"><Trash2 size={14} /></button>
-                   </div>
-                </div>
-              ))}
-           </div>
-        </div>
-      </div>
-    </div>
-  )};
 
   return (
     <>
