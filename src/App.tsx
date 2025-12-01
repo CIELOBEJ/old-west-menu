@@ -4,7 +4,7 @@ import {
   ChevronLeft, ChevronRight, Lock, Utensils, Star, MapPin, Clock, Instagram, Facebook, Phone, LayoutGrid, 
   ArrowRight, Upload, Image as ImageIcon, Download, RotateCcw, Save, ChevronDown, ChevronUp, X, Loader2, 
   Pencil, RefreshCw, Wheat, CircleDot, Globe, Languages, Check, Leaf, Flame, Award, QrCode, Database, Sprout, ShoppingBag, 
-  Milk, Egg, Nut, Bean, AlertCircle, Wine, Shell, Info, Search 
+  Milk, Egg, Nut, Bean, AlertCircle, Wine, Shell, Info, Search, Sandwich 
 } from 'lucide-react';
 import { MenuItem, ProductCategory, ViewState, LanguageCode, ActiveFilters, CartItem, AllergenType, ProductVariant } from './types';
 import { INITIAL_MENU_ITEMS, CATEGORIES_LIST, HAMBURGER_SUBCATEGORIES, DIY_OPTIONS, UI_TRANSLATIONS, CATEGORY_TRANSLATIONS, DATA_VERSION, ALLERGENS_CONFIG, EXTRA_INGREDIENTS_ITEMS } from './constants';
@@ -27,7 +27,7 @@ const uploadImageToSupabase = async (file: File): Promise<string | null> => {
 const CategoryIcon = ({ category, className }: { category: ProductCategory | 'Tutti'; className?: string }) => {
   switch (category) {
     case 'Tutti': return <LayoutGrid className={className} />;
-    case ProductCategory.HAMBURGER: return <Beef className={className} />;
+    case ProductCategory.HAMBURGER: return <Sandwich className={className} />; // Icona cambiata in Panino
     case ProductCategory.PIZZA: return <Pizza className={className} />;
     case ProductCategory.SECONDI: return <UtensilsCrossed className={className} />;
     case ProductCategory.PESCE: return <Fish className={className} />;
@@ -189,15 +189,12 @@ export default function App() {
   
   const addAddonToItem = (addon: MenuItem) => { 
       if (editingCartItemIndex === null) return; 
-      
       const newCart = [...cart]; 
       const updatedItem = { ...newCart[editingCartItemIndex] };
       const currentAddons = updatedItem.selectedAddons || []; 
       updatedItem.selectedAddons = [...currentAddons, addon]; 
-      
       newCart[editingCartItemIndex] = updatedItem;
       setCart(newCart); 
-      
       setIsAddonModalOpen(false); 
       setEditingCartItemIndex(null); 
   };
@@ -208,16 +205,13 @@ export default function App() {
           const addonsPrice = item.selectedAddons?.reduce((aSum, addon) => aSum + Number(addon.price), 0) || 0; 
           return sum + (itemPrice + addonsPrice) * item.quantity; 
       }, 0); 
-      
       const hasFood = cart.some(item => item.category !== ProductCategory.BEVANDE);
       return subtotal + (cart.length > 0 && hasFood ? 2.00 : 0); 
   };
 
   const handleDiySelection = (stepId: number, option: any) => { 
     setDiySelections(prev => ({ ...prev, [stepId]: option }));
-    setTimeout(() => {
-      diyControlsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 200);
+    setTimeout(() => { diyControlsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 200);
   };
   
   const handleDiyNext = () => {
@@ -240,10 +234,10 @@ export default function App() {
   const handleEditItem = (item: MenuItem) => { setNewItem({ ...item }); setEditingId(item.id); setAdminLang('it'); document.getElementById('new-product-form')?.scrollIntoView({ behavior: 'smooth' }); };
   const handleCancelEdit = () => { setEditingId(null); setNewItem({ category: ProductCategory.HAMBURGER, subCategory: HAMBURGER_SUBCATEGORIES[0], isAvailable: true, name: '', description: '', price: 0, imageUrl: '', translations: {}, brand: undefined, variants: undefined, allergens: [] }); setAdminLang('it'); };
   const handleDeleteItem = async (id: string, e?: React.MouseEvent) => { if (e) { e.preventDefault(); e.stopPropagation(); } if (window.confirm('Eliminare?')) { try { await supabase.from('menu_items').delete().eq('id', id); fetchItems(); if (editingId === id) handleCancelEdit(); } catch (error) { console.error(error); alert('Errore eliminazione.'); } } };
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { setIsProcessingImage(true); try { const url = await uploadImageToSupabase(file); if(url) setCustomLogo(url); } catch(e){alert('Errore upload');} finally{setIsProcessingImage(false);} } };
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { setIsProcessingImage(true); try { const url = await uploadImageToSupabase(file); if(url) setCustomLogo(url); } catch(e){alert('Errore upload (Verifica bucket pubblico su Supabase)');} finally{setIsProcessingImage(false);} } };
   const handleSaveLogo = () => { if(customLogo) { localStorage.setItem('oldWestLogoUrl', customLogo); alert('Logo salvato!'); } };
   const handleResetLogo = () => { if(window.confirm('Reset logo?')) { setCustomLogo(''); localStorage.removeItem('oldWestLogoUrl'); } };
-  const handleProductImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { setIsProcessingImage(true); try { const url = await uploadImageToSupabase(file); if(url) setNewItem({...newItem, imageUrl: url}); } catch(e){alert('Errore upload');} finally{setIsProcessingImage(false);} } };
+  const handleProductImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { setIsProcessingImage(true); try { const url = await uploadImageToSupabase(file); if(url) setNewItem({...newItem, imageUrl: url}); } catch(e){alert('Errore upload (Verifica bucket pubblico su Supabase)');} finally{setIsProcessingImage(false);} } };
   const handleRemoveProductImage = () => setNewItem({...newItem, imageUrl: ''});
   const handleSyncInitialData = async () => { if (window.confirm("Sovrascrivere database con dati iniziali?")) { setIsSyncing(true); try { const itemsToSync = [...INITIAL_MENU_ITEMS, ...EXTRA_INGREDIENTS_ITEMS].map(i => ({ name: i.name, description: i.description, price: i.price, category: i.category, "subCategory": i.subCategory||null, "imageUrl": i.imageUrl||null, brand: i.brand||null, "isAvailable": true, tags: i.tags||[], variants: i.variants||null, translations: i.translations||null, allergens: i.allergens||[] })); const { error } = await supabase.from('menu_items').insert(itemsToSync); if (error) throw error; alert("Sincronizzato!"); fetchItems(); } catch (e: any) { alert("Errore sync: " + e.message); } finally { setIsSyncing(false); } } };
   const handleExportData = () => { const dataStr = JSON.stringify(items, null, 2); const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr); const link = document.createElement('a'); link.setAttribute('href', dataUri); link.setAttribute('download', `backup_${new Date().toISOString().slice(0,10)}.json`); link.click(); };
@@ -403,6 +397,302 @@ export default function App() {
       );
   };
 
+  const renderLogin = () => (
+    <div className="min-h-screen bg-wood-900 flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl border-4 border-wood-800 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-2 bg-accent-500"></div>
+        <div className="flex flex-col items-center text-center mb-8">
+          <WesternLogo size="lg" url={customLogo} className="mb-4" />
+          <h2 className="text-3xl font-western text-wood-900">{t('admin_area', lang)}</h2>
+          <p className="text-wood-500 mt-2">{t('login_prompt', lang)}</p>
+        </div>
+        <form onSubmit={handleLogin} className="space-y-6">
+          <div className="relative">
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-wood-400" size={20} />
+            <input 
+              type="password" 
+              value={adminPassword} 
+              onChange={(e) => setAdminPassword(e.target.value)} 
+              placeholder="PIN (1234)" 
+              className="w-full bg-wood-50 text-center font-mono text-2xl tracking-widest py-4 rounded-xl border-2 border-wood-100 focus:outline-none focus:border-accent-500 focus:bg-white transition-all text-wood-900"
+              autoFocus
+            />
+          </div>
+          {loginError && (
+            <div className="bg-red-50 text-red-500 px-4 py-3 rounded-xl flex items-center gap-2 text-sm font-bold animate-pulse">
+              <AlertCircle size={16} /> {loginError}
+            </div>
+          )}
+          <button type="submit" className="w-full bg-accent-500 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-accent-600 hover:scale-[1.02] active:scale-[0.98] transition-all">
+            {t('login_btn', lang)}
+          </button>
+        </form>
+        <button onClick={() => setView('MENU')} className="w-full mt-4 py-3 text-wood-400 font-bold hover:text-wood-600 transition-colors">
+          {t('back_to_menu', lang)}
+        </button>
+      </div>
+    </div>
+  );
+
+  const renderDIY = () => {
+    const currentStepConfig = DIY_OPTIONS.steps[diyStep];
+    const { title, description } = getDIYStepContent(currentStepConfig, lang);
+
+    return (
+      <div className="container mx-auto px-4 py-8 pb-32" ref={diyHeaderRef}>
+        <div className="bg-white rounded-3xl border border-wood-100 shadow-xl overflow-hidden">
+          <div className="bg-wood-900 p-6 text-white text-center relative overflow-hidden">
+             {/* TUO PULSANTE X PERSONALIZZATO */}
+             <button 
+                onClick={() => setActiveSubCategoryView(null)} 
+                className="absolute top-12 left-3 z-50 bg-wood-900 text-white p-3 rounded-full shadow-2xl border-2 border-white/20 hover:scale-110 transition-transform"
+                aria-label="Chiudi"
+             >
+                <X size={28} />
+             </button>
+
+             <div className="absolute inset-0 bg-cover bg-center opacity-20" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=2000')" }}></div>
+             <div className="relative z-10 pt-12">
+                <h2 className="text-3xl font-western mb-2">{t('diy_title', lang)}</h2>
+                <p className="text-wood-300">{t('diy_subtitle', lang)}</p>
+                <div className="flex justify-center gap-2 mt-4">
+                  {DIY_OPTIONS.steps.map((s, idx) => (
+                    <div key={s.id} className={`h-1.5 rounded-full transition-all duration-500 ${idx <= diyStep ? 'w-8 bg-accent-500' : 'w-4 bg-wood-700'}`}></div>
+                  ))}
+                </div>
+             </div>
+          </div>
+
+          <div className="p-6 md:p-8">
+             <div className="flex items-center justify-between mb-8">
+                <div>
+                   <span className="text-accent-600 font-bold tracking-widest text-xs uppercase mb-1 block">Step {diyStep + 1}/{DIY_OPTIONS.steps.length}</span>
+                   <h3 className="text-2xl font-bold text-wood-900">{title}</h3>
+                   <p className="text-wood-500">{description}</p>
+                </div>
+             </div>
+
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {currentStepConfig.options.map((option: any) => {
+                   const isSelected = diySelections[currentStepConfig.id]?.name === option.name;
+                   return (
+                     <button 
+                       key={option.name}
+                       onClick={() => handleDiySelection(currentStepConfig.id, option)}
+                       className={`relative p-6 rounded-2xl border-2 text-left transition-all duration-300 group ${isSelected ? 'border-accent-500 bg-accent-50 shadow-lg scale-[1.02]' : 'border-wood-100 bg-wood-50 hover:border-accent-300 hover:bg-white'}`}
+                     >
+                        <div className="flex justify-between items-center mb-1">
+                           <span className={`font-bold text-lg ${isSelected ? 'text-accent-700' : 'text-wood-800'}`}>{getDIYOptionContent(option, lang)}</span>
+                           {option.price > 0 && <span className="font-mono font-bold text-wood-900">+€{option.price.toFixed(2)}</span>}
+                        </div>
+                        {isSelected && <div className="absolute top-4 right-4 text-accent-500"><Check size={20} /></div>}
+                     </button>
+                   );
+                })}
+             </div>
+
+             <div className="flex justify-between items-center mt-10 pt-6 border-t border-wood-100" ref={diyControlsRef}>
+                <button onClick={() => { if (diyStep > 0) setDiyStep(diyStep - 1); else setActiveSubCategoryView(null); }} className="text-wood-500 font-bold hover:text-wood-800 transition-colors flex items-center gap-2 px-4 py-2"><ChevronLeft size={20} /> {t('back', lang)}</button>
+                <button onClick={handleDiyNext} disabled={!diySelections[currentStepConfig.id]} className="bg-wood-900 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-accent-600 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95">{diyStep === DIY_OPTIONS.steps.length - 1 ? (<>{t('add_to_cart', lang)} <Plus size={20} /></>) : (<>{t('add', lang)} <ArrowRight size={20} /></>)}</button>
+             </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderMenu = () => {
+    if (activeCategory === ProductCategory.HAMBURGER && activeSubCategoryView === 'Hamburger "Fai da te"') { return renderDIY(); }
+
+    const filteredItems = items.filter(item => {
+      if (item.category === ProductCategory.AGGIUNTE) return false;
+      if (activeCategory !== 'Tutti' && item.category !== activeCategory) return false;
+      if (activeCategory === ProductCategory.HAMBURGER && activeSubCategoryView && item.subCategory !== activeSubCategoryView) return false;
+      return checkFilters(item);
+    });
+
+    const highlightedItems = items.filter(i => (i.tags?.includes('Best Seller') || i.tags?.includes('Consigliato')) && i.category !== ProductCategory.AGGIUNTE);
+
+    return (
+      <div className="min-h-screen bg-wood-50 pb-40">
+        {/* HERO */}
+        <div className="relative h-96 bg-wood-900 overflow-hidden">
+          <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: "url('https://oldwest.click/wp-content/uploads/2018/07/background1.jpg')" }}></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-wood-900 via-transparent to-transparent"></div>
+          <div className="relative z-10 flex flex-col items-center justify-center h-full text-center text-white pb-10 px-4 pt-16">
+            <h1 className="text-4xl md:text-7xl font-western mb-4 shadow-sm drop-shadow-md tracking-wide pt-10">{t('hero_title', lang)}</h1>
+            <div className="flex flex-col items-center gap-2 text-wood-200 text-base md:text-xl font-medium">
+               <p className="flex items-center gap-2"><MapPin size={20} className="text-accent-500" /> Via G. Galilei 35 - Cameri (NO)</p>
+               <p className="flex items-center gap-2 text-sm md:text-base opacity-80"><Clock size={16} /> 11:00 - 15:00 | 17:00 - 00:00</p>
+            </div>
+          </div>
+        </div>
+
+        {/* STICKY NAV */}
+        <div className="sticky top-16 md:top-20 z-40 bg-wood-50/95 backdrop-blur-sm border-b border-wood-200 shadow-sm">
+          <div className="container mx-auto px-4 py-4">
+             {/* Carousel */}
+             <div className="relative group">
+                <button onClick={() => scrollCarousel('left', carouselRef)} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"><ChevronLeft size={18} /></button>
+                <div ref={carouselRef} className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 pt-1 px-1 cursor-grab active:cursor-grabbing" onMouseDown={(e) => handleMouseDown(e, carouselRef)} onMouseLeave={handleMouseLeave} onMouseUp={handleMouseUp} onMouseMove={(e) => handleMouseMove(e, carouselRef)}>
+                  <button id="btn-Tutti" onClick={() => handleCategoryClick('Tutti')} className={`flex items-center gap-2 px-5 py-2.5 rounded-full whitespace-nowrap transition-all duration-300 font-bold text-sm shadow-sm select-none ${activeCategory === 'Tutti' ? 'bg-wood-900 text-white scale-105 ring-2 ring-wood-900 ring-offset-2' : 'bg-white text-wood-600 border border-wood-200 hover:border-wood-400'}`}><LayoutGrid size={16} /> {tCategory('Tutti', lang)}</button>
+                  {CATEGORIES_LIST.map(cat => (<button key={cat} id={`btn-${cat}`} onClick={() => handleCategoryClick(cat)} className={`flex items-center gap-2 px-5 py-2.5 rounded-full whitespace-nowrap transition-all duration-300 font-bold text-sm shadow-sm select-none ${activeCategory === cat ? 'bg-accent-500 text-white scale-105 ring-2 ring-accent-500 ring-offset-2' : 'bg-white text-wood-600 border border-wood-200 hover:border-accent-300 hover:text-accent-600'}`}><CategoryIcon category={cat} className="w-4 h-4" /> {tCategory(cat, lang)}</button>))}
+                </div>
+                <button onClick={() => scrollCarousel('right', carouselRef)} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"><ChevronRight size={18} /></button>
+             </div>
+
+             {/* Subcategories & Filters */}
+             <div className="mt-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                {activeCategory === ProductCategory.HAMBURGER && (<div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1"><button onClick={() => setActiveSubCategoryView(null)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${activeSubCategoryView === null ? 'bg-wood-800 text-white' : 'bg-wood-200 text-wood-600 hover:bg-wood-300'}`}>{t('all', lang)}</button>{HAMBURGER_SUBCATEGORIES.map(sub => (<button key={sub} onClick={() => setActiveSubCategoryView(sub)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${activeSubCategoryView === sub ? 'bg-wood-800 text-white' : 'bg-wood-200 text-wood-600 hover:bg-wood-300'}`}>{sub}</button>))}</div>)}
+                <div className="flex gap-2 overflow-x-auto scrollbar-hide ml-auto">
+                   <button onClick={() => setActiveFilters({...activeFilters, vegetarian: !activeFilters.vegetarian})} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all whitespace-nowrap ${activeFilters.vegetarian ? 'bg-green-100 border-green-300 text-green-700' : 'bg-white border-wood-200 text-wood-500 hover:border-wood-400'}`}><Leaf size={12} /> {t('filter_veg', lang)}</button>
+                   <button onClick={() => setActiveFilters({...activeFilters, vegan: !activeFilters.vegan})} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all whitespace-nowrap ${activeFilters.vegan ? 'bg-green-100 border-green-300 text-green-700' : 'bg-white border-wood-200 text-wood-500 hover:border-wood-400'}`}><Sprout size={12} /> {t('filter_vegan', lang)}</button>
+                   <button onClick={() => setActiveFilters({...activeFilters, spicy: !activeFilters.spicy})} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all whitespace-nowrap ${activeFilters.spicy ? 'bg-red-100 border-red-300 text-red-700' : 'bg-white border-wood-200 text-wood-500 hover:border-wood-400'}`}><Flame size={12} /> {t('filter_spicy', lang)}</button>
+                </div>
+             </div>
+          </div>
+        </div>
+
+        {/* BANNER PROMO */}
+        <div className="container mx-auto px-4 mt-6">
+           <div className="bg-gradient-to-r from-accent-500 to-accent-600 text-white p-3 rounded-xl shadow-md text-center text-sm font-bold tracking-wide">
+              ✨ Aggiunta ingredienti da € 1,00 a € 6,00 ✨
+           </div>
+        </div>
+
+        {/* HIGHLIGHTS SECTION (IN EVIDENZA) */}
+        {activeCategory === 'Tutti' && highlightedItems.length > 0 && (
+          <div className="container mx-auto px-4 mt-8 mb-4">
+            <h3 className="text-xl font-bold text-wood-900 mb-4 flex items-center gap-2">
+              <Star size={20} className="text-accent-500" fill="currentColor" /> In Evidenza
+            </h3>
+            <div className="relative group/hl">
+                <button onClick={() => scrollCarousel('left', highlightsRef)} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover/hl:opacity-100 transition-opacity disabled:opacity-0"><ChevronLeft size={18} /></button>
+                <div ref={highlightsRef} className="flex gap-4 overflow-x-auto scrollbar-hide pb-4 snap-x px-1" onMouseDown={(e) => handleMouseDown(e, highlightsRef)} onMouseLeave={handleMouseLeave} onMouseUp={handleMouseUp} onMouseMove={(e) => handleMouseMove(e, highlightsRef)}>
+                  {highlightedItems.map(item => {
+                     const { name } = getProductContent(item);
+                     return (
+                       <div key={item.id} className="snap-center shrink-0 w-48 bg-white rounded-2xl border border-wood-100 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col" onClick={() => { setActiveCategory(item.category); document.getElementById(`btn-${item.category}`)?.click(); }}>
+                          <div className="h-32 bg-wood-50 relative">
+                             {item.imageUrl ? (<img src={item.imageUrl} alt={name} className="w-full h-full object-cover" />) : (<div className="w-full h-full flex items-center justify-center text-wood-300"><UtensilsCrossed size={16} /></div>)}
+                             <span className="absolute top-2 left-2 bg-accent-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm">{item.tags?.includes('Best Seller') ? 'BEST' : 'TOP'}</span>
+                          </div>
+                          <div className="p-3 flex flex-col flex-1"><h4 className="font-bold text-sm text-wood-900 line-clamp-2 mb-1">{name}</h4><div className="mt-auto flex justify-between items-center"><span className="font-mono font-bold text-accent-600 text-sm">€{item.price.toFixed(2)}</span><div className="bg-wood-50 p-1 rounded-full text-wood-400"><Plus size={12} /></div></div></div>
+                       </div>
+                     )
+                  })}
+                </div>
+                <button onClick={() => scrollCarousel('right', highlightsRef)} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover/hl:opacity-100 transition-opacity disabled:opacity-0"><ChevronRight size={18} /></button>
+            </div>
+          </div>
+        )}
+
+        {/* CONTENT AREA */}
+        <div className="container mx-auto px-4 py-8">
+           {activeCategory === 'Tutti' ? (
+             // VISTA CATEGORIE (HOME)
+             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {CATEGORIES_LIST.map(cat => (
+                   <button 
+                     key={cat} 
+                     onClick={() => handleCategoryClick(cat)}
+                     className="bg-accent-500 border-2 border-transparent rounded-3xl p-4 flex flex-col items-center justify-center gap-3 shadow-sm hover:shadow-xl transition-all group aspect-square hover:scale-105"
+                   >
+                      <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center text-white">
+                         <CategoryIcon category={cat} className="w-7 h-7" />
+                      </div>
+                      <span className="font-western text-sm md:text-xl text-white text-center leading-tight">{tCategory(cat, lang)}</span>
+                   </button>
+                ))}
+             </div>
+           ) : (
+             // VISTA PRODOTTI
+             <>
+               {filteredItems.length === 0 ? (
+                 <div className="text-center py-20"><div className="inline-block p-6 bg-wood-100 rounded-full mb-4"><UtensilsCrossed size={40} className="text-wood-400" /></div><h3 className="text-xl font-bold text-wood-600">{t('no_products_section', lang)}</h3><p className="text-wood-400 mt-2">{t('select_category', lang)}</p></div>
+               ) : (
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                   {filteredItems.map(item => {
+                     const { name, description } = getProductContent(item);
+                     const isAdded = addedItemId === item.id;
+                     const isDrink = item.category === ProductCategory.BEVANDE;
+
+                     return (
+                       <div key={item.id} className="bg-white rounded-3xl border border-wood-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group">
+                         
+                         {/* IMMAGINE: Mostra SOLO se NON è una bevanda */}
+                         {!isDrink && (
+                           <div className="relative h-56 bg-wood-50 overflow-hidden">
+                             {item.imageUrl ? (<img src={item.imageUrl} alt={name} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />) : (<div className="w-full h-full flex items-center justify-center bg-wood-100"><WesternLogo size="lg" className="opacity-50 grayscale" /></div>)}
+                             {item.tags && item.tags.length > 0 && (<div className="absolute top-4 left-4 flex flex-col gap-1">{item.tags.map(tag => (<span key={tag} className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider shadow-sm ${tag === 'Piccante' ? 'bg-red-500 text-white' : tag === 'Vegetariano' || tag === 'Vegano' ? 'bg-green-500 text-white' : 'bg-accent-500 text-white'}`}>{tag}</span>))}</div>)}
+                             <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-lg shadow-sm border border-wood-100 flex items-center gap-1"><span className="text-xs font-bold text-wood-500">€</span><span className="text-xl font-western text-wood-900">{item.price.toFixed(2)}</span></div>
+                           </div>
+                         )}
+
+                         {/* CONTENUTO */}
+                         <div className="p-6 flex-1 flex flex-col">
+                           <div className="flex justify-between items-start mb-2">
+                              <div className="flex-1">
+                                <h3 className="text-xl font-bold text-wood-900 leading-tight">{name}</h3>
+                                {item.brand && <p className="text-accent-600 font-bold text-sm mb-1">{item.brand}</p>}
+                                {item.category === ProductCategory.HAMBURGER && item.subCategory && <span className="text-[10px] font-bold text-wood-400 bg-wood-50 px-2 py-1 rounded-md whitespace-nowrap">{item.subCategory}</span>}
+                              </div>
+                              
+                              {/* PREZZO PER BEVANDE */}
+                              {isDrink && (
+                                <div className="flex items-center gap-1 pl-2">
+                                   <span className="text-sm font-bold text-wood-500">€</span>
+                                   <span className="text-xl font-western text-wood-900">{item.price.toFixed(2)}</span>
+                                </div>
+                              )}
+                           </div>
+                           
+                           <div className="flex-1 mb-4">
+                              {description && <p className="text-sm text-wood-500 line-clamp-3">{description}</p>}
+                              {description.includes('*') && (
+                                 <p className="text-[10px] text-wood-400 italic mt-1">* Prodotto surgelato</p>
+                              )}
+                           </div>
+                           
+                           {/* Allergeni Icons */}
+                           {item.allergens && item.allergens.length > 0 && (
+                             <div className="flex flex-wrap gap-1 mb-4 border-t border-wood-100 pt-2">
+                               {item.allergens.map(a => (
+                                 <div key={a} className="group/allergen relative p-1">
+                                   <AllergenIcon type={a} className="w-4 h-4 text-wood-400" />
+                                   <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-wood-800 text-white text-[10px] rounded opacity-0 group-hover/allergen:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">{a}</span>
+                                 </div>
+                               ))}
+                             </div>
+                           )}
+
+                           {/* Action */}
+                           <button onClick={() => addToCart(item)} className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all duration-200 shadow-lg ${isAdded ? 'bg-green-500 text-white scale-95' : 'bg-wood-900 text-white hover:bg-accent-600 shadow-wood-200'}`}>{isAdded ? <Check size={18} /> : <Plus size={18} />} {t('add_to_cart', lang)}</button>
+                         </div>
+                       </div>
+                     );
+                   })}
+                 </div>
+               )}
+             </>
+           )}
+        </div>
+
+        {/* FOOTER */}
+        <div className="bg-wood-900 text-wood-300 py-12 border-t border-wood-800">
+           <div className="container mx-auto px-4 text-center">
+              <WesternLogo size="lg" className="mx-auto mb-6 opacity-80" />
+              <div className="flex flex-col gap-2 items-center mb-6 font-bold text-white">
+                 <div className="flex items-center gap-2"><Phone size={16} className="text-accent-500" /> 0321 510220</div>
+                 <div className="flex items-center gap-2"><MapPin size={16} className="text-accent-500" /> Via G. Galilei 35 - Cameri (NO)</div>
+              </div>
+              <p className="text-xs opacity-50">&copy; {new Date().getFullYear()} Old West. {t('rights_reserved', lang)}</p>
+           </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderAdmin = () => {
     // Ordinamento alfabetico nel pannello admin
     const sortedItems = [...items].sort((a, b) => a.name.localeCompare(b.name));
@@ -520,214 +810,6 @@ export default function App() {
       </div>
     </div>
   )};
-
-  const renderLogin = () => (
-    <div className="min-h-screen bg-wood-900 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl border-4 border-wood-800 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-2 bg-accent-500"></div>
-        <div className="flex flex-col items-center text-center mb-8">
-          <WesternLogo size="lg" url={customLogo} className="mb-4" />
-          <h2 className="text-3xl font-western text-wood-900">{t('admin_area', lang)}</h2>
-          <p className="text-wood-500 mt-2">{t('login_prompt', lang)}</p>
-        </div>
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div className="relative">
-            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-wood-400" size={20} />
-            <input 
-              type="password" 
-              value={adminPassword} 
-              onChange={(e) => setAdminPassword(e.target.value)} 
-              placeholder="PIN (1234)" 
-              className="w-full bg-wood-50 text-center font-mono text-2xl tracking-widest py-4 rounded-xl border-2 border-wood-100 focus:outline-none focus:border-accent-500 focus:bg-white transition-all text-wood-900"
-              autoFocus
-            />
-          </div>
-          {loginError && (
-            <div className="bg-red-50 text-red-500 px-4 py-3 rounded-xl flex items-center gap-2 text-sm font-bold animate-pulse">
-              <AlertCircle size={16} /> {loginError}
-            </div>
-          )}
-          <button type="submit" className="w-full bg-accent-500 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-accent-600 hover:scale-[1.02] active:scale-[0.98] transition-all">
-            {t('login_btn', lang)}
-          </button>
-        </form>
-        <button onClick={() => setView('MENU')} className="w-full mt-4 py-3 text-wood-400 font-bold hover:text-wood-600 transition-colors">
-          {t('back_to_menu', lang)}
-        </button>
-      </div>
-    </div>
-  );
-  
-
-  const renderDIY = () => {
-    const currentStepConfig = DIY_OPTIONS.steps[diyStep];
-    const { title, description } = getDIYStepContent(currentStepConfig, lang);
-
-    return (
-      <div className="container mx-auto px-4 py-8 pb-32" ref={diyHeaderRef}>
-        <div className="bg-white rounded-3xl border border-wood-100 shadow-xl overflow-hidden">
-          <div className="bg-wood-900 p-6 text-white text-center relative overflow-hidden">
-             <button onClick={() => setActiveSubCategoryView(null)} className="absolute top-12 left-3 z-50 bg-wood-900 text-white p-3 rounded-full shadow-2xl border-2 border-white/20 hover:scale-110 transition-transform" aria-label="Chiudi"><X size={28} /></button>
-             <div className="absolute inset-0 bg-cover bg-center opacity-20" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=2000')" }}></div>
-             <div className="relative z-10 pt-12">
-                <h2 className="text-3xl font-western mb-2">{t('diy_title', lang)}</h2>
-                <p className="text-wood-300">{t('diy_subtitle', lang)}</p>
-                <div className="flex justify-center gap-2 mt-4">{DIY_OPTIONS.steps.map((s, idx) => (<div key={s.id} className={`h-1.5 rounded-full transition-all duration-500 ${idx <= diyStep ? 'w-8 bg-accent-500' : 'w-4 bg-wood-700'}`}></div>))}</div>
-             </div>
-          </div>
-          <div className="p-6 md:p-8">
-             <div className="flex items-center justify-between mb-8"><div><span className="text-accent-600 font-bold tracking-widest text-xs uppercase mb-1 block">Step {diyStep + 1}/{DIY_OPTIONS.steps.length}</span><h3 className="text-2xl font-bold text-wood-900">{title}</h3><p className="text-wood-500">{description}</p></div></div>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{currentStepConfig.options.map((option: any) => { const isSelected = diySelections[currentStepConfig.id]?.name === option.name; return (<button key={option.name} onClick={() => handleDiySelection(currentStepConfig.id, option)} className={`relative p-6 rounded-2xl border-2 text-left transition-all duration-300 group ${isSelected ? 'border-accent-500 bg-accent-50 shadow-lg scale-[1.02]' : 'border-wood-100 bg-wood-50 hover:border-accent-300 hover:bg-white'}`}><div className="flex justify-between items-center mb-1"><span className={`font-bold text-lg ${isSelected ? 'text-accent-700' : 'text-wood-800'}`}>{getDIYOptionContent(option, lang)}</span>{option.price > 0 && <span className="font-mono font-bold text-wood-900">+€{option.price.toFixed(2)}</span>}</div>{isSelected && <div className="absolute top-4 right-4 text-accent-500"><Check size={20} /></div>}</button>); })}</div>
-             <div className="flex justify-between items-center mt-10 pt-6 border-t border-wood-100" ref={diyControlsRef}>
-                <button onClick={() => { if (diyStep > 0) setDiyStep(diyStep - 1); else setActiveSubCategoryView(null); }} className="text-wood-500 font-bold hover:text-wood-800 transition-colors flex items-center gap-2 px-4 py-2"><ChevronLeft size={20} /> {t('back', lang)}</button>
-                <button onClick={handleDiyNext} disabled={!diySelections[currentStepConfig.id]} className="bg-wood-900 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-accent-600 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95">{diyStep === DIY_OPTIONS.steps.length - 1 ? (<>{t('add_to_cart', lang)} <Plus size={20} /></>) : (<>{t('add', lang)} <ArrowRight size={20} /></>)}</button>
-             </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const renderMenu = () => {
-    if (activeCategory === ProductCategory.HAMBURGER && activeSubCategoryView === 'Hamburger "Fai da te"') { return renderDIY(); }
-
-    const filteredItems = items.filter(item => {
-      if (item.category === ProductCategory.AGGIUNTE) return false;
-      if (activeCategory !== 'Tutti' && item.category !== activeCategory) return false;
-      if (activeCategory === ProductCategory.HAMBURGER && activeSubCategoryView && item.subCategory !== activeSubCategoryView) return false;
-      return checkFilters(item);
-    });
-
-    const highlightedItems = items.filter(i => (i.tags?.includes('Best Seller') || i.tags?.includes('Consigliato')) && i.category !== ProductCategory.AGGIUNTE);
-
-    return (
-      <div className="min-h-screen bg-wood-50 pb-40">
-        <div className="relative h-96 bg-wood-900 overflow-hidden">
-          <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: "url('https://oldwest.click/wp-content/uploads/2018/07/background1.jpg')" }}></div>
-          <div className="absolute inset-0 bg-gradient-to-t from-wood-900 via-transparent to-transparent"></div>
-          <div className="relative z-10 flex flex-col items-center justify-center h-full text-center text-white pb-10 px-4 pt-16">
-            <h1 className="text-4xl md:text-7xl font-western mb-4 shadow-sm drop-shadow-md tracking-wide pt-10">{t('hero_title', lang)}</h1>
-            <div className="flex flex-col items-center gap-2 text-wood-200 text-base md:text-xl font-medium">
-               <p className="flex items-center gap-2"><MapPin size={20} className="text-accent-500" /> Via G. Galilei 35 - Cameri (NO)</p>
-               <p className="flex items-center gap-2 text-sm md:text-base opacity-80"><Clock size={16} /> 11:00 - 15:00 | 17:00 - 00:00</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="sticky top-16 md:top-20 z-40 bg-wood-50/95 backdrop-blur-sm border-b border-wood-200 shadow-sm">
-          <div className="container mx-auto px-4 py-4">
-             <div className="relative group">
-                <button onClick={() => scrollCarousel('left', carouselRef)} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"><ChevronLeft size={18} /></button>
-                <div ref={carouselRef} className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 pt-1 px-1 cursor-grab active:cursor-grabbing" onMouseDown={(e) => handleMouseDown(e, carouselRef)} onMouseLeave={handleMouseLeave} onMouseUp={handleMouseUp} onMouseMove={(e) => handleMouseMove(e, carouselRef)}>
-                  <button id="btn-Tutti" onClick={() => handleCategoryClick('Tutti')} className={`flex items-center gap-2 px-5 py-2.5 rounded-full whitespace-nowrap transition-all duration-300 font-bold text-sm shadow-sm select-none ${activeCategory === 'Tutti' ? 'bg-wood-900 text-white scale-105 ring-2 ring-wood-900 ring-offset-2' : 'bg-white text-wood-600 border border-wood-200 hover:border-wood-400'}`}><LayoutGrid size={16} /> {tCategory('Tutti', lang)}</button>
-                  {CATEGORIES_LIST.map(cat => (<button key={cat} id={`btn-${cat}`} onClick={() => handleCategoryClick(cat)} className={`flex items-center gap-2 px-5 py-2.5 rounded-full whitespace-nowrap transition-all duration-300 font-bold text-sm shadow-sm select-none ${activeCategory === cat ? 'bg-accent-500 text-white scale-105 ring-2 ring-accent-500 ring-offset-2' : 'bg-white text-wood-600 border border-wood-200 hover:border-accent-300 hover:text-accent-600'}`}><CategoryIcon category={cat} className="w-4 h-4" /> {tCategory(cat, lang)}</button>))}
-                </div>
-                <button onClick={() => scrollCarousel('right', carouselRef)} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"><ChevronRight size={18} /></button>
-             </div>
-
-             <div className="mt-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                {activeCategory === ProductCategory.HAMBURGER && (<div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1"><button onClick={() => setActiveSubCategoryView(null)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${activeSubCategoryView === null ? 'bg-wood-800 text-white' : 'bg-wood-200 text-wood-600 hover:bg-wood-300'}`}>{t('all', lang)}</button>{HAMBURGER_SUBCATEGORIES.map(sub => (<button key={sub} onClick={() => setActiveSubCategoryView(sub)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${activeSubCategoryView === sub ? 'bg-wood-800 text-white' : 'bg-wood-200 text-wood-600 hover:bg-wood-300'}`}>{sub}</button>))}</div>)}
-                <div className="flex gap-2 overflow-x-auto scrollbar-hide ml-auto">
-                   <button onClick={() => setActiveFilters({...activeFilters, vegetarian: !activeFilters.vegetarian})} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all whitespace-nowrap ${activeFilters.vegetarian ? 'bg-green-100 border-green-300 text-green-700' : 'bg-white border-wood-200 text-wood-500 hover:border-wood-400'}`}><Leaf size={12} /> {t('filter_veg', lang)}</button>
-                   <button onClick={() => setActiveFilters({...activeFilters, vegan: !activeFilters.vegan})} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all whitespace-nowrap ${activeFilters.vegan ? 'bg-green-100 border-green-300 text-green-700' : 'bg-white border-wood-200 text-wood-500 hover:border-wood-400'}`}><Sprout size={12} /> {t('filter_vegan', lang)}</button>
-                   <button onClick={() => setActiveFilters({...activeFilters, spicy: !activeFilters.spicy})} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all whitespace-nowrap ${activeFilters.spicy ? 'bg-red-100 border-red-300 text-red-700' : 'bg-white border-wood-200 text-wood-500 hover:border-wood-400'}`}><Flame size={12} /> {t('filter_spicy', lang)}</button>
-                </div>
-             </div>
-          </div>
-        </div>
-
-        <div className="container mx-auto px-4 mt-6">
-           <div className="bg-gradient-to-r from-accent-500 to-accent-600 text-white p-3 rounded-xl shadow-md text-center text-sm font-bold tracking-wide">✨ Aggiunta ingredienti da € 1,00 a € 6,00 ✨</div>
-        </div>
-
-        {activeCategory === 'Tutti' && highlightedItems.length > 0 && (
-          <div className="container mx-auto px-4 mt-8 mb-4">
-            <h3 className="text-xl font-bold text-wood-900 mb-4 flex items-center gap-2"><Star size={20} className="text-accent-500" fill="currentColor" /> In Evidenza</h3>
-            <div className="relative group/hl">
-                <button onClick={() => scrollCarousel('left', highlightsRef)} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover/hl:opacity-100 transition-opacity disabled:opacity-0"><ChevronLeft size={18} /></button>
-                <div ref={highlightsRef} className="flex gap-4 overflow-x-auto scrollbar-hide pb-4 snap-x px-1" onMouseDown={(e) => handleMouseDown(e, highlightsRef)} onMouseLeave={handleMouseLeave} onMouseUp={handleMouseUp} onMouseMove={(e) => handleMouseMove(e, highlightsRef)}>
-                  {highlightedItems.map(item => {
-                     const { name } = getProductContent(item);
-                     return (
-                       <div key={item.id} className="snap-center shrink-0 w-48 bg-white rounded-2xl border border-wood-100 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col" onClick={() => { setActiveCategory(item.category); document.getElementById(`btn-${item.category}`)?.click(); }}>
-                          <div className="h-32 bg-wood-50 relative">
-                             {item.imageUrl ? (<img src={item.imageUrl} alt={name} className="w-full h-full object-cover" />) : (<div className="w-full h-full flex items-center justify-center text-wood-300"><UtensilsCrossed size={16} /></div>)}
-                             <span className="absolute top-2 left-2 bg-accent-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm">{item.tags?.includes('Best Seller') ? 'BEST' : 'TOP'}</span>
-                          </div>
-                          <div className="p-3 flex flex-col flex-1"><h4 className="font-bold text-sm text-wood-900 line-clamp-2 mb-1">{name}</h4><div className="mt-auto flex justify-between items-center"><span className="font-mono font-bold text-accent-600 text-sm">€{item.price.toFixed(2)}</span><div className="bg-wood-50 p-1 rounded-full text-wood-400"><Plus size={12} /></div></div></div>
-                       </div>
-                     )
-                  })}
-                </div>
-                <button onClick={() => scrollCarousel('right', highlightsRef)} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover/hl:opacity-100 transition-opacity disabled:opacity-0"><ChevronRight size={18} /></button>
-            </div>
-          </div>
-        )}
-
-        <div className="container mx-auto px-4 py-8">
-           {activeCategory === 'Tutti' ? (
-             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {CATEGORIES_LIST.map(cat => (
-                   <button key={cat} onClick={() => handleCategoryClick(cat)} className="bg-white border-2 border-wood-100 hover:border-accent-500 rounded-3xl p-4 flex flex-col items-center justify-center gap-3 shadow-sm hover:shadow-xl transition-all group aspect-square">
-                      <div className="w-14 h-14 bg-wood-50 rounded-full flex items-center justify-center text-wood-400 group-hover:bg-accent-50 group-hover:text-accent-500 transition-colors"><CategoryIcon category={cat} className="w-7 h-7" /></div>
-                      <span className="font-western text-sm md:text-xl text-wood-900 text-center leading-tight">{tCategory(cat, lang)}</span>
-                   </button>
-                ))}
-             </div>
-           ) : (
-             <>
-               {filteredItems.length === 0 ? (
-                 <div className="text-center py-20"><div className="inline-block p-6 bg-wood-100 rounded-full mb-4"><UtensilsCrossed size={40} className="text-wood-400" /></div><h3 className="text-xl font-bold text-wood-600">{t('no_products_section', lang)}</h3><p className="text-wood-400 mt-2">{t('select_category', lang)}</p></div>
-               ) : (
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                   {filteredItems.map(item => {
-                     const { name, description } = getProductContent(item);
-                     const isAdded = addedItemId === item.id;
-                     const isDrink = item.category === ProductCategory.BEVANDE;
-
-                     return (
-                       <div key={item.id} className="bg-white rounded-3xl border border-wood-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group">
-                         {!isDrink && (
-                           <div className="relative h-56 bg-wood-50 overflow-hidden">
-                             {item.imageUrl ? (<img src={item.imageUrl} alt={name} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />) : (<div className="w-full h-full flex items-center justify-center bg-wood-100"><WesternLogo size="lg" className="opacity-50 grayscale" /></div>)}
-                             {item.tags && item.tags.length > 0 && (<div className="absolute top-4 left-4 flex flex-col gap-1">{item.tags.map(tag => (<span key={tag} className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider shadow-sm ${tag === 'Piccante' ? 'bg-red-500 text-white' : tag === 'Vegetariano' || tag === 'Vegano' ? 'bg-green-500 text-white' : 'bg-accent-500 text-white'}`}>{tag}</span>))}</div>)}
-                             <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-lg shadow-sm border border-wood-100 flex items-center gap-1"><span className="text-xs font-bold text-wood-500">€</span><span className="text-xl font-western text-wood-900">{item.price.toFixed(2)}</span></div>
-                           </div>
-                         )}
-                         <div className="p-6 flex-1 flex flex-col">
-                           <div className="flex justify-between items-start mb-2">
-                              <div className="flex-1">
-                                <h3 className="text-xl font-bold text-wood-900 leading-tight">{name}</h3>
-                                {item.category === ProductCategory.HAMBURGER && item.subCategory && <span className="text-[10px] font-bold text-wood-400 bg-wood-50 px-2 py-1 rounded-md whitespace-nowrap">{item.subCategory}</span>}
-                              </div>
-                              {isDrink && (<div className="flex items-center gap-1 pl-2"><span className="text-sm font-bold text-wood-500">€</span><span className="text-xl font-western text-wood-900">{item.price.toFixed(2)}</span></div>)}
-                           </div>
-                           <div className="flex-1 mb-4">
-                              {description && <p className="text-sm text-wood-500 line-clamp-3">{description}</p>}
-                              {description.includes('*') && (<p className="text-[10px] text-wood-400 italic mt-1">* Prodotto surgelato</p>)}
-                           </div>
-                           {item.allergens && item.allergens.length > 0 && (<div className="flex flex-wrap gap-1 mb-4 border-t border-wood-100 pt-2">{item.allergens.map(a => (<div key={a} className="group/allergen relative p-1"><AllergenIcon type={a} className="w-4 h-4 text-wood-400" /><span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-wood-800 text-white text-[10px] rounded opacity-0 group-hover/allergen:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">{a}</span></div>))}</div>)}
-                           <button onClick={() => addToCart(item)} className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all duration-200 shadow-lg ${isAdded ? 'bg-green-500 text-white scale-95' : 'bg-wood-900 text-white hover:bg-accent-600 shadow-wood-200'}`}>{isAdded ? <Check size={18} /> : <Plus size={18} />} {t('add_to_cart', lang)}</button>
-                         </div>
-                       </div>
-                     );
-                   })}
-                 </div>
-               )}
-             </>
-           )}
-        </div>
-
-        <div className="bg-wood-900 text-wood-300 py-12 border-t border-wood-800">
-           <div className="container mx-auto px-4 text-center">
-              <WesternLogo size="lg" className="mx-auto mb-6 opacity-80" />
-              <div className="flex flex-col gap-2 items-center mb-6 font-bold text-white"><div className="flex items-center gap-2"><Phone size={16} className="text-accent-500" /> 0321 510220</div><div className="flex items-center gap-2"><MapPin size={16} className="text-accent-500" /> Via G. Galilei 35 - Cameri (NO)</div></div>
-              <p className="text-xs opacity-50">&copy; {new Date().getFullYear()} Old West. {t('rights_reserved', lang)}</p>
-           </div>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <>
