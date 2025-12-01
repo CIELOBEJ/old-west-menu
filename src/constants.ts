@@ -1,11 +1,21 @@
 import { MenuItem, ProductCategory, LanguageCode, AllergenType } from './types';
 
-export const DATA_VERSION = '2.2'; // Aggiornato
+export const DATA_VERSION = '2.3'; // Aggiornato
 
 export const HAMBURGER_SUBCATEGORIES = [
   "Old West Special",
   "Vegetariano/Vegano",
   'Hamburger "Fai da te"'
+];
+
+// NUOVO: Ordine di visualizzazione delle Bevande
+export const DRINK_SUBCATEGORIES = [
+  "Acqua e Bibite",
+  "Birre alla Spina",
+  "Birre in Bottiglia",
+  "Vini",
+  "Caffetteria",
+  "Amari e Digestivi"
 ];
 
 // Configurazione Allergeni con Icone (Lucide React Names mapping)
@@ -144,9 +154,6 @@ export const EXTRA_INGREDIENTS_ITEMS: MenuItem[] = [
   { id: 'agg10', name: 'Scaglie di Grana', description: '', price: 1.50, category: ProductCategory.AGGIUNTE, isAvailable: true },
 ];
 
-export const INITIAL_MENU_ITEMS: MenuItem[] = [
-  // I tuoi item precedenti qui... (Per brevità non li rincollo tutti, ma il file constants.ts dovrebbe contenerli tutti come prima. Se li hai persi, dimmelo che li rimetto)
-  // IMPORTANTE: Assicurati che i prodotti abbiano la proprietà 'allergens' se vuoi testarli subito.
-];
+export const INITIAL_MENU_ITEMS: MenuItem[] = []; // Vuoto perché ormai carichi da DB
 
 export const CATEGORIES_LIST = Object.values(ProductCategory).filter(c => c !== ProductCategory.AGGIUNTE);
