@@ -1,6 +1,6 @@
 import { MenuItem, ProductCategory, LanguageCode, AllergenType } from './types';
 
-export const DATA_VERSION = '2.5'; // Aggiornato
+export const DATA_VERSION = '2.6'; // Aggiornato
 
 export const HAMBURGER_SUBCATEGORIES = [
   "Old West Special",
@@ -17,13 +17,12 @@ export const DRINK_SUBCATEGORIES = [
   "Amari e Digestivi"
 ];
 
-// NUOVO: Traduzioni specifiche per le sottocategorie delle bevande
 export const SUBCATEGORY_TRANSLATIONS: Record<string, Record<LanguageCode, string>> = {
   "Acqua e Bibite": { it: "Acqua e Bibite", en: "Water & Soft Drinks", fr: "Eau et Boissons", de: "Wasser und Erfrischungsgetränke" },
   "Birre alla Spina": { it: "Birre alla Spina", en: "Draft Beers", fr: "Bières Pression", de: "Bier vom Fass" },
   "Birre in Bottiglia": { it: "Birre in Bottiglia", en: "Bottled Beers", fr: "Bières en Bouteille", de: "Flaschenbiere" },
   "Vini": { it: "Vini", en: "Wines", fr: "Vins", de: "Weine" },
-  "Caffetteria": { it: "Caffetteria", en: "Coffee & Tea", fr: "Cafétéria", de: "Café" },
+  "Caffetteria": { it: "Caffetteria", en: "Coffee", fr: "Café", de: "Kaffee" }, // Modificato in "Coffee"
   "Amari e Digestivi": { it: "Amari e Digestivi", en: "Bitters & Digestifs", fr: "Amers et Digestifs", de: "Bitter und Digestifs" }
 };
 
@@ -140,7 +139,7 @@ export const UI_TRANSLATIONS: Record<string, Record<LanguageCode, string>> = {
   'frozen_explanation': { it: '* Prodotto congelato all\'origine', en: '* Frozen product', fr: '* Produit surgelé', de: '* Tiefkühlprodukt' },
   'rights_reserved': { it: 'All rights reserved', en: 'All rights reserved', fr: 'Tous droits réservés', de: 'Alle Rechte vorbehalten' },
   
-  // Suggerimenti Cross-selling
+  // Suggerimenti Cross-selling (Per il popup/toast)
   'suggestion_burger': { it: 'Ottimo con una Birra Media o Patatine!', en: 'Great with a Beer or Fries!', fr: 'Excellent avec une Bière ou des Frites!', de: 'Toll mit einem Bier oder Pommes!' },
   'suggestion_main': { it: 'Accompagnalo con un buon Vino Rosso', en: 'Pair it with a good Red Wine', fr: 'Accompagnez-le d\'un bon Vin Rouge', de: 'Passt gut zu einem Rotwein' },
   'suggestion_dessert': { it: 'Ideale con un Caffè o un Amaro', en: 'Perfect with Coffee or Digestif', fr: 'Idéal avec un Café ou un Digestif', de: 'Ideal mit Kaffee oder Digestif' },

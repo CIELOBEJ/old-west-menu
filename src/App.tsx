@@ -4,7 +4,7 @@ import {
   ChevronLeft, ChevronRight, Lock, Utensils, Star, MapPin, Clock, Instagram, Facebook, Phone, LayoutGrid, 
   ArrowRight, Upload, Image as ImageIcon, Download, RotateCcw, Save, ChevronDown, ChevronUp, X, Loader2, 
   Pencil, RefreshCw, Wheat, CircleDot, Globe, Languages, Check, Leaf, Flame, Award, QrCode, Database, Sprout, ShoppingBag, 
-  Milk, Egg, Nut, Bean, AlertCircle, Wine, Shell, Info, Search, Sandwich, Eye 
+  Milk, Egg, Nut, Bean, AlertCircle, Wine, Shell, Info, Search, Sandwich, Sparkles 
 } from 'lucide-react';
 import { MenuItem, ProductCategory, ViewState, LanguageCode, ActiveFilters, CartItem, AllergenType, ProductVariant } from './types';
 import { INITIAL_MENU_ITEMS, CATEGORIES_LIST, HAMBURGER_SUBCATEGORIES, DRINK_SUBCATEGORIES, DIY_OPTIONS, UI_TRANSLATIONS, CATEGORY_TRANSLATIONS, SUBCATEGORY_TRANSLATIONS, DATA_VERSION, ALLERGENS_CONFIG, EXTRA_INGREDIENTS_ITEMS } from './constants';
@@ -116,7 +116,9 @@ export default function App() {
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [newItem, setNewItem] = useState<Partial<MenuItem>>({ category: ProductCategory.HAMBURGER, isAvailable: true, subCategory: HAMBURGER_SUBCATEGORIES[0], translations: {}, allergens: [] });
-  const [addedItemId, setAddedItemId] = useState<string | null>(null);
+  
+  // NEW: Suggestion Toast State
+  const [suggestionToast, setSuggestionToast] = useState<{show: boolean, text: string}>({ show: false, text: '' });
 
   const carouselRef = useRef<HTMLDivElement>(null);
   const highlightsRef = useRef<HTMLDivElement>(null);
@@ -158,10 +160,24 @@ export default function App() {
   const handleCategoryClick = (cat: string) => { setActiveCategory(cat); setActiveSubCategoryView(null); if (view === 'MENU') { const listStart = 300; if (window.scrollY > listStart) window.scrollTo({ top: listStart, behavior: 'smooth' }); } };
   useEffect(() => { const activeBtn = document.getElementById(`btn-${activeCategory}`); if (activeBtn) activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }); }, [activeCategory]);
   
+  // Cross-selling Logic helper
+  const getCrossSellSuggestion = (item: MenuItem) => {
+      if (item.category === ProductCategory.HAMBURGER || item.category === ProductCategory.PIZZA) return t('suggestion_burger', lang);
+      if (item.category === ProductCategory.SECONDI || item.category === ProductCategory.PESCE) return t('suggestion_main', lang);
+      if (item.category === ProductCategory.DOLCI) return t('suggestion_dessert', lang);
+      return null;
+  };
+
   const addToCart = (item: MenuItem, variant?: ProductVariant) => {
-    setAddedItemId(item.id); setTimeout(() => setAddedItemId(null), 1000);
     const existingItemIndex = cart.findIndex((i) => i.id === item.id && (variant ? i.selectedVariant?.name === variant.name : !i.selectedVariant) && (!i.selectedAddons || i.selectedAddons.length === 0));
     if (existingItemIndex > -1) { const newCart = [...cart]; newCart[existingItemIndex].quantity += 1; setCart(newCart); } else { setCart([...cart, { ...item, cartId: Math.random().toString(), quantity: 1, selectedVariant: variant }]); }
+    
+    // Trigger Suggestion Toast
+    const suggText = getCrossSellSuggestion(item);
+    if (suggText) {
+      setSuggestionToast({ show: true, text: suggText });
+      setTimeout(() => setSuggestionToast({ show: false, text: '' }), 4000);
+    }
   };
   
   const removeFromCart = (cartId: string) => setCart(cart.filter(i => i.cartId !== cartId));
@@ -171,14 +187,6 @@ export default function App() {
   const addAddonToItem = (addon: MenuItem) => { if (editingCartItemIndex === null) return; const newCart = [...cart]; const updatedItem = { ...newCart[editingCartItemIndex] }; const currentAddons = updatedItem.selectedAddons || []; updatedItem.selectedAddons = [...currentAddons, addon]; newCart[editingCartItemIndex] = updatedItem; setCart(newCart); setIsAddonModalOpen(false); setEditingCartItemIndex(null); };
   
   const getCartTotal = () => { const subtotal = cart.reduce((sum, item) => { const itemPrice = item.selectedVariant ? item.selectedVariant.price : item.price; const addonsPrice = item.selectedAddons?.reduce((aSum, addon) => aSum + Number(addon.price), 0) || 0; return sum + (itemPrice + addonsPrice) * item.quantity; }, 0); const hasFood = cart.some(item => item.category !== ProductCategory.BEVANDE); return subtotal + (cart.length > 0 && hasFood ? 2.00 : 0); };
-
-  // Cross-selling Logic
-  const getCrossSellSuggestion = (item: MenuItem) => {
-      if (item.category === ProductCategory.HAMBURGER || item.category === ProductCategory.PIZZA) return t('suggestion_burger', lang);
-      if (item.category === ProductCategory.SECONDI || item.category === ProductCategory.PESCE) return t('suggestion_main', lang);
-      if (item.category === ProductCategory.DOLCI) return t('suggestion_dessert', lang);
-      return null;
-  };
 
   const handleDiySelection = (stepId: number, option: any) => { setDiySelections(prev => ({ ...prev, [stepId]: option })); setTimeout(() => { diyControlsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 200); };
   const handleDiyNext = () => { if (diyStep < DIY_OPTIONS.steps.length - 1) { setDiyStep(diyStep + 1); } else { const totalPrice = DIY_OPTIONS.basePrice + DIY_OPTIONS.steps.reduce((acc, step) => { const selected = diySelections[step.id]; return acc + (selected ? selected.price : 0); }, 0); const description = DIY_OPTIONS.steps.map(step => { const selected = diySelections[step.id]; return selected ? `${getDIYOptionContent(selected, lang)}` : ''; }).filter(Boolean).join(' + '); const diyItem: MenuItem = { id: `diy-${Date.now()}`, name: t('create_your_taste', lang), description: description, price: totalPrice, category: ProductCategory.HAMBURGER, isAvailable: true, imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/hamburger-fai-da-te.jpg' }; addToCart(diyItem); setDiySelections({}); setDiyStep(0); setActiveSubCategoryView(null); } };
@@ -197,8 +205,6 @@ export default function App() {
   const handleExportData = () => { const dataStr = JSON.stringify(items, null, 2); const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr); const link = document.createElement('a'); link.setAttribute('href', dataUri); link.setAttribute('download', `backup_${new Date().toISOString().slice(0,10)}.json`); link.click(); };
   const handleImportData = () => alert("Import locale disabilitato. Usa sync cloud.");
   const handleFactoryReset = () => alert("Reset locale disabilitato. Gestisci da DB.");
-
-  // --- RENDER FUNCTIONS ---
 
   const renderHeader = () => (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${view === 'MENU' ? 'bg-wood-900/95 backdrop-blur-md border-b border-wood-800' : 'bg-wood-900 shadow-md'}`}>
@@ -228,9 +234,10 @@ export default function App() {
 
      return (
         <div className="fixed bottom-0 left-0 right-0 p-4 z-50 animate-in slide-in-from-bottom-20 duration-300">
-           <button onClick={() => setIsCartOpen(true)} className="w-full bg-wood-900 text-white rounded-2xl shadow-2xl p-4 flex items-center justify-between border border-wood-700 hover:bg-wood-800 transition-colors">
-              <div className="flex items-center gap-3"><div className="bg-accent-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-sm">{itemCount}</div><span className="font-bold text-sm text-wood-100">{t('review_order', lang)}</span></div>
-              <span className="font-bold text-lg font-mono">€{total.toFixed(2)}</span>
+           <button onClick={() => setIsCartOpen(true)} className="w-full bg-wood-900 text-white rounded-2xl shadow-2xl p-4 flex items-center justify-between border border-wood-700 hover:bg-wood-800 transition-colors relative">
+              <div className="absolute left-4 bg-accent-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-sm">{itemCount}</div>
+              <span className="font-bold text-sm text-wood-100 mx-auto">{t('review_order', lang)}</span>
+              <span className="absolute right-4 font-bold text-lg font-mono">€{total.toFixed(2)}</span>
            </button>
         </div>
      );
@@ -269,7 +276,7 @@ export default function App() {
            </div>
            <div className="p-6 border-t border-wood-100 bg-wood-50 pb-8">
               <div className="flex justify-between items-center mb-6"><span className="text-xl font-bold text-wood-900">{t('total', lang)}</span><span className="text-4xl font-western text-accent-600">€{getCartTotal().toFixed(2)}</span></div>
-              <button className="w-full bg-green-600 text-white py-4 rounded-2xl font-bold text-xl shadow-lg flex items-center justify-center gap-3"><Utensils size={24} /> {t('show_staff', lang)}</button>
+              <button className="w-full bg-[#45856c] text-white py-4 rounded-2xl font-bold text-xl shadow-lg flex items-center justify-center gap-3"><Utensils size={24} /> {t('show_staff', lang)}</button>
            </div>
         </div>
         {isAddonModalOpen && (
@@ -284,6 +291,43 @@ export default function App() {
       </>
       );
   };
+
+  const renderLogin = () => (
+    <div className="min-h-screen bg-wood-900 flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl border-4 border-wood-800 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-2 bg-accent-500"></div>
+        <div className="flex flex-col items-center text-center mb-8">
+          <WesternLogo size="lg" url={customLogo} className="mb-4" />
+          <h2 className="text-3xl font-western text-wood-900">{t('admin_area', lang)}</h2>
+          <p className="text-wood-500 mt-2">{t('login_prompt', lang)}</p>
+        </div>
+        <form onSubmit={handleLogin} className="space-y-6">
+          <div className="relative">
+            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-wood-400" size={20} />
+            <input 
+              type="password" 
+              value={adminPassword} 
+              onChange={(e) => setAdminPassword(e.target.value)} 
+              placeholder="PIN (1234)" 
+              className="w-full bg-wood-50 text-center font-mono text-2xl tracking-widest py-4 rounded-xl border-2 border-wood-100 focus:outline-none focus:border-accent-500 focus:bg-white transition-all text-wood-900"
+              autoFocus
+            />
+          </div>
+          {loginError && (
+            <div className="bg-red-50 text-red-500 px-4 py-3 rounded-xl flex items-center gap-2 text-sm font-bold animate-pulse">
+              <AlertCircle size={16} /> {loginError}
+            </div>
+          )}
+          <button type="submit" className="w-full bg-accent-500 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-accent-600 hover:scale-[1.02] active:scale-[0.98] transition-all">
+            {t('login_btn', lang)}
+          </button>
+        </form>
+        <button onClick={() => setView('MENU')} className="w-full mt-4 py-3 text-wood-400 font-bold hover:text-wood-600 transition-colors">
+          {t('back_to_menu', lang)}
+        </button>
+      </div>
+    </div>
+  );
 
   const renderDIY = () => {
     const currentStepConfig = DIY_OPTIONS.steps[diyStep];
@@ -321,15 +365,19 @@ export default function App() {
 
     const filteredItems = items.filter(item => {
       if (item.category === ProductCategory.AGGIUNTE) return false;
-      // Se sono su "Tutti" e ho filtri attivi, mostro tutto quello che matcha i filtri
       if (activeCategory === 'Tutti' && hasActiveFilters) {
          return checkFilters(item);
       }
-      // Comportamento normale
       if (activeCategory !== 'Tutti' && item.category !== activeCategory) return false;
       if (activeCategory === ProductCategory.HAMBURGER && activeSubCategoryView && item.subCategory !== activeSubCategoryView) return false;
       return checkFilters(item);
     });
+
+    // SORTING FOR FILTERS IN HOME
+    if (activeCategory === 'Tutti' && hasActiveFilters) {
+        const categoryOrder = Object.values(ProductCategory);
+        filteredItems.sort((a, b) => categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category));
+    }
 
     const highlightedItems = items.filter(i => (i.tags?.includes('Best Seller') || i.tags?.includes('Consigliato')) && i.category !== ProductCategory.AGGIUNTE);
 
@@ -339,7 +387,7 @@ export default function App() {
           <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: "url('https://oldwest.click/wp-content/uploads/2018/07/background1.jpg')" }}></div>
           <div className="absolute inset-0 bg-gradient-to-t from-wood-900 via-transparent to-transparent"></div>
           <div className="relative z-10 flex flex-col items-center justify-center h-full text-center text-white pb-10 px-4 pt-16">
-            <h1 className="text-4xl md:text-7xl font-western mb-4 shadow-sm drop-shadow-md tracking-wide pt-10">{t('hero_title', lang)}</h1>
+            <h1 className="text-3xl md:text-7xl font-western mb-4 shadow-sm drop-shadow-md tracking-wide pt-10">{t('hero_title', lang)}</h1>
             <div className="flex flex-col items-center gap-2 text-wood-200 text-base md:text-xl font-medium">
                <p className="flex items-center gap-2"><MapPin size={20} className="text-accent-500" /> Via G. Galilei 35 - Cameri (NO)</p>
                <p className="flex items-center gap-2 text-sm md:text-base opacity-80"><Clock size={16} /> 11:00 - 15:00 | 17:00 - 00:00</p>
@@ -373,7 +421,6 @@ export default function App() {
            <div className="bg-gradient-to-r from-accent-500 to-accent-600 text-white p-3 rounded-xl shadow-md text-center text-sm font-bold tracking-wide">✨ Aggiunta ingredienti da € 1,00 a € 6,00 ✨</div>
         </div>
 
-        {/* HIGHLIGHTS (Solo se non ci sono filtri attivi) */}
         {activeCategory === 'Tutti' && !hasActiveFilters && highlightedItems.length > 0 && (
           <div className="container mx-auto px-4 mt-8 mb-4">
             <h3 className="text-xl font-bold text-wood-900 mb-4 flex items-center gap-2"><Star size={20} className="text-accent-500" fill="currentColor" /> In Evidenza</h3>
@@ -453,7 +500,6 @@ export default function App() {
                          const { name, description } = getProductContent(item);
                          const isAdded = addedItemId === item.id;
                          const isDrink = item.category === ProductCategory.BEVANDE;
-                         const suggestion = getCrossSellSuggestion(item);
 
                          return (
                            <div key={item.id} className="bg-white rounded-3xl border border-wood-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group">
@@ -476,13 +522,6 @@ export default function App() {
                                <div className="flex-1 mb-4">
                                   {description && <p className="text-sm text-wood-500 line-clamp-3">{description}</p>}
                                   {description.includes('*') && (<p className="text-[10px] text-wood-400 italic mt-1">* Prodotto surgelato</p>)}
-                                  
-                                  {/* SUGGERIMENTI CROSS-SELLING */}
-                                  {suggestion && !isDrink && (
-                                    <div className="mt-3 p-2 bg-wood-50 rounded-lg border border-wood-100 flex items-center gap-2 text-xs text-wood-600 italic">
-                                       <Info size={14} className="text-accent-500 shrink-0" /> {suggestion}
-                                    </div>
-                                  )}
                                </div>
                                {item.allergens && item.allergens.length > 0 && (<div className="flex flex-wrap gap-1 mb-4 border-t border-wood-100 pt-2">{item.allergens.map(a => (<div key={a} className="group/allergen relative p-1"><AllergenIcon type={a} className="w-4 h-4 text-wood-400" /><span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-wood-800 text-white text-[10px] rounded opacity-0 group-hover/allergen:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">{a}</span></div>))}</div>)}
                                <button onClick={() => addToCart(item)} className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all duration-200 shadow-lg ${isAdded ? 'bg-green-500 text-white scale-95' : 'bg-wood-900 text-white hover:bg-accent-600 shadow-wood-200'}`}>{isAdded ? <Check size={18} /> : <Plus size={18} />} {t('add_to_cart', lang)}</button>
@@ -505,6 +544,16 @@ export default function App() {
               <p className="text-xs opacity-50">&copy; {new Date().getFullYear()} Old West. {t('rights_reserved', lang)}</p>
            </div>
         </div>
+
+        {/* SUGGESTION TOAST */}
+        {suggestionToast.show && (
+           <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[60] animate-in fade-in slide-in-from-top-5 duration-300">
+              <div className="bg-wood-900/95 backdrop-blur-md text-white px-6 py-3 rounded-full shadow-2xl border border-wood-700 flex items-center gap-3">
+                 <Sparkles className="text-accent-500" size={20} />
+                 <span className="font-medium text-sm">{suggestionToast.text}</span>
+              </div>
+           </div>
+        )}
       </div>
     );
   };
