@@ -119,11 +119,14 @@ export default function App() {
   const [newItem, setNewItem] = useState<Partial<MenuItem>>({ category: ProductCategory.HAMBURGER, isAvailable: true, subCategory: HAMBURGER_SUBCATEGORIES[0], translations: {}, allergens: [] });
   const [addedItemId, setAddedItemId] = useState<string | null>(null);
   const [infoItem, setInfoItem] = useState<MenuItem | null>(null);
+  const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
+  const [currentOrder, setCurrentOrder] = useState<any>(null);
   const [suggestionToast, setSuggestionToast] = useState<{show: boolean, text: string}>({ show: false, text: '' });
 
   // CHECKOUT STATE AGGIORNATO (Aggiunto tableNumber)
   const [orderForm, setOrderForm] = useState({
     customerName: '',
+    customerEmail: '',
     customerPhone: '',
     orderType: 'delivery' as OrderType,
     deliveryAddress: '',
@@ -152,9 +155,39 @@ export default function App() {
     } catch (error) { console.error('Error fetching data:', error); setItems([...INITIAL_MENU_ITEMS, ...EXTRA_INGREDIENTS_ITEMS]); } finally { setIsDataLoaded(true); }
   };
 
-  useEffect(() => { fetchItems(); const savedLogo = localStorage.getItem('oldWestLogoUrl'); if (savedLogo) setCustomLogo(savedLogo); }, []);
+  useEffect(() => { fetchItems(); const savedLogo = localStorage.getItem('oldWestLogoUrl'); if (savedLogo) setCustomLogo(savedLogo); const savedOrderId = localStorage.getItem('activeOrderId');
+      if (savedOrderId) {
+      // Controlliamo se l'ordine esiste ancora e che stato ha
+      const checkOrder = async () => {
+         const { data } = await supabase.from('orders').select('*').eq('id', savedOrderId).single();
+         if (data && data.status !== 'completed' && data.status !== 'cancelled') {
+            setActiveOrderId(data.id);
+            setCurrentOrder(data);
+            setView('TRACKING');
+         } else {
+            // Se l'ordine è finito, puliamo la memoria
+            localStorage.removeItem('activeOrderId');
+         }
+      };
+      checkOrder();
+      } }, []);
   useEffect(() => { const handleScroll = () => { if (window.scrollY > 300) setShowScrollTop(true); else setShowScrollTop(false); }; window.addEventListener('scroll', handleScroll); return () => window.removeEventListener('scroll', handleScroll); }, []);
   useEffect(() => { if (activeSubCategoryView === 'Hamburger "Fai da te"' && diyHeaderRef.current) { diyHeaderRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, [diyStep]);
+  useEffect(() => {
+    if (view === 'TRACKING' && activeOrderId) {
+      const channel = supabase
+        .channel('order-tracking')
+        .on('postgres_changes', 
+          { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${activeOrderId}` }, 
+          (payload) => {
+            setCurrentOrder(payload.new);
+          }
+        )
+        .subscribe();
+
+      return () => { supabase.removeChannel(channel); };
+    }
+  }, [view, activeOrderId]);
 
   const scrollToTop = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const handleMouseDown = (e: React.MouseEvent, ref: React.RefObject<HTMLDivElement>) => { if (!ref.current) return; setIsDragging(true); setStartX(e.pageX - ref.current.offsetLeft); setScrollLeft(ref.current.scrollLeft); };
@@ -243,27 +276,44 @@ export default function App() {
     e.preventDefault();
     setIsSubmittingOrder(true);
     
-    // Formatta il nome se è un tavolo
-    const finalCustomerName = orderForm.orderType === 'table' ? `Tavolo ${orderForm.tableNumber}` : orderForm.customerName;
+    // --- LOGICA FORMATTAZIONE TAVOLO (Recuperata!) ---
+    const finalCustomerName = orderForm.orderType === 'table' ? `TAVOLO ${orderForm.tableNumber}` : orderForm.customerName;
     const finalPhone = orderForm.orderType === 'table' ? 'N/D' : orderForm.customerPhone;
 
     try {
-      const { error } = await supabase.from('orders').insert([{
-        customer_name: finalCustomerName,
-        customer_phone: finalPhone,
+      const newOrder = {
+        customer_name: finalCustomerName, // Usiamo il nome formattato
+        customer_phone: finalPhone,       // Usiamo il telefono formattato
+        customer_email: orderForm.customerEmail,
         order_type: orderForm.orderType,
         delivery_address: orderForm.orderType === 'delivery' ? orderForm.deliveryAddress : null,
         delivery_city: orderForm.orderType === 'delivery' ? orderForm.deliveryCity : null,
-        delivery_time: orderForm.orderType === 'table' ? 'Ora' : orderForm.deliveryTime,
+        delivery_time: orderForm.orderType === 'table' ? 'Immediato' : orderForm.deliveryTime,
         payment_method: orderForm.paymentMethod,
         total_amount: getGrandTotal(),
         cart_items: cart,
         status: 'pending'
-      }]);
+      };
+
+      // Invio a Supabase e recupero i dati inseriti (per avere l'ID)
+      const { data, error } = await supabase.from('orders').insert([newOrder]).select();
 
       if (error) throw error;
-      setCart([]); setView('ORDER_SUCCESS'); window.scrollTo(0,0);
-    } catch (err) { console.error('Error submitting order:', err); alert('Errore invio ordine.'); } finally { setIsSubmittingOrder(false); }
+      
+      if (data && data[0]) {
+        setActiveOrderId(data[0].id); // Memorizzo l'ID per il tracking
+        localStorage.setItem('activeOrderId', data[0].id);
+        setCurrentOrder(data[0]);     // Memorizzo i dati dell'ordine
+        setCart([]);                  // Svuoto il carrello
+        setView('TRACKING');          // Sposto il cliente sulla pagina Tracking
+        window.scrollTo(0,0);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Errore nell\'invio dell\'ordine. Riprova per favore.');
+    } finally {
+      setIsSubmittingOrder(false);
+    }
   };
   // --- RENDER FUNCTIONS ---
 
@@ -419,6 +469,7 @@ export default function App() {
                    <h3 className="font-bold text-lg text-wood-900 mb-2">{t('your_data', lang)}</h3>
                    
                    <div><label className="block text-xs font-bold text-wood-500 uppercase mb-1">{t('name', lang)} *</label><input required type="text" value={orderForm.customerName} onChange={e => setOrderForm({...orderForm, customerName: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#45856c] focus:ring-1 focus:ring-[#45856c]" /></div>
+                   <div><label className="block text-xs font-bold text-wood-500 uppercase mb-1">Email *</label><input required type="email" value={orderForm.customerEmail} onChange={e => setOrderForm({...orderForm, customerEmail: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#45856c]" /></div>
                    <div><label className="block text-xs font-bold text-wood-500 uppercase mb-1">{t('phone', lang)} *</label><input required type="tel" value={orderForm.customerPhone} onChange={e => setOrderForm({...orderForm, customerPhone: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#45856c] focus:ring-1 focus:ring-[#45856c]" /></div>
 
                    {orderForm.orderType === 'delivery' && (
@@ -794,6 +845,76 @@ export default function App() {
       </div>
     </div>
   )};
+  const renderTracking = () => {
+    if (!currentOrder) return null;
+
+    const statusSteps = [
+      { id: 'pending', label: 'Inviato', icon: Check },
+      { id: 'preparing', label: 'In Preparazione', icon: Utensils },
+      { id: 'shipped', label: orderForm.orderType === 'delivery' ? 'In Consegna' : 'Pronto al Ritiro', icon: Bike },
+      { id: 'completed', label: 'Consegnato', icon: CheckCircle2 }
+    ];
+
+    const currentStepIndex = statusSteps.findIndex(s => s.id === currentOrder.status);
+
+    return (
+      <div className="min-h-screen bg-wood-50 pt-24 pb-20 px-4">
+        <div className="max-w-md mx-auto bg-white rounded-3xl shadow-xl overflow-hidden border border-wood-100">
+          <div className="bg-[#45856c] p-8 text-white text-center">
+            <CheckCircle2 size={48} className="mx-auto mb-4 animate-bounce" />
+            <h2 className="text-2xl font-western uppercase tracking-wider">Ordine Ricevuto!</h2>
+            <p className="opacity-90 text-sm mt-2">Grazie {currentOrder.customer_name}, stiamo lavorando per te.</p>
+          </div>
+
+          <div className="p-6 md:p-8">
+            {/* TEMPO ESTIMATO */}
+            {currentOrder.estimated_time && currentOrder.status === 'preparing' && (
+              <div className="bg-orange-50 border-2 border-orange-100 p-4 rounded-2xl text-center mb-8">
+                <span className="block text-xs font-bold text-orange-400 uppercase tracking-widest">Tempo stimato</span>
+                <span className="text-4xl font-western text-orange-600">~ {currentOrder.estimated_time}</span>
+              </div>
+            )}
+
+            {/* BARRA DI AVANZAMENTO */}
+            <div className="relative space-y-8">
+              {statusSteps.map((step, idx) => {
+                const isDone = idx <= currentStepIndex;
+                const isCurrent = idx === currentStepIndex;
+                return (
+                  <div key={step.id} className="flex items-center gap-4">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${isDone ? 'bg-[#45856c] text-white' : 'bg-wood-100 text-wood-300'}`}>
+                      <step.icon size={20} />
+                    </div>
+                    <div className="flex-1">
+                      <p className={`font-bold ${isDone ? 'text-wood-900' : 'text-wood-300'} ${isCurrent ? 'text-lg text-[#45856c]' : ''}`}>
+                        {step.label}
+                      </p>
+                      {isCurrent && step.id !== 'completed' && (
+                        <span className="text-xs text-wood-400 animate-pulse">In corso...</span>
+                        )}
+                        {isCurrent && step.id === 'completed' && (
+                        <span className="text-xs text-[#45856c] font-bold">Ordine concluso. Grazie!</span>
+                        )}
+                    </div>
+                  </div>
+                );
+              })}
+              {/* Linea verticale di collegamento */}
+              <div className="absolute left-5 top-5 bottom-5 w-0.5 bg-wood-100 -z-10"></div>
+              <div className="absolute left-5 top-5 w-0.5 bg-[#45856c] -z-10 transition-all duration-1000" style={{ height: `${(currentStepIndex / 3) * 100}%` }}></div>
+            </div>
+
+            <button 
+              onClick={() => { setView('MENU'); setActiveOrderId(null); }}
+              className="w-full mt-12 py-4 text-wood-400 font-bold hover:text-wood-600 transition-colors border-2 border-wood-50 rounded-2xl"
+            >
+              Torna al Menu
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <>
@@ -803,6 +924,7 @@ export default function App() {
       {view === 'ORDER_SUCCESS' && renderOrderSuccess()}
       {view === 'LOGIN' && renderLogin()}
       {view === 'ADMIN' && renderAdmin()}
+      {view === 'TRACKING' && renderTracking()}
       {renderCartDrawer()}
       {renderFloatingCartBar()}
 
