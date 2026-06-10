@@ -8,7 +8,7 @@ export enum ProductCategory {
   CONTORNI = 'Contorni',
   DOLCI = 'Dolci',
   BEVANDE = 'Bevande',
-  AGGIUNTE = 'Ingredienti Extra' // Categoria nascosta al cliente nel menu principale
+  AGGIUNTE = 'Ingredienti Extra'
 }
 
 export type LanguageCode = 'it' | 'en' | 'fr' | 'de';
@@ -57,7 +57,28 @@ export interface CartItem extends MenuItem {
   cartId: string;
   quantity: number;
   selectedVariant?: ProductVariant;
-  selectedAddons?: MenuItem[]; // Ingredienti aggiunti (es. Funghi)
+  selectedAddons?: MenuItem[];
 }
 
-export type ViewState = 'MENU' | 'LOGIN' | 'ADMIN';
+// --- NUOVI TIPI PER IL DELIVERY ---
+export type ViewState = 'MENU' | 'LOGIN' | 'ADMIN' | 'CHECKOUT' | 'ORDER_SUCCESS';
+
+export type OrderType = 'delivery' | 'takeaway' | 'table';
+export type PaymentMethod = 'cash' | 'pos';
+
+export interface DeliveryZone {
+  name: string;
+  cost: number;
+  minOrder: number;
+}
+
+export interface OrderDetails {
+  customerName: string;
+  customerPhone: string;
+  orderType: OrderType;
+  deliveryAddress?: string;
+  deliveryCity?: string;
+  deliveryTime: string;
+  paymentMethod: PaymentMethod;
+  notes?: string;
+}

@@ -4,10 +4,10 @@ import {
   ChevronLeft, ChevronRight, Lock, Utensils, Star, MapPin, Clock, Instagram, Facebook, Phone, LayoutGrid, 
   ArrowRight, Upload, Image as ImageIcon, Download, RotateCcw, Save, ChevronDown, ChevronUp, X, Loader2, 
   Pencil, RefreshCw, Wheat, CircleDot, Globe, Languages, Check, Leaf, Flame, Award, QrCode, Database, Sprout, ShoppingBag, 
-  Milk, Egg, Nut, Bean, AlertCircle, Wine, Shell, Info, Search, Sandwich, Sparkles 
+  Milk, Egg, Nut, Bean, AlertCircle, Wine, Shell, Info, Search, Sandwich, Sparkles, Bike, Store, CheckCircle2 
 } from 'lucide-react';
-import { MenuItem, ProductCategory, ViewState, LanguageCode, ActiveFilters, CartItem, AllergenType, ProductVariant } from './types';
-import { INITIAL_MENU_ITEMS, CATEGORIES_LIST, HAMBURGER_SUBCATEGORIES, DRINK_SUBCATEGORIES, DIY_OPTIONS, UI_TRANSLATIONS, CATEGORY_TRANSLATIONS, SUBCATEGORY_TRANSLATIONS, DATA_VERSION, ALLERGENS_CONFIG, EXTRA_INGREDIENTS_ITEMS } from './constants';
+import { MenuItem, ProductCategory, ViewState, LanguageCode, ActiveFilters, CartItem, AllergenType, ProductVariant, OrderType, PaymentMethod } from './types';
+import { INITIAL_MENU_ITEMS, CATEGORIES_LIST, HAMBURGER_SUBCATEGORIES, DRINK_SUBCATEGORIES, DIY_OPTIONS, UI_TRANSLATIONS, CATEGORY_TRANSLATIONS, SUBCATEGORY_TRANSLATIONS, DATA_VERSION, ALLERGENS_CONFIG, EXTRA_INGREDIENTS_ITEMS, DELIVERY_ZONES } from './constants';
 import { supabase } from './supabase';
 
 // --- Helper Functions ---
@@ -80,7 +80,6 @@ const tSubCategory = (subCat: string, lang: LanguageCode): string => {
   if (SUBCATEGORY_TRANSLATIONS[subCat] && SUBCATEGORY_TRANSLATIONS[subCat][lang]) return SUBCATEGORY_TRANSLATIONS[subCat][lang];
   return subCat;
 };
-
 const getDIYStepContent = (step: any, lang: LanguageCode) => { 
   if (lang === 'it') return { title: step.title, description: step.description }; 
   const trans = step.translations?.[lang]; 
@@ -94,7 +93,6 @@ const getDIYOptionContent = (opt: any, lang: LanguageCode) => {
 // --- MAIN COMPONENT ---
 
 export default function App() {
-  // 1. STATE DEFINITIONS
   const [items, setItems] = useState<MenuItem[]>([]);
   const [view, setView] = useState<ViewState>('MENU');
   const [activeCategory, setActiveCategory] = useState<string>('Tutti');
@@ -119,10 +117,23 @@ export default function App() {
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [newItem, setNewItem] = useState<Partial<MenuItem>>({ category: ProductCategory.HAMBURGER, isAvailable: true, subCategory: HAMBURGER_SUBCATEGORIES[0], translations: {}, allergens: [] });
-  
-  // Fix: addedItemId is defined here!
   const [addedItemId, setAddedItemId] = useState<string | null>(null);
+  const [infoItem, setInfoItem] = useState<MenuItem | null>(null);
   const [suggestionToast, setSuggestionToast] = useState<{show: boolean, text: string}>({ show: false, text: '' });
+
+  // CHECKOUT STATE AGGIORNATO (Aggiunto tableNumber)
+  const [orderForm, setOrderForm] = useState({
+    customerName: '',
+    customerPhone: '',
+    orderType: 'delivery' as OrderType,
+    deliveryAddress: '',
+    deliveryCity: DELIVERY_ZONES[0]?.name || '',
+    deliveryTime: 'Il prima possibile',
+    paymentMethod: 'cash' as PaymentMethod,
+    notes: '',
+    tableNumber: '' 
+  });
+  const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
 
   const carouselRef = useRef<HTMLDivElement>(null);
   const highlightsRef = useRef<HTMLDivElement>(null);
@@ -132,19 +143,13 @@ export default function App() {
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
 
-  // 2. EFFECTS
   const fetchItems = async () => {
     try {
       const { data, error } = await supabase.from('menu_items').select('*');
       if (error) throw error;
       if (data && data.length > 0) setItems(data); 
       else setItems([...INITIAL_MENU_ITEMS, ...EXTRA_INGREDIENTS_ITEMS]);
-    } catch (error) { 
-      console.error('Error fetching data:', error); 
-      setItems([...INITIAL_MENU_ITEMS, ...EXTRA_INGREDIENTS_ITEMS]); 
-    } finally { 
-      setIsDataLoaded(true); 
-    }
+    } catch (error) { console.error('Error fetching data:', error); setItems([...INITIAL_MENU_ITEMS, ...EXTRA_INGREDIENTS_ITEMS]); } finally { setIsDataLoaded(true); }
   };
 
   useEffect(() => { fetchItems(); const savedLogo = localStorage.getItem('oldWestLogoUrl'); if (savedLogo) setCustomLogo(savedLogo); }, []);
@@ -162,12 +167,7 @@ export default function App() {
   const checkFilters = (item: MenuItem) => {
     if (activeFilters.vegetarian) { const isVeg = item.tags?.includes('Vegetariano') || item.tags?.includes('Vegano') || item.category === ProductCategory.CONTORNI || (item.category === ProductCategory.PIZZA && (item.name === 'Vegetariana' || item.name === 'Margherita' || item.name === 'Marinara' || item.name === 'Verdure')); if (!isVeg) return false; }
     if (activeFilters.vegan) { const isVegan = item.tags?.includes('Vegano') || (item.category === ProductCategory.CONTORNI && item.name !== 'Patatine Fritte') || (item.category === ProductCategory.PIZZA && item.name === 'Marinara'); if (!isVegan) return false; }
-    if (activeFilters.spicy) { 
-        const nameLower = item.name.toLowerCase();
-        if (nameLower.includes('salamella') && !item.tags?.includes('Piccante')) return false;
-        const isSpicy = item.tags?.includes('Piccante') || item.description.toLowerCase().includes('piccante') || item.description.toLowerCase().includes('nduja'); 
-        if (!isSpicy) return false; 
-    }
+    if (activeFilters.spicy) { const nameLower = item.name.toLowerCase(); if (nameLower.includes('salamella') && !item.tags?.includes('Piccante')) return false; const isSpicy = item.tags?.includes('Piccante') || item.description.toLowerCase().includes('piccante') || item.description.toLowerCase().includes('nduja'); if (!isSpicy) return false; }
     if (activeFilters.bestseller) { const isBest = item.tags?.includes('Best Seller') || item.tags?.includes('Consigliato'); if (!isBest) return false; }
     return true;
   };
@@ -183,49 +183,48 @@ export default function App() {
   };
 
   const addToCart = (item: MenuItem, variant?: ProductVariant) => {
-    setAddedItemId(item.id); 
-    setTimeout(() => setAddedItemId(null), 1000);
+    setAddedItemId(item.id); setTimeout(() => setAddedItemId(null), 1000);
     const existingItemIndex = cart.findIndex((i) => i.id === item.id && (variant ? i.selectedVariant?.name === variant.name : !i.selectedVariant) && (!i.selectedAddons || i.selectedAddons.length === 0));
     if (existingItemIndex > -1) { const newCart = [...cart]; newCart[existingItemIndex].quantity += 1; setCart(newCart); } else { setCart([...cart, { ...item, cartId: Math.random().toString(), quantity: 1, selectedVariant: variant }]); }
-    
-    // Trigger Suggestion Toast
     const suggText = getCrossSellSuggestion(item);
-    if (suggText) {
-      setSuggestionToast({ show: true, text: suggText });
-      setTimeout(() => setSuggestionToast({ show: false, text: '' }), 4000);
-    }
+    if (suggText) { setSuggestionToast({ show: true, text: suggText }); setTimeout(() => setSuggestionToast({ show: false, text: '' }), 4000); }
   };
   
   const removeFromCart = (cartId: string) => setCart(cart.filter(i => i.cartId !== cartId));
   const updateCartItemQuantity = (cartId: string, delta: number) => { setCart(cart.map(item => { if (item.cartId === cartId) { const newQty = item.quantity + delta; return newQty > 0 ? { ...item, quantity: newQty } : item; } return item; })); };
   const openAddonModal = (index: number) => { setEditingCartItemIndex(index); setAddonSearch(''); setIsAddonModalOpen(true); };
+  const addAddonToItem = (addon: MenuItem) => { if (editingCartItemIndex === null) return; const newCart = [...cart]; const updatedItem = { ...newCart[editingCartItemIndex] }; const currentAddons = updatedItem.selectedAddons || []; updatedItem.selectedAddons = [...currentAddons, addon]; newCart[editingCartItemIndex] = updatedItem; setCart(newCart); setIsAddonModalOpen(false); setEditingCartItemIndex(null); };
   
-  const addAddonToItem = (addon: MenuItem) => { 
-      if (editingCartItemIndex === null) return; 
-      const newCart = [...cart]; 
-      const updatedItem = { ...newCart[editingCartItemIndex] }; 
-      const currentAddons = updatedItem.selectedAddons || []; 
-      updatedItem.selectedAddons = [...currentAddons, addon]; 
-      newCart[editingCartItemIndex] = updatedItem; 
-      setCart(newCart); 
-      setIsAddonModalOpen(false); 
-      setEditingCartItemIndex(null); 
-  };
-  
-  const getCartTotal = () => { 
-      const subtotal = cart.reduce((sum, item) => { 
+  // --- NUOVA LOGICA TOTALI ---
+  const getCartItemsTotal = () => { 
+      return cart.reduce((sum, item) => { 
           const itemPrice = item.selectedVariant ? item.selectedVariant.price : item.price; 
           const addonsPrice = item.selectedAddons?.reduce((aSum, addon) => aSum + Number(addon.price), 0) || 0; 
           return sum + (itemPrice + addonsPrice) * item.quantity; 
       }, 0); 
-      const hasFood = cart.some(item => item.category !== ProductCategory.BEVANDE);
-      return subtotal + (cart.length > 0 && hasFood ? 2.00 : 0); 
   };
+
+  const getCoverCharge = () => {
+     if (orderForm.orderType === 'table') {
+        const hasFood = cart.some(item => item.category !== ProductCategory.BEVANDE);
+        return hasFood && cart.length > 0 ? 2.00 : 0;
+     }
+     return 0;
+  };
+
+  const getDeliveryFee = () => {
+    // FIX COSTO CONSEGNA: Solo se l'ordine è 'delivery' applico il costo, altrimenti è 0 fisso.
+    if (orderForm.orderType !== 'delivery') return 0;
+    const zone = DELIVERY_ZONES.find(z => z.name === orderForm.deliveryCity);
+    return zone ? zone.cost : 0;
+  };
+
+  const getGrandTotal = () => getCartItemsTotal() + getCoverCharge() + getDeliveryFee();
 
   const handleDiySelection = (stepId: number, option: any) => { setDiySelections(prev => ({ ...prev, [stepId]: option })); setTimeout(() => { diyControlsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 200); };
   const handleDiyNext = () => { if (diyStep < DIY_OPTIONS.steps.length - 1) { setDiyStep(diyStep + 1); } else { const totalPrice = DIY_OPTIONS.basePrice + DIY_OPTIONS.steps.reduce((acc, step) => { const selected = diySelections[step.id]; return acc + (selected ? selected.price : 0); }, 0); const description = DIY_OPTIONS.steps.map(step => { const selected = diySelections[step.id]; return selected ? `${getDIYOptionContent(selected, lang)}` : ''; }).filter(Boolean).join(' + '); const diyItem: MenuItem = { id: `diy-${Date.now()}`, name: t('create_your_taste', lang), description: description, price: totalPrice, category: ProductCategory.HAMBURGER, isAvailable: true, imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/hamburger-fai-da-te.jpg' }; addToCart(diyItem); setDiySelections({}); setDiyStep(0); setActiveSubCategoryView(null); } };
 
-  const handleLogin = (e: React.FormEvent) => { e.preventDefault(); if (adminPassword === '9988') { setView('ADMIN'); setAdminPassword(''); setLoginError(''); setActiveCategory('Tutti'); setLang('it'); } else { setLoginError('PIN non valido'); } };
+  const handleLogin = (e: React.FormEvent) => { e.preventDefault(); if (adminPassword === '1234') { setView('ADMIN'); setAdminPassword(''); setLoginError(''); setActiveCategory('Tutti'); setLang('it'); } else { setLoginError('PIN non valido'); } };
   const handleSaveItem = async (e: React.FormEvent) => { e.preventDefault(); if (!newItem.name || !newItem.price) return; const itemToSave = { name: newItem.name, description: newItem.description, price: Number(newItem.price), category: newItem.category, subCategory: newItem.category === ProductCategory.HAMBURGER || newItem.category === ProductCategory.BEVANDE ? newItem.subCategory : undefined, imageUrl: newItem.imageUrl, isAvailable: newItem.isAvailable !== undefined ? newItem.isAvailable : true, tags: newItem.tags || [], brand: newItem.brand || null, variants: newItem.variants || null, translations: newItem.translations || null, allergens: newItem.allergens || [] }; try { if (editingId) { await supabase.from('menu_items').update(itemToSave).eq('id', editingId); alert('Prodotto modificato!'); } else { await supabase.from('menu_items').insert([itemToSave]); alert('Prodotto aggiunto!'); } fetchItems(); setEditingId(null); setNewItem({ category: ProductCategory.HAMBURGER, subCategory: HAMBURGER_SUBCATEGORIES[0], isAvailable: true, name: '', description: '', price: 0, imageUrl: '', translations: {}, brand: undefined, variants: undefined, allergens: [] }); setAdminLang('it'); } catch (error) { console.error(error); alert('Errore database.'); } };
   const handleEditItem = (item: MenuItem) => { setNewItem({ ...item }); setEditingId(item.id); setAdminLang('it'); document.getElementById('new-product-form')?.scrollIntoView({ behavior: 'smooth' }); };
   const handleCancelEdit = () => { setEditingId(null); setNewItem({ category: ProductCategory.HAMBURGER, subCategory: HAMBURGER_SUBCATEGORIES[0], isAvailable: true, name: '', description: '', price: 0, imageUrl: '', translations: {}, brand: undefined, variants: undefined, allergens: [] }); setAdminLang('it'); };
@@ -240,14 +239,42 @@ export default function App() {
   const handleImportData = () => alert("Import locale disabilitato. Usa sync cloud.");
   const handleFactoryReset = () => alert("Reset locale disabilitato. Gestisci da DB.");
 
+  const handleSubmitOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingOrder(true);
+    
+    // Formatta il nome se è un tavolo
+    const finalCustomerName = orderForm.orderType === 'table' ? `Tavolo ${orderForm.tableNumber}` : orderForm.customerName;
+    const finalPhone = orderForm.orderType === 'table' ? 'N/D' : orderForm.customerPhone;
+
+    try {
+      const { error } = await supabase.from('orders').insert([{
+        customer_name: finalCustomerName,
+        customer_phone: finalPhone,
+        order_type: orderForm.orderType,
+        delivery_address: orderForm.orderType === 'delivery' ? orderForm.deliveryAddress : null,
+        delivery_city: orderForm.orderType === 'delivery' ? orderForm.deliveryCity : null,
+        delivery_time: orderForm.orderType === 'table' ? 'Ora' : orderForm.deliveryTime,
+        payment_method: orderForm.paymentMethod,
+        total_amount: getGrandTotal(),
+        cart_items: cart,
+        status: 'pending'
+      }]);
+
+      if (error) throw error;
+      setCart([]); setView('ORDER_SUCCESS'); window.scrollTo(0,0);
+    } catch (err) { console.error('Error submitting order:', err); alert('Errore invio ordine.'); } finally { setIsSubmittingOrder(false); }
+  };
+  // --- RENDER FUNCTIONS ---
+
   const renderHeader = () => (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${view === 'MENU' ? 'bg-wood-900/95 backdrop-blur-md border-b border-wood-800' : 'bg-wood-900 shadow-md'}`}>
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${view === 'MENU' || view === 'CHECKOUT' ? 'bg-wood-900/95 backdrop-blur-md border-b border-wood-800' : 'bg-wood-900 shadow-md'}`}>
       <div className="container mx-auto px-4 h-16 md:h-20 flex justify-between items-center">
-        <div className="flex items-center gap-3 group cursor-pointer" onClick={() => setView('MENU')}>
+        <div className="flex items-center gap-3 group cursor-pointer" onClick={() => { setView('MENU'); window.scrollTo(0,0); }}>
            <div className="transform group-hover:rotate-12 transition-transform duration-300"><WesternLogo size="md" url={customLogo} /></div>
            <div className="flex flex-col"><span className="font-western text-xl text-white tracking-wide leading-none">OLD WEST</span><span className="text-[10px] uppercase tracking-[0.2em] text-accent-500 font-bold">Cameri</span></div>
         </div>
-        {view === 'MENU' ? (
+        {view === 'MENU' || view === 'CHECKOUT' ? (
           <div className="flex items-center gap-4">
              <div className="relative">
                 {isLangMenuOpen && <div className="fixed inset-0 z-40" onClick={() => setIsLangMenuOpen(false)}></div>}
@@ -262,14 +289,15 @@ export default function App() {
   );
 
   const renderFloatingCartBar = () => {
-     if (cart.length === 0 || isCartOpen) return null;
+     if (cart.length === 0 || isCartOpen || view !== 'MENU') return null;
      const itemCount = cart.reduce((a, b) => a + b.quantity, 0);
-     const total = getCartTotal();
+     const total = getCartItemsTotal(); // FIX: Sulla barra flottante mostriamo solo i prodotti, senza coperto
+
      return (
-        <div className="fixed bottom-0 left-0 right-0 p-4 z-50 animate-in slide-in-from-bottom-20 duration-300">
-           <button onClick={() => setIsCartOpen(true)} className="w-full bg-wood-900 text-white rounded-2xl shadow-2xl p-4 flex items-center justify-between border border-wood-700 hover:bg-wood-800 transition-colors relative">
-              <div className="absolute left-4 bg-accent-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-sm">{itemCount}</div>
-              <span className="font-bold text-sm text-wood-100 mx-auto">{t('review_order', lang)}</span>
+        <div className="fixed bottom-0 left-0 right-0 p-4 z-40 animate-in slide-in-from-bottom-20 duration-300">
+           <button onClick={() => setIsCartOpen(true)} className="w-full bg-wood-900 text-white rounded-2xl shadow-2xl p-4 flex items-center justify-between border border-wood-700 hover:bg-wood-800 transition-colors relative group">
+              <div className="absolute left-4 bg-accent-500 text-white w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm shadow-sm group-hover:scale-110 transition-transform">{itemCount}</div>
+              <span className="font-bold text-sm text-wood-100 mx-auto uppercase tracking-widest">{t('review_order', lang)}</span>
               <span className="absolute right-4 font-bold text-lg font-mono">€{total.toFixed(2)}</span>
            </button>
         </div>
@@ -279,13 +307,17 @@ export default function App() {
   const renderCartDrawer = () => {
       const addons = items.filter(i => i.category === ProductCategory.AGGIUNTE);
       const filteredAddons = addons.filter(a => a.name.toLowerCase().includes(addonSearch.toLowerCase()));
-      const hasFood = cart.some(item => item.category !== ProductCategory.BEVANDE);
+
       return (
       <>
         {isCartOpen && <div className="fixed inset-0 bg-black/60 z-50 backdrop-blur-sm transition-opacity" onClick={() => setIsCartOpen(false)} />}
         <div className={`fixed bottom-0 left-0 right-0 bg-white rounded-t-[2rem] shadow-2xl transform transition-transform duration-300 z-50 max-h-[90vh] flex flex-col ${isCartOpen ? 'translate-y-0' : 'translate-y-full'}`}>
            <div className="p-6 flex-1 overflow-y-auto">
-              <div className="flex items-center justify-between mb-6"><h3 className="text-2xl font-western text-wood-900 flex items-center gap-2"><ShoppingBag size={24} /> {t('my_order', lang)}</h3><button onClick={() => setIsCartOpen(false)} className="p-2 bg-wood-100 rounded-full hover:bg-wood-200 transition-colors"><X size={20}/></button></div>
+              <div className="flex items-center justify-between mb-6">
+                 <h3 className="text-2xl font-western text-wood-900 flex items-center gap-2"><ShoppingBag size={24} /> {t('my_order', lang)}</h3>
+                 <button onClick={() => setIsCartOpen(false)} className="p-2 bg-wood-100 rounded-full hover:bg-wood-200 transition-colors"><X size={20}/></button>
+              </div>
+              
               {cart.length === 0 ? (<div className="text-center py-10 text-wood-400">{t('empty_cart', lang)}</div>) : (
                  <div className="space-y-6">
                     {cart.map((item, index) => (
@@ -303,13 +335,18 @@ export default function App() {
                           </div>
                        </div>
                     ))}
-                    {hasFood && (<div className="flex justify-between items-center py-2 px-3 bg-wood-50 rounded-xl border border-wood-100"><span className="text-sm font-bold text-wood-500 uppercase tracking-wider">{t('cover_charge', lang)}</span><span className="font-mono font-bold text-wood-900">€2.00</span></div>)}
+                    {/* FIX: Eliminata la riga COPERTO da qui. Appare solo nel checkout */}
                  </div>
               )}
            </div>
            <div className="p-6 border-t border-wood-100 bg-wood-50 pb-8">
-              <div className="flex justify-between items-center mb-6"><span className="text-xl font-bold text-wood-900">{t('total', lang)}</span><span className="text-4xl font-western text-accent-600">€{getCartTotal().toFixed(2)}</span></div>
-              <button className="w-full bg-[#45856c] text-white py-4 rounded-2xl font-bold text-xl shadow-lg flex items-center justify-center gap-3"><Utensils size={24} /> {t('show_staff', lang)}</button>
+              <div className="flex justify-between items-center mb-6"><span className="text-xl font-bold text-wood-900">{t('total', lang)}</span><span className="text-4xl font-western text-accent-600">€{getCartItemsTotal().toFixed(2)}</span></div>
+              <button 
+                onClick={() => { setIsCartOpen(false); setView('CHECKOUT'); window.scrollTo(0,0); }} 
+                className="w-full bg-[#45856c] text-white py-4 rounded-2xl font-bold text-xl shadow-lg flex items-center justify-center gap-3 hover:bg-opacity-90 transition-all active:scale-[0.98]"
+              >
+                 <ShoppingBag size={24} /> {t('show_staff', lang)}
+              </button>
            </div>
         </div>
         {isAddonModalOpen && (
@@ -324,24 +361,128 @@ export default function App() {
       </>
       );
   };
-  const renderLogin = () => (
-    <div className="min-h-screen bg-wood-900 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl border-4 border-wood-800 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-2 bg-accent-500"></div>
-        <div className="flex flex-col items-center text-center mb-8"><WesternLogo size="lg" url={customLogo} className="mb-4" /><h2 className="text-3xl font-western text-wood-900">{t('admin_area', lang)}</h2><p className="text-wood-500 mt-2">{t('login_prompt', lang)}</p></div>
-        <form onSubmit={handleLogin} className="space-y-6">
-          <div className="relative"><Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-wood-400" size={20} /><input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} placeholder="Inserisci PIN Staff" className="w-full bg-wood-50 text-center font-mono text-2xl tracking-widest py-4 rounded-xl border-2 border-wood-100 focus:outline-none focus:border-accent-500 focus:bg-white transition-all text-wood-900" autoFocus /></div>
-          {loginError && (<div className="bg-red-50 text-red-500 px-4 py-3 rounded-xl flex items-center gap-2 text-sm font-bold animate-pulse"><AlertCircle size={16} /> {loginError}</div>)}
-          <button type="submit" className="w-full bg-accent-500 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-accent-600 hover:scale-[1.02] active:scale-[0.98] transition-all">{t('login_btn', lang)}</button>
-        </form>
-        <button onClick={() => setView('MENU')} className="w-full mt-4 py-3 text-wood-400 font-bold hover:text-wood-600 transition-colors">{t('back_to_menu', lang)}</button>
+
+  const renderCheckout = () => {
+    const timeSlots = [t('asap', lang), "18:30", "19:00", "19:30", "20:00", "20:30", "21:00", "21:30", "22:00", "22:30", "23:00"];
+    const deliveryFee = getDeliveryFee();
+    const coverCharge = getCoverCharge();
+
+    return (
+      <div className="min-h-screen bg-wood-50 pt-20 pb-32">
+        <div className="container mx-auto px-4 max-w-2xl mt-8">
+           <button onClick={() => { setView('MENU'); setIsCartOpen(true); }} className="flex items-center gap-2 text-wood-500 hover:text-wood-900 font-bold mb-6 transition-colors">
+              <ChevronLeft size={20} /> {t('back', lang)}
+           </button>
+
+           <h2 className="text-3xl font-western text-wood-900 mb-8">{t('checkout_title', lang)}</h2>
+
+           <form onSubmit={handleSubmitOrder} className="space-y-8">
+              
+              {/* TIPO DI ORDINE E TAVOLO */}
+              <div className="bg-white p-6 rounded-3xl border border-wood-100 shadow-sm">
+                 <h3 className="font-bold text-lg text-wood-900 mb-4">{t('order_type', lang)}</h3>
+                 
+                 {/* Pulsanti più compatti per il mobile */}
+                 <div className="grid grid-cols-3 gap-2 md:gap-4">
+                  <button type="button" onClick={() => setOrderForm({...orderForm, orderType: 'table'})} className={`p-2 md:p-4 rounded-xl border-2 flex flex-col items-center gap-1 md:gap-2 transition-all ${orderForm.orderType === 'table' ? 'border-[#45856c] bg-[#45856c]/10 text-[#45856c]' : 'border-wood-200 text-wood-500 hover:border-wood-300'}`}>
+                     <Utensils size={24} />
+                     <span className="text-[11px] md:text-sm font-bold text-center">
+                        {t('type_table', lang)}
+                     </span>
+                  </button>
+                  <button type="button" onClick={() => setOrderForm({...orderForm, orderType: 'takeaway'})} className={`p-2 md:p-4 rounded-xl border-2 flex flex-col items-center gap-1 md:gap-2 transition-all ${orderForm.orderType === 'takeaway' ? 'border-[#45856c] bg-[#45856c]/10 text-[#45856c]' : 'border-wood-200 text-wood-500 hover:border-wood-300'}`}>
+                     <Store size={24} />
+                     <span className="text-[11px] md:text-sm font-bold text-center">
+                        {t('type_takeaway', lang)}
+                     </span>
+                  </button>
+                  <button type="button" onClick={() => setOrderForm({...orderForm, orderType: 'delivery'})} className={`p-2 md:p-4 rounded-xl border-2 flex flex-col items-center gap-1 md:gap-2 transition-all ${orderForm.orderType === 'delivery' ? 'border-[#45856c] bg-[#45856c]/10 text-[#45856c]' : 'border-wood-200 text-wood-500 hover:border-wood-300'}`}>
+                     <Bike size={24} />
+                     <span className="text-[11px] md:text-sm font-bold text-center">
+                        {t('type_delivery', lang)}
+                     </span>
+                  </button>
+               </div>
+
+                 {/* IL NUMERO DEL TAVOLO APPARE DENTRO QUESTO RIQUADRO */}
+                 {orderForm.orderType === 'table' && (
+                   <div className="mt-6 pt-6 border-t border-wood-100 animate-in fade-in slide-in-from-top-2">
+                     <label className="block text-xs font-bold text-wood-500 uppercase mb-2">Numero del Tavolo *</label>
+                     <input required type="number" placeholder="Es: 5" value={orderForm.tableNumber} onChange={e => setOrderForm({...orderForm, tableNumber: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#45856c] focus:ring-2 focus:ring-[#45856c]/50 font-bold text-lg text-center" />
+                   </div>
+                 )}
+              </div>
+
+              {/* DATI CLIENTE (SPARISCE COMPLETAMENTE SE SIAMO AL TAVOLO) */}
+              {orderForm.orderType !== 'table' && (
+                <div className="bg-white p-6 rounded-3xl border border-wood-100 shadow-sm space-y-4 animate-in fade-in zoom-in-95 duration-300">
+                   <h3 className="font-bold text-lg text-wood-900 mb-2">{t('your_data', lang)}</h3>
+                   
+                   <div><label className="block text-xs font-bold text-wood-500 uppercase mb-1">{t('name', lang)} *</label><input required type="text" value={orderForm.customerName} onChange={e => setOrderForm({...orderForm, customerName: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#45856c] focus:ring-1 focus:ring-[#45856c]" /></div>
+                   <div><label className="block text-xs font-bold text-wood-500 uppercase mb-1">{t('phone', lang)} *</label><input required type="tel" value={orderForm.customerPhone} onChange={e => setOrderForm({...orderForm, customerPhone: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#45856c] focus:ring-1 focus:ring-[#45856c]" /></div>
+
+                   {orderForm.orderType === 'delivery' && (
+                      <>
+                         <div><label className="block text-xs font-bold text-wood-500 uppercase mb-1">{t('city', lang)} *</label><select required value={orderForm.deliveryCity} onChange={e => setOrderForm({...orderForm, deliveryCity: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#45856c] focus:ring-1 focus:ring-[#45856c]">{DELIVERY_ZONES.map(z => <option key={z.name} value={z.name}>{z.name} {z.cost > 0 ? `(+€${z.cost.toFixed(2)})` : '(Gratis)'}</option>)}</select></div>
+                         <div><label className="block text-xs font-bold text-wood-500 uppercase mb-1">{t('address', lang)} *</label><input required type="text" value={orderForm.deliveryAddress} onChange={e => setOrderForm({...orderForm, deliveryAddress: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#45856c] focus:ring-1 focus:ring-[#45856c]" placeholder="Via Roma 1, Campanello Rossi" /></div>
+                      </>
+                   )}
+
+                   <div className="pt-2"><label className="block text-xs font-bold text-wood-500 uppercase mb-1">{t('time', lang)} *</label><select required value={orderForm.deliveryTime} onChange={e => setOrderForm({...orderForm, deliveryTime: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#45856c] focus:ring-1 focus:ring-[#45856c]">{timeSlots.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                </div>
+              )}
+
+              {/* METODO DI PAGAMENTO E NOTE */}
+              <div className="bg-white p-6 rounded-3xl border border-wood-100 shadow-sm">
+                 <h3 className="font-bold text-lg text-wood-900 mb-4">{t('payment', lang)}</h3>
+                 <div className="flex flex-col gap-3">
+                    <label className="flex items-center gap-3 p-4 border border-wood-200 rounded-xl cursor-pointer hover:bg-wood-50">
+                       <input type="radio" name="payment" value="cash" checked={orderForm.paymentMethod === 'cash'} onChange={() => setOrderForm({...orderForm, paymentMethod: 'cash'})} className="w-5 h-5 accent-[#45856c]" />
+                       <span className="font-medium text-wood-900">{t('cash', lang)}</span>
+                    </label>
+                    <label className="flex items-center gap-3 p-4 border border-wood-200 rounded-xl cursor-pointer hover:bg-wood-50">
+                       <input type="radio" name="payment" value="pos" checked={orderForm.paymentMethod === 'pos'} onChange={() => setOrderForm({...orderForm, paymentMethod: 'pos'})} className="w-5 h-5 accent-[#45856c]" />
+                       <span className="font-medium text-wood-900">{t('pos', lang)}</span>
+                    </label>
+                 </div>
+                 
+                 <div className="mt-4"><label className="block text-xs font-bold text-wood-500 uppercase mb-1">{t('notes', lang)}</label><textarea rows={2} value={orderForm.notes} onChange={e => setOrderForm({...orderForm, notes: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl p-3 focus:outline-none focus:border-[#45856c] focus:ring-1 focus:ring-[#45856c] resize-none" placeholder={t('notes', lang)}></textarea></div>
+              </div>
+
+              {/* RIEPILOGO TOTALE */}
+              <div className="bg-wood-900 p-6 rounded-3xl text-white shadow-xl">
+                 <div className="space-y-2 mb-4 border-b border-wood-700 pb-4">
+                    <div className="flex justify-between items-center text-wood-300"><span>Subtotale Prodotti</span><span>€{getCartItemsTotal().toFixed(2)}</span></div>
+                    {coverCharge > 0 && <div className="flex justify-between items-center text-wood-300"><span>{t('cover_charge', lang)}</span><span>€{coverCharge.toFixed(2)}</span></div>}
+                    {deliveryFee > 0 && <div className="flex justify-between items-center text-wood-300"><span>{t('delivery_fee', lang)}</span><span>€{deliveryFee.toFixed(2)}</span></div>}
+                 </div>
+                 <div className="flex justify-between items-end mb-6">
+                    <span className="text-xl font-bold uppercase tracking-wider">{t('total', lang)}</span>
+                    <span className="text-4xl font-western text-accent-500">€{getGrandTotal().toFixed(2)}</span>
+                 </div>
+                 
+                 <button type="submit" disabled={isSubmittingOrder} className="w-full bg-[#45856c] text-white py-4 rounded-xl font-bold text-xl shadow-lg flex items-center justify-center gap-3 hover:bg-opacity-90 transition-all disabled:opacity-50">
+                    {isSubmittingOrder ? <Loader2 className="animate-spin" size={24} /> : <>{t('send_order', lang)} <ArrowRight size={24} /></>}
+                 </button>
+              </div>
+           </form>
+        </div>
       </div>
+    );
+  };
+
+  const renderOrderSuccess = () => (
+    <div className="min-h-screen bg-[#45856c] flex flex-col items-center justify-center p-4 text-white text-center">
+       <div className="bg-white/10 p-8 rounded-full mb-8 animate-in zoom-in duration-500"><CheckCircle2 size={80} className="text-white" /></div>
+       <h1 className="text-5xl font-western mb-4">{t('order_success_title', lang)}</h1>
+       <p className="text-xl opacity-90 max-w-md mx-auto mb-12">{t('order_success_msg', lang)}</p>
+       <button onClick={() => { setView('MENU'); window.scrollTo(0,0); }} className="bg-white text-[#45856c] px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:scale-105 transition-transform">{t('back_home', lang)}</button>
     </div>
   );
-
   const renderDIY = () => {
     const currentStepConfig = DIY_OPTIONS.steps[diyStep];
     const { title, description } = getDIYStepContent(currentStepConfig, lang);
+
     return (
       <div className="container mx-auto px-4 py-8 pb-32" ref={diyHeaderRef}>
         <div className="bg-white rounded-3xl border border-wood-100 shadow-xl overflow-hidden">
@@ -352,7 +493,18 @@ export default function App() {
           </div>
           <div className="p-6 md:p-8">
              <div className="flex items-center justify-between mb-8"><div><span className="text-accent-600 font-bold tracking-widest text-xs uppercase mb-1 block">Step {diyStep + 1}/{DIY_OPTIONS.steps.length}</span><h3 className="text-2xl font-bold text-wood-900">{title}</h3><p className="text-wood-500">{description}</p></div></div>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{currentStepConfig.options.map((option: any) => { const isSelected = diySelections[currentStepConfig.id]?.name === option.name; return (<button key={option.name} onClick={() => handleDiySelection(currentStepConfig.id, option)} className={`relative p-6 rounded-2xl border-2 text-left transition-all duration-300 group ${isSelected ? 'border-accent-500 bg-accent-50 shadow-lg scale-[1.02]' : 'border-wood-100 bg-wood-50 hover:border-accent-300 hover:bg-white'}`}><div className="flex justify-between items-center mb-1"><span className={`font-bold text-lg ${isSelected ? 'text-accent-700' : 'text-wood-800'}`}>{getDIYOptionContent(option, lang)}</span>{option.price > 0 && <span className="font-mono font-bold text-wood-900">+€{option.price.toFixed(2)}</span>}</div>{isSelected && <div className="absolute top-4 right-4 text-accent-500"><Check size={20} /></div>}</button>); })}</div>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{currentStepConfig.options.map((option: any) => { const isSelected = diySelections[currentStepConfig.id]?.name === option.name; return (<button key={option.name} onClick={() => handleDiySelection(currentStepConfig.id, option)} className={`relative p-6 rounded-2xl border-2 text-left transition-all duration-300 group ${isSelected ? 'border-accent-500 bg-accent-50 shadow-lg scale-[1.02]' : 'border-wood-100 bg-wood-50 hover:border-accent-300 hover:bg-white'}`}><div className="flex flex-col gap-1">
+            <div className="flex justify-between items-start gap-2">
+               <span className={`font-bold text-lg leading-tight ${isSelected ? 'text-accent-700' : 'text-wood-800'}`}>
+                  {getDIYOptionContent(option, lang)}
+               </span>
+               {option.price > 0 && (
+                  <span className="font-mono font-bold text-[#45856c] shrink-0 bg-white px-2 py-0.5 rounded-lg shadow-sm border border-wood-100">
+                     +€{option.price.toFixed(2)}
+                  </span>
+               )}
+            </div>
+         </div>{isSelected && <div className="absolute top-4 right-4 text-accent-500"><Check size={20} /></div>}</button>); })}</div>
              <div className="flex justify-between items-center mt-10 pt-6 border-t border-wood-100" ref={diyControlsRef}><button onClick={() => { if (diyStep > 0) setDiyStep(diyStep - 1); else setActiveSubCategoryView(null); }} className="text-wood-500 font-bold hover:text-wood-800 transition-colors flex items-center gap-2 px-4 py-2"><ChevronLeft size={20} /> {t('back', lang)}</button><button onClick={handleDiyNext} disabled={!diySelections[currentStepConfig.id]} className="bg-wood-900 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-accent-600 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95">{diyStep === DIY_OPTIONS.steps.length - 1 ? (<>{t('add_to_cart', lang)} <Plus size={20} /></>) : (<>{t('add', lang)} <ArrowRight size={20} /></>)}</button></div>
           </div>
         </div>
@@ -370,7 +522,6 @@ export default function App() {
       if (activeCategory === ProductCategory.HAMBURGER && activeSubCategoryView && item.subCategory !== activeSubCategoryView) return false;
       return checkFilters(item);
     });
-    // Sorting
     if (activeCategory === 'Tutti' && hasActiveFilters) { const categoryOrder = Object.values(ProductCategory); filteredItems.sort((a, b) => categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category)); }
     const highlightedItems = items.filter(i => (i.tags?.includes('Best Seller') || i.tags?.includes('Consigliato')) && i.category !== ProductCategory.AGGIUNTE);
 
@@ -404,7 +555,49 @@ export default function App() {
             <h3 className="text-xl font-bold text-wood-900 mb-4 flex items-center gap-2"><Star size={20} className="text-accent-500" fill="currentColor" /> In Evidenza</h3>
             <div className="relative group/hl">
                 <button onClick={() => scrollCarousel('left', highlightsRef)} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover/hl:opacity-100 transition-opacity disabled:opacity-0"><ChevronLeft size={18} /></button>
-                <div ref={highlightsRef} className="flex gap-4 overflow-x-auto scrollbar-hide pb-4 snap-x px-1" onMouseDown={(e) => handleMouseDown(e, highlightsRef)} onMouseLeave={handleMouseLeave} onMouseUp={handleMouseUp} onMouseMove={(e) => handleMouseMove(e, highlightsRef)}>{highlightedItems.map(item => { const { name } = getProductContent(item); return (<div key={item.id} className="snap-center shrink-0 w-48 bg-white rounded-2xl border border-wood-100 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col" onClick={() => { setActiveCategory(item.category); document.getElementById(`btn-${item.category}`)?.click(); }}><div className="h-32 bg-wood-50 relative">{item.imageUrl ? (<img src={item.imageUrl} alt={name} className="w-full h-full object-cover" />) : (<div className="w-full h-full flex items-center justify-center text-wood-300"><UtensilsCrossed size={16} /></div>)}<span className="absolute top-2 left-2 bg-accent-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm">{item.tags?.includes('Best Seller') ? 'BEST' : 'TOP'}</span></div><div className="p-3 flex flex-col flex-1"><h4 className="font-bold text-sm text-wood-900 line-clamp-2 mb-1">{name}</h4><div className="mt-auto flex justify-between items-center"><span className="font-mono font-bold text-accent-600 text-sm">€{item.price.toFixed(2)}</span><div className="bg-wood-50 p-1 rounded-full text-wood-400"><Plus size={12} /></div></div></div></div>) })}</div>
+                <div ref={highlightsRef} className="flex gap-4 overflow-x-auto scrollbar-hide pb-4 snap-x px-1" onMouseDown={(e) => handleMouseDown(e, highlightsRef)} onMouseLeave={handleMouseLeave} onMouseUp={handleMouseUp} onMouseMove={(e) => handleMouseMove(e, highlightsRef)}>{highlightedItems.map(item => { 
+   const { name } = getProductContent(item);
+   const isAdded = addedItemId === item.id; // Feedback visivo se aggiunto
+
+   return (
+     <div 
+       key={item.id} 
+       className="snap-center shrink-0 w-48 bg-white rounded-2xl border border-wood-100 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col cursor-pointer"
+       onClick={() => setInfoItem(item)} // Ora apre il popup invece di cambiare pagina
+     >
+        <div className="h-32 bg-wood-50 relative">
+           {item.imageUrl ? (
+              <img src={item.imageUrl} alt={name} className="w-full h-full object-cover" />
+           ) : (
+              <div className="w-full h-full flex items-center justify-center text-wood-300">
+                 <UtensilsCrossed size={16} />
+              </div>
+           )}
+           <span className="absolute top-2 left-2 bg-accent-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm">
+              {item.tags?.includes('Best Seller') ? 'BEST' : 'TOP'}
+           </span>
+        </div>
+        
+        <div className="p-3 flex flex-col flex-1">
+           <h4 className="font-bold text-sm text-wood-900 line-clamp-2 mb-1">{name}</h4>
+           <div className="mt-auto flex justify-between items-center">
+              <span className="font-mono font-bold text-accent-600 text-sm">€{item.price.toFixed(2)}</span>
+              
+              {/* BOTTONE AGGIUNGI REALE */}
+              <button 
+                 onClick={(e) => { 
+                    e.stopPropagation(); // IMPORTANTE: evita di attivare il click della card (cambio categoria)
+                    addToCart(item); 
+                 }}
+                 className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-sm ${isAdded ? 'bg-green-500 text-white' : 'bg-wood-900 text-white hover:bg-[#45856c]'}`}
+              >
+                 {isAdded ? <Check size={14} /> : <Plus size={14} />}
+              </button>
+           </div>
+        </div>
+     </div>
+   ) 
+})}</div>
                 <button onClick={() => scrollCarousel('right', highlightsRef)} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover/hl:opacity-100 transition-opacity disabled:opacity-0"><ChevronRight size={18} /></button>
             </div>
           </div>
@@ -428,17 +621,8 @@ export default function App() {
                                      const isAdded = addedItemId === item.id;
                                      return (
                                        <div key={item.id} className="bg-white rounded-2xl border border-wood-100 overflow-hidden shadow-sm p-4 flex justify-between items-center gap-4 hover:shadow-md transition-all">
-                                          <div className="flex-1 min-w-0">
-                                             <div className="flex flex-col items-start">
-                                                <h4 className="font-bold text-wood-900 leading-tight truncate w-full">{name}</h4>
-                                                {item.brand && <span className="text-xs text-accent-600 font-bold mt-0.5">{item.brand}</span>}
-                                             </div>
-                                             {description && <p className="text-xs text-wood-500 mt-1 line-clamp-2">{description}</p>}
-                                          </div>
-                                          <div className="flex items-center gap-3 shrink-0">
-                                             <span className="font-western text-xl text-wood-900">€{item.price.toFixed(2)}</span>
-                                             <button onClick={() => addToCart(item)} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm ${isAdded ? 'bg-green-500 text-white' : 'bg-wood-900 text-white hover:bg-accent-600'}`}>{isAdded ? <Check size={18} /> : <Plus size={18} />}</button>
-                                          </div>
+                                          <div className="flex-1 min-w-0"><div className="flex flex-col items-start"><h4 className="font-bold text-wood-900 leading-tight truncate w-full">{name}</h4>{item.brand && <span className="text-xs text-accent-600 font-bold mt-0.5">{item.brand}</span>}</div>{description && <p className="text-xs text-wood-500 mt-1 line-clamp-2">{description}</p>}</div>
+                                          <div className="flex items-center gap-3 shrink-0"><span className="font-western text-xl text-wood-900">€{item.price.toFixed(2)}</span><button onClick={() => addToCart(item)} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm ${isAdded ? 'bg-green-500 text-white' : 'bg-wood-900 text-white hover:bg-accent-600'}`}>{isAdded ? <Check size={18} /> : <Plus size={18} />}</button></div>
                                        </div>
                                      );
                                  })}
@@ -455,17 +639,8 @@ export default function App() {
                                  const isAdded = addedItemId === item.id;
                                  return (
                                    <div key={item.id} className="bg-white rounded-2xl border border-wood-100 overflow-hidden shadow-sm p-4 flex justify-between items-center gap-4 hover:shadow-md transition-all">
-                                      <div className="flex-1 min-w-0">
-                                         <div className="flex flex-col items-start">
-                                            <h4 className="font-bold text-wood-900 leading-tight truncate w-full">{name}</h4>
-                                            {item.brand && <span className="text-xs text-accent-600 font-bold mt-0.5">{item.brand}</span>}
-                                         </div>
-                                         {description && <p className="text-xs text-wood-500 mt-1 line-clamp-2">{description}</p>}
-                                      </div>
-                                      <div className="flex items-center gap-3 shrink-0">
-                                         <span className="font-western text-xl text-wood-900">€{item.price.toFixed(2)}</span>
-                                         <button onClick={() => addToCart(item)} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm ${isAdded ? 'bg-green-500 text-white' : 'bg-wood-900 text-white hover:bg-accent-600'}`}>{isAdded ? <Check size={18} /> : <Plus size={18} />}</button>
-                                      </div>
+                                      <div className="flex-1 min-w-0"><div className="flex flex-col items-start"><h4 className="font-bold text-wood-900 leading-tight truncate w-full">{name}</h4>{item.brand && <span className="text-xs text-accent-600 font-bold mt-0.5">{item.brand}</span>}</div>{description && <p className="text-xs text-wood-500 mt-1 line-clamp-2">{description}</p>}</div>
+                                      <div className="flex items-center gap-3 shrink-0"><span className="font-western text-xl text-wood-900">€{item.price.toFixed(2)}</span><button onClick={() => addToCart(item)} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm ${isAdded ? 'bg-green-500 text-white' : 'bg-wood-900 text-white hover:bg-accent-600'}`}>{isAdded ? <Check size={18} /> : <Plus size={18} />}</button></div>
                                    </div>
                                  );
                               })}
@@ -494,18 +669,8 @@ export default function App() {
                                </div>
                              )}
                              <div className="p-6 flex-1 flex flex-col">
-                               <div className="flex justify-between items-start mb-2">
-                                  <div className="flex-1 min-w-0">
-                                    <h3 className="text-xl font-bold text-wood-900 leading-tight break-words">{name}</h3>
-                                    {item.brand && <p className="text-accent-600 font-bold text-sm mb-1">{item.brand}</p>}
-                                    {item.category === ProductCategory.HAMBURGER && item.subCategory && <span className="text-[10px] font-bold text-wood-400 bg-wood-50 px-2 py-1 rounded-md whitespace-nowrap">{item.subCategory}</span>}
-                                  </div>
-                                  {isDrink && (<div className="flex items-center gap-1 pl-2 shrink-0"><span className="text-sm font-bold text-wood-500">€</span><span className="text-xl font-western text-wood-900">{item.price.toFixed(2)}</span></div>)}
-                               </div>
-                               <div className="flex-1 mb-4">
-                                  {description && <p className="text-sm text-wood-500 line-clamp-3">{description}</p>}
-                                  {description.includes('*') && (<p className="text-[10px] text-wood-400 italic mt-1">* Prodotto surgelato</p>)}
-                               </div>
+                               <div className="flex justify-between items-start mb-2"><div className="flex-1 min-w-0"><h3 className="text-xl font-bold text-wood-900 leading-tight break-words">{name}</h3>{item.brand && <p className="text-accent-600 font-bold text-sm mb-1">{item.brand}</p>}{item.category === ProductCategory.HAMBURGER && item.subCategory && <span className="text-[10px] font-bold text-wood-400 bg-wood-50 px-2 py-1 rounded-md whitespace-nowrap">{item.subCategory}</span>}</div>{isDrink && (<div className="flex items-center gap-1 pl-2 shrink-0"><span className="text-sm font-bold text-wood-500">€</span><span className="text-xl font-western text-wood-900">{item.price.toFixed(2)}</span></div>)}</div>
+                               <div className="flex-1 mb-4">{description && <p className="text-sm text-wood-500 line-clamp-3">{description}</p>}{description.includes('*') && (<p className="text-[10px] text-wood-400 italic mt-1">* Prodotto surgelato</p>)}</div>
                                {item.allergens && item.allergens.length > 0 && (<div className="flex flex-wrap gap-1 mb-4 border-t border-wood-100 pt-2">{item.allergens.map(a => (<div key={a} className="group/allergen relative p-1"><AllergenIcon type={a} className="w-4 h-4 text-wood-400" /><span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-wood-800 text-white text-[10px] rounded opacity-0 group-hover/allergen:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">{a}</span></div>))}</div>)}
                                <button onClick={() => addToCart(item)} className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all duration-200 shadow-lg ${isAdded ? 'bg-green-500 text-white scale-95' : 'bg-wood-900 text-white hover:bg-accent-600 shadow-wood-200'}`}>{isAdded ? <Check size={18} /> : <Plus size={18} />} {t('add_to_cart', lang)}</button>
                              </div>
@@ -524,6 +689,20 @@ export default function App() {
       </div>
     );
   };
+  const renderLogin = () => (
+    <div className="min-h-screen bg-wood-900 flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl border-4 border-wood-800 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-2 bg-accent-500"></div>
+        <div className="flex flex-col items-center text-center mb-8"><WesternLogo size="lg" url={customLogo} className="mb-4" /><h2 className="text-3xl font-western text-wood-900">{t('admin_area', lang)}</h2><p className="text-wood-500 mt-2">{t('login_prompt', lang)}</p></div>
+        <form onSubmit={handleLogin} className="space-y-6">
+          <div className="relative"><Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-wood-400" size={20} /><input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} placeholder="PIN (1234)" className="w-full bg-wood-50 text-center font-mono text-2xl tracking-widest py-4 rounded-xl border-2 border-wood-100 focus:outline-none focus:border-accent-500 focus:bg-white transition-all text-wood-900" autoFocus /></div>
+          {loginError && (<div className="bg-red-50 text-red-500 px-4 py-3 rounded-xl flex items-center gap-2 text-sm font-bold animate-pulse"><AlertCircle size={16} /> {loginError}</div>)}
+          <button type="submit" className="w-full bg-accent-500 text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-accent-600 hover:scale-[1.02] active:scale-[0.98] transition-all">{t('login_btn', lang)}</button>
+        </form>
+        <button onClick={() => setView('MENU')} className="w-full mt-4 py-3 text-wood-400 font-bold hover:text-wood-600 transition-colors">{t('back_to_menu', lang)}</button>
+      </div>
+    </div>
+  );
 
   const renderAdmin = () => {
     const sortedItems = [...items].sort((a, b) => a.name.localeCompare(b.name));
@@ -558,7 +737,7 @@ export default function App() {
            <form onSubmit={handleSaveItem} className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                  <div className="grid grid-cols-2 gap-4">
-                    <div><label className="block text-xs font-bold text-wood-500 uppercase tracking-wider mb-1">Categoria</label><div className="relative"><select value={newItem.category} onChange={e => {const newCat = e.target.value as ProductCategory;setNewItem({...newItem, category: newCat, subCategory: newCat === ProductCategory.HAMBURGER ? HAMBURGER_SUBCATEGORIES[0] : newCat === ProductCategory.BEVANDE ? DRINK_SUBCATEGORIES[0] : undefined});}} className="w-full appearance-none bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 pr-8 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500">{CATEGORIES_LIST.concat([ProductCategory.AGGIUNTE]).map(cat => (<option key={cat} value={cat}>{tCategory(cat, lang)}</option>))}</select><ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-wood-400 pointer-events-none" size={16} /></div></div>
+                    <div><label className="block text-xs font-bold text-wood-500 uppercase tracking-wider mb-1">Categoria</label><div className="relative"><select value={newItem.category} onChange={e => setNewItem({...newItem, category: e.target.value as ProductCategory})} className="w-full appearance-none bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 pr-8 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500">{[...CATEGORIES_LIST, ProductCategory.AGGIUNTE].map(cat => (<option key={cat} value={cat}>{tCategory(cat, lang)}</option>))}</select><ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-wood-400 pointer-events-none" size={16} /></div></div>
                     {(newItem.category === ProductCategory.HAMBURGER || newItem.category === ProductCategory.BEVANDE) && (<div><label className="block text-xs font-bold text-wood-500 uppercase tracking-wider mb-1">Sotto-Categoria</label><div className="relative"><select value={newItem.subCategory} onChange={e => setNewItem({...newItem, subCategory: e.target.value})} className="w-full appearance-none bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 pr-8 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500">{(newItem.category === ProductCategory.HAMBURGER ? HAMBURGER_SUBCATEGORIES : DRINK_SUBCATEGORIES).map(sub => (<option key={sub} value={sub}>{sub}</option>))}</select><ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-wood-400 pointer-events-none" size={16} /></div></div>)}
                  </div>
                  <div><label className="block text-xs font-bold text-wood-500 uppercase tracking-wider mb-1">Nome Prodotto</label><input type="text" required value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-accent-500 focus:ring-1 focus:ring-accent-500 font-medium" placeholder="Es. Old West Burger" /></div>
@@ -620,12 +799,52 @@ export default function App() {
     <>
       {renderHeader()}
       {view === 'MENU' && renderMenu()}
+      {view === 'CHECKOUT' && renderCheckout()}
+      {view === 'ORDER_SUCCESS' && renderOrderSuccess()}
       {view === 'LOGIN' && renderLogin()}
       {view === 'ADMIN' && renderAdmin()}
       {renderCartDrawer()}
       {renderFloatingCartBar()}
 
-      <button onClick={scrollToTop} className={`fixed bottom-24 right-6 z-40 w-10 h-10 bg-wood-800 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:bg-accent-600 hover:scale-110 ${showScrollTop && !isCartOpen ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0 pointer-events-none'}`} aria-label="Scroll to top"><ChevronUp size={20} /></button>
+      {(view === 'MENU' || view === 'CHECKOUT') && (
+         <button onClick={scrollToTop} className={`fixed bottom-24 right-6 z-40 w-10 h-10 bg-wood-800 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-300 hover:bg-accent-600 hover:scale-110 ${showScrollTop && !isCartOpen ? 'translate-y-0 opacity-100' : 'translate-y-20 opacity-0 pointer-events-none'}`} aria-label="Scroll to top"><ChevronUp size={20} /></button>
+      )}
+      {/* POPUP DETTAGLI PRODOTTO IN EVIDENZA (CON TRADUZIONI) */}
+      {infoItem && (() => {
+        // Questa riga recupera nome e descrizione nella lingua corretta
+        const { name, description } = getProductContent(infoItem);
+        
+        return (
+          <div className="fixed inset-0 bg-black/60 z-[70] backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300" onClick={() => setInfoItem(null)}>
+            <div className="bg-white w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
+              <div className="relative h-48 bg-wood-100">
+                {infoItem.imageUrl ? (
+                  <img src={infoItem.imageUrl} alt={name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-wood-300"><UtensilsCrossed size={40}/></div>
+                )}
+                <button onClick={() => setInfoItem(null)} className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"><X size={20}/></button>
+              </div>
+              <div className="p-6">
+                {/* Visualizziamo 'name' e 'description' tradotti */}
+                <h3 className="text-2xl font-bold text-wood-900 mb-1">{name}</h3>
+                {infoItem.brand && <p className="text-[#45856c] font-bold mb-3">{infoItem.brand}</p>}
+                <p className="text-wood-600 leading-relaxed mb-6">{description}</p>
+                
+                <div className="flex items-center justify-between pt-4 border-t border-wood-100">
+                   <span className="text-2xl font-western text-wood-900">€{infoItem.price.toFixed(2)}</span>
+                   <button 
+                     onClick={() => { addToCart(infoItem); setInfoItem(null); }}
+                     className="bg-[#45856c] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-opacity-90 transition-all active:scale-95"
+                   >
+                     <Plus size={18}/> {t('add_to_cart', lang)}
+                   </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </>
   );
 }

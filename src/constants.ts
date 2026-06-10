@@ -1,6 +1,6 @@
-import { MenuItem, ProductCategory, LanguageCode, AllergenType } from './types';
+import { MenuItem, ProductCategory, LanguageCode, AllergenType, DeliveryZone } from './types';
 
-export const DATA_VERSION = '2.6'; // Aggiornato
+export const DATA_VERSION = '3.0'; // Versione Delivery
 
 export const HAMBURGER_SUBCATEGORIES = [
   "Old West Special",
@@ -22,7 +22,7 @@ export const SUBCATEGORY_TRANSLATIONS: Record<string, Record<LanguageCode, strin
   "Birre alla Spina": { it: "Birre alla Spina", en: "Draft Beers", fr: "Bières Pression", de: "Bier vom Fass" },
   "Birre in Bottiglia": { it: "Birre in Bottiglia", en: "Bottled Beers", fr: "Bières en Bouteille", de: "Flaschenbiere" },
   "Vini": { it: "Vini", en: "Wines", fr: "Vins", de: "Weine" },
-  "Caffetteria": { it: "Caffetteria", en: "Coffee", fr: "Café", de: "Kaffee" }, // Modificato in "Coffee"
+  "Caffetteria": { it: "Caffetteria", en: "Coffee", fr: "Café", de: "Kaffee" },
   "Amari e Digestivi": { it: "Amari e Digestivi", en: "Bitters & Digestifs", fr: "Amers et Digestifs", de: "Bitter und Digestifs" }
 };
 
@@ -107,6 +107,14 @@ export const DIY_OPTIONS = {
   ]
 };
 
+// --- NUOVO: ZONE DI CONSEGNA ---
+export const DELIVERY_ZONES: DeliveryZone[] = [
+  { name: "Cameri", cost: 0.00, minOrder: 10.00 },
+  { name: "Galliate", cost: 2.50, minOrder: 15.00 },
+  { name: "Novara", cost: 5.00, minOrder: 25.00 },
+  { name: "Bellinzago Novarese", cost: 3.00, minOrder: 20.00 }
+];
+
 export const UI_TRANSLATIONS: Record<string, Record<LanguageCode, string>> = {
   'menu_title': { it: 'Menu Digitale', en: 'Digital Menu', fr: 'Menu Numérique', de: 'Digitales Menü' },
   'back_to_menu': { it: 'Torna al Menu', en: 'Back to Menu', fr: 'Retour au Menu', de: 'Zurück zum Menü' },
@@ -121,14 +129,13 @@ export const UI_TRANSLATIONS: Record<string, Record<LanguageCode, string>> = {
   'diy_title': { it: 'Crea il tuo Capolavoro', en: 'Create your Masterpiece', fr: "Créez votre Chef-d'œuvre", de: 'Kreieren Sie Ihr Meisterwerk' },
   'diy_subtitle': { it: "Segui i 4 passaggi per comporre l'hamburger perfetto.", en: 'Follow the 4 steps to build your perfect burger.', fr: 'Suivez les 4 étapes pour composer votre burger parfait.', de: 'Folgen Sie den 4 Schritten zum perfekten Burger.' },
   'total': { it: 'Totale', en: 'Total', fr: 'Total', de: 'Gesamt' },
-  'order_table': { it: 'Ordina al Tavolo', en: 'Order at Table', fr: 'Commander à table', de: 'Am Tisch bestellen' },
   'filter_veg': { it: 'Vegetariano', en: 'Vegetarian', fr: 'Végétarien', de: 'Vegetarisch' },
   'filter_vegan': { it: 'Vegano', en: 'Vegan', fr: 'Végan', de: 'Vegan' },
   'filter_spicy': { it: 'Piccante', en: 'Spicy', fr: 'Épicé', de: 'Scharf' },
   'all': { it: 'Tutti', en: 'All', fr: 'Tout', de: 'Alle' },
   'my_order': { it: 'Il Mio Ordine', en: 'My Order', fr: 'Ma Commande', de: 'Meine Bestellung' },
   'review_order': { it: 'Rivedi Ordine', en: 'Review Order', fr: 'Voir la commande', de: 'Bestellung prüfen' },
-  'show_staff': { it: 'Mostra al Cameriere', en: 'Show to Staff', fr: 'Montrer au serveur', de: 'Dem Kellner zeigen' },
+  'show_staff': { it: 'Procedi all\'Ordine', en: 'Proceed to Checkout', fr: 'Passer la commande', de: 'Zur Kasse' },
   'add_ingredient': { it: 'Aggiungi Ingrediente', en: 'Add Ingredient', fr: 'Ajouter Ingrédient', de: 'Zutat hinzufügen' },
   'add_to_cart': { it: 'Aggiungi', en: 'Add', fr: 'Ajouter', de: 'Hinzufügen' },
   'add': { it: 'Avanti', en: 'Next', fr: 'Suivant', de: 'Weiter' },
@@ -138,11 +145,36 @@ export const UI_TRANSLATIONS: Record<string, Record<LanguageCode, string>> = {
   'items': { it: 'articoli', en: 'items', fr: 'articles', de: 'artikel' },
   'frozen_explanation': { it: '* Prodotto congelato all\'origine', en: '* Frozen product', fr: '* Produit surgelé', de: '* Tiefkühlprodukt' },
   'rights_reserved': { it: 'All rights reserved', en: 'All rights reserved', fr: 'Tous droits réservés', de: 'Alle Rechte vorbehalten' },
-  
-  // Suggerimenti Cross-selling (Per il popup/toast)
   'suggestion_burger': { it: 'Ottimo con una Birra Media o Patatine!', en: 'Great with a Beer or Fries!', fr: 'Excellent avec une Bière ou des Frites!', de: 'Toll mit einem Bier oder Pommes!' },
   'suggestion_main': { it: 'Accompagnalo con un buon Vino Rosso', en: 'Pair it with a good Red Wine', fr: 'Accompagnez-le d\'un bon Vin Rouge', de: 'Passt gut zu einem Rotwein' },
   'suggestion_dessert': { it: 'Ideale con un Caffè o un Amaro', en: 'Perfect with Coffee or Digestif', fr: 'Idéal avec un Café ou un Digestif', de: 'Ideal mit Kaffee oder Digestif' },
+  
+  // Traduzioni corte per i bottoni Checkout
+  'type_table': { it: 'Al Tavolo', en: 'Table', fr: 'À table', de: 'Am Tisch' },
+  'type_takeaway': { it: 'Ritiro', en: 'Pickup', fr: 'Retrait', de: 'Abholung' },
+  'type_delivery': { it: 'Consegna', en: 'Delivery', fr: 'Livraison', de: 'Lieferung' },
+
+  // --- TRADUZIONI CHECKOUT ---
+  'checkout_title': { it: 'Dettagli Ordine', en: 'Order Details', fr: 'Détails de la commande', de: 'Bestelldetails' },
+  'order_type': { it: 'Come vuoi ricevere l\'ordine?', en: 'How do you want your order?', fr: 'Comment voulez-vous recevoir votre commande?', de: 'Wie möchten Sie Ihre Bestellung?' },
+  'takeaway': { it: 'Ritiro al Locale', en: 'Takeaway', fr: 'À emporter', de: 'Abholung' },
+  'delivery': { it: 'Consegna a Domicilio', en: 'Delivery', fr: 'Livraison à domicile', de: 'Lieferung' },
+  'your_data': { it: 'I tuoi dati', en: 'Your Details', fr: 'Vos coordonnées', de: 'Ihre Daten' },
+  'name': { it: 'Nome e Cognome', en: 'Full Name', fr: 'Nom et Prénom', de: 'Vor- und Nachname' },
+  'phone': { it: 'Numero di Telefono', en: 'Phone Number', fr: 'Numéro de téléphone', de: 'Telefonnummer' },
+  'address': { it: 'Indirizzo completo (Via, Civico)', en: 'Full Address', fr: 'Adresse complète', de: 'Vollständige Adresse' },
+  'city': { it: 'Comune di consegna', en: 'Delivery City', fr: 'Ville de livraison', de: 'Lieferstadt' },
+  'delivery_fee': { it: 'Costo consegna', en: 'Delivery Fee', fr: 'Frais de livraison', de: 'Liefergebühr' },
+  'time': { it: 'Orario desiderato', en: 'Desired Time', fr: 'Heure souhaitée', de: 'Gewünschte Zeit' },
+  'asap': { it: 'Il prima possibile', en: 'As soon as possible', fr: 'Dès que possible', de: 'So schnell wie möglich' },
+  'payment': { it: 'Metodo di Pagamento', en: 'Payment Method', fr: 'Mode de paiement', de: 'Zahlungsmethode' },
+  'cash': { it: 'Contanti (alla consegna/ritiro)', en: 'Cash', fr: 'Espèces', de: 'Bargeld' },
+  'pos': { it: 'Bancomat / Carta (alla consegna/ritiro)', en: 'Card / POS', fr: 'Carte bancaire', de: 'Kartenzahlung' },
+  'notes': { it: 'Note per la cucina o fattorino (es. Suonare Rossi, resto di 50€)', en: 'Notes (e.g. Ring Rossi, change for €50)', fr: 'Notes', de: 'Notizen' },
+  'send_order': { it: 'Invia Ordine', en: 'Send Order', fr: 'Envoyer la commande', de: 'Bestellung senden' },
+  'order_success_title': { it: 'Ordine Inviato!', en: 'Order Sent!', fr: 'Commande envoyée!', de: 'Bestellung gesendet!' },
+  'order_success_msg': { it: 'Il tuo ordine è stato ricevuto con successo dalla cucina.', en: 'Your order has been successfully received.', fr: 'Votre commande a été reçue avec succès.', de: 'Ihre Bestellung wurde erfolgreich empfangen.' },
+  'back_home': { it: 'Torna alla Home', en: 'Back to Home', fr: 'Retour à l\'accueil', de: 'Zurück zur Startseite' }
 };
 
 export const CATEGORY_TRANSLATIONS: Record<ProductCategory, Record<LanguageCode, string>> = {
