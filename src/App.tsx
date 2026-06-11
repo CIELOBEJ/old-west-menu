@@ -7,7 +7,7 @@ import {
   Milk, Egg, Nut, Bean, AlertCircle, Wine, Shell, Info, Search, Sandwich, Sparkles, Bike, Store, CheckCircle2 
 } from 'lucide-react';
 import { MenuItem, ProductCategory, ViewState, LanguageCode, ActiveFilters, CartItem, AllergenType, ProductVariant, OrderType, PaymentMethod } from './types';
-import { INITIAL_MENU_ITEMS, CATEGORIES_LIST, HAMBURGER_SUBCATEGORIES, DRINK_SUBCATEGORIES, DIY_OPTIONS, UI_TRANSLATIONS, CATEGORY_TRANSLATIONS, SUBCATEGORY_TRANSLATIONS, DATA_VERSION, ALLERGENS_CONFIG, EXTRA_INGREDIENTS_ITEMS, DELIVERY_ZONES } from './constants';
+import { INITIAL_MENU_ITEMS, CATEGORIES_LIST, HAMBURGER_SUBCATEGORIES, DRINK_SUBCATEGORIES, DIY_OPTIONS, UI_TRANSLATIONS, CATEGORY_TRANSLATIONS, SUBCATEGORY_TRANSLATIONS, DATA_VERSION, ALLERGENS_CONFIG, EXTRA_INGREDIENTS_ITEMS, DELIVERY_ZONES, LUNCH_HOURS, DINNER_HOURS, ADDON_SUBCATEGORIES } from './constants';
 import { supabase } from './supabase';
 
 // --- Helper Functions ---
@@ -93,6 +93,7 @@ const getDIYOptionContent = (opt: any, lang: LanguageCode) => {
 // --- MAIN COMPONENT ---
 
 export default function App() {
+  const [orderDate, setOrderFormDate] = useState('Oggi');
   const [items, setItems] = useState<MenuItem[]>([]);
   const [view, setView] = useState<ViewState>('MENU');
   const [activeCategory, setActiveCategory] = useState<string>('Tutti');
@@ -227,7 +228,22 @@ export default function App() {
   const updateCartItemQuantity = (cartId: string, delta: number) => { setCart(cart.map(item => { if (item.cartId === cartId) { const newQty = item.quantity + delta; return newQty > 0 ? { ...item, quantity: newQty } : item; } return item; })); };
   const openAddonModal = (index: number) => { setEditingCartItemIndex(index); setAddonSearch(''); setIsAddonModalOpen(true); };
   const addAddonToItem = (addon: MenuItem) => { if (editingCartItemIndex === null) return; const newCart = [...cart]; const updatedItem = { ...newCart[editingCartItemIndex] }; const currentAddons = updatedItem.selectedAddons || []; updatedItem.selectedAddons = [...currentAddons, addon]; newCart[editingCartItemIndex] = updatedItem; setCart(newCart); setIsAddonModalOpen(false); setEditingCartItemIndex(null); };
-  
+  const removeAddonFromItem = (cartItemIndex: number, addonIndex: number) => {
+    const newCart = [...cart];
+    const updatedItem = { ...newCart[cartItemIndex] };
+    
+    if (updatedItem.selectedAddons) {
+      // Creiamo una copia della lista ingredienti e togliamo quello specifico
+      const newAddons = [...updatedItem.selectedAddons];
+      newAddons.splice(addonIndex, 1); 
+      updatedItem.selectedAddons = newAddons;
+      
+      // Aggiorniamo il carrello
+      newCart[cartItemIndex] = updatedItem;
+      setCart(newCart);
+    }
+  };
+
   // --- NUOVA LOGICA TOTALI ---
   const getCartItemsTotal = () => { 
       return cart.reduce((sum, item) => { 
@@ -292,7 +308,8 @@ export default function App() {
         payment_method: orderForm.paymentMethod,
         total_amount: getGrandTotal(),
         cart_items: cart,
-        status: 'pending'
+        status: 'pending',
+        notes: orderForm.notes
       };
 
       // Invio a Supabase e recupero i dati inseriti (per avere l'ID)
@@ -355,7 +372,22 @@ export default function App() {
   };
 
   const renderCartDrawer = () => {
-      const addons = items.filter(i => i.category === ProductCategory.AGGIUNTE);
+    // Recuperiamo il prodotto che stiamo modificando dal carrello
+    const itemBeingEdited = editingCartItemIndex !== null ? cart[editingCartItemIndex] : null;
+
+    // Filtriamo gli ingredienti extra in base alla categoria del prodotto
+    const addons = items.filter(i => {
+      if (i.category !== ProductCategory.AGGIUNTE) return false;
+      if (!itemBeingEdited) return true;
+
+      // Logica intelligente:
+      // Mostra l'extra se la sua sottocategoria è "Generale" 
+      // OPPURE se corrisponde alla categoria del piatto (Pizza o Hamburger)
+      return (
+        i.subCategory === "Generale" || 
+        i.subCategory === itemBeingEdited.category
+      );
+    });
       const filteredAddons = addons.filter(a => a.name.toLowerCase().includes(addonSearch.toLowerCase()));
 
       return (
@@ -376,7 +408,7 @@ export default function App() {
                              <div className="flex items-center gap-2 mb-1"><span className="font-bold text-wood-900 text-lg">{item.quantity}x {item.name}</span></div>
                              {item.selectedVariant && <span className="text-xs bg-wood-100 px-2 py-0.5 rounded text-wood-600 block w-fit mb-1">{item.selectedVariant.name}</span>}
                              {item.id.startsWith('diy-') && (<p className="text-xs italic text-wood-500 mb-2 leading-relaxed">{item.description}</p>)}
-                             {item.selectedAddons && item.selectedAddons.length > 0 && (<div className="text-sm text-wood-500 mt-1 space-y-0.5">{item.selectedAddons.map((add, i) => (<div key={i} className="flex items-center gap-1 text-accent-600 font-medium"><Plus size={10} /> {add.name} (+€{add.price.toFixed(2)})</div>))}</div>)}
+                             {item.selectedAddons && item.selectedAddons.length > 0 && (<div className="text-sm text-[#45856c] mt-1 space-y-1">{item.selectedAddons.map((add, addonIdx) => (<div key={addonIdx} className="flex items-center gap-3 group"> {/* Usiamo gap-3 per tenerli vicini */}<div className="flex items-center gap-1 font-medium"><Plus size={10} /> {add.name} (+€{add.price.toFixed(2)})</div>{/* CESTINO POSIZIONATO VICINO AL TESTO */}<button onClick={() => removeAddonFromItem(index, addonIdx)}className="p-1.5 bg-red-50 text-red-500 rounded-md hover:bg-red-100 transition-colors flex items-center justify-center shadow-sm border border-red-100"title="Rimuovi"><Trash2 size={12} /></button></div>))}</div>)}
                              {(item.category === ProductCategory.HAMBURGER || item.category === ProductCategory.PIZZA) && (<button onClick={() => openAddonModal(index)} className="text-xs font-bold text-wood-400 mt-3 flex items-center gap-1 hover:text-accent-600 transition-colors border border-wood-200 rounded-lg px-3 py-1.5 w-fit"><Plus size={12}/> {t('add_ingredient', lang)}</button>)}
                           </div>
                           <div className="flex flex-col items-end gap-3">
@@ -400,14 +432,40 @@ export default function App() {
            </div>
         </div>
         {isAddonModalOpen && (
-           <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-end md:justify-center p-0 md:p-4">
-              <div className="bg-white w-full md:max-w-md h-[80vh] md:h-auto md:rounded-3xl rounded-t-3xl p-6 flex flex-col animate-in slide-in-from-bottom-20 duration-300">
-                 <div className="flex justify-between items-center mb-4"><h4 className="font-bold text-xl text-wood-900">{t('add_ingredient', lang)}</h4><button onClick={() => setIsAddonModalOpen(false)} className="p-2 bg-wood-50 rounded-full"><X/></button></div>
-                 <div className="relative mb-4"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-wood-400" size={18}/><input type="text" placeholder={t('search_addon', lang)} value={addonSearch} onChange={(e) => setAddonSearch(e.target.value)} className="w-full bg-wood-50 rounded-xl py-3 pl-10 pr-4 outline-none focus:ring-2 focus:ring-accent-500 border border-wood-100" autoFocus /></div>
-                 <div className="flex-1 overflow-y-auto space-y-2">{filteredAddons.map(addon => (<button key={addon.id} onClick={() => addAddonToItem(addon)} className="w-full flex justify-between items-center p-4 hover:bg-accent-50 hover:border-accent-200 border border-transparent rounded-xl transition-all text-left group"><span className="font-medium text-wood-800 group-hover:text-accent-700">{addon.name}</span><span className="font-bold text-accent-600 bg-accent-50 px-2 py-1 rounded group-hover:bg-white">+€{addon.price.toFixed(2)}</span></button>))}</div>
-              </div>
-           </div>
-        )}
+         <div className="fixed inset-0 bg-black/60 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
+            <div className="bg-white w-full md:max-w-md h-[85vh] md:h-auto md:max-h-[80vh] md:rounded-3xl rounded-t-3xl p-6 flex flex-col shadow-2xl overflow-hidden">
+               <div className="flex justify-between items-center mb-4">
+                  <h4 className="font-bold text-xl text-wood-900">{t('add_ingredient', lang)}</h4>
+                  <button onClick={() => setIsAddonModalOpen(false)} className="p-2 bg-wood-50 rounded-full"><X/></button>
+               </div>
+               
+               {/* BARRA DI RICERCA */}
+               <div className="relative mb-4">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-wood-400" size={18}/>
+                  <input 
+                     type="text" 
+                     placeholder={t('search_addon', lang)} 
+                     value={addonSearch} 
+                     onChange={(e) => setAddonSearch(e.target.value)} 
+                     className="w-full bg-white border border-[#45856c]/30 rounded-xl py-3 pl-10 pr-4 outline-none focus:ring-2 focus:ring-[#45856c] focus:border-transparent transition-all" 
+                  />
+               </div>
+               
+               {/* LISTA SCORREVOLE (FIXATA) */}
+               <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                  {filteredAddons.map(addon => (
+                     <button key={addon.id} onClick={() => addAddonToItem(addon)} className="w-full flex justify-between items-center p-4 hover:bg-green-50 rounded-2xl transition-all border border-transparent hover:border-[#45856c]/20 group">
+                        <span className="font-medium text-wood-800 group-hover:text-[#45856c]">{addon.name}</span>
+                        <span className="font-mono font-bold text-[#45856c] bg-[#45856c]/10 px-3 py-1 rounded-full text-sm">+€{addon.price.toFixed(2)}</span>
+                     </button>
+                  ))}
+                  {filteredAddons.length === 0 && (
+                     <div className="text-center py-10 text-wood-400">Nessun ingrediente trovato.</div>
+                  )}
+               </div>
+            </div>
+         </div>
+      )}
       </>
       );
   };
@@ -464,24 +522,94 @@ export default function App() {
               </div>
 
               {/* DATI CLIENTE (SPARISCE COMPLETAMENTE SE SIAMO AL TAVOLO) */}
-              {orderForm.orderType !== 'table' && (
-                <div className="bg-white p-6 rounded-3xl border border-wood-100 shadow-sm space-y-4 animate-in fade-in zoom-in-95 duration-300">
-                   <h3 className="font-bold text-lg text-wood-900 mb-2">{t('your_data', lang)}</h3>
-                   
-                   <div><label className="block text-xs font-bold text-wood-500 uppercase mb-1">{t('name', lang)} *</label><input required type="text" value={orderForm.customerName} onChange={e => setOrderForm({...orderForm, customerName: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#45856c] focus:ring-1 focus:ring-[#45856c]" /></div>
-                   <div><label className="block text-xs font-bold text-wood-500 uppercase mb-1">Email *</label><input required type="email" value={orderForm.customerEmail} onChange={e => setOrderForm({...orderForm, customerEmail: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#45856c]" /></div>
-                   <div><label className="block text-xs font-bold text-wood-500 uppercase mb-1">{t('phone', lang)} *</label><input required type="tel" value={orderForm.customerPhone} onChange={e => setOrderForm({...orderForm, customerPhone: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#45856c] focus:ring-1 focus:ring-[#45856c]" /></div>
+              {orderForm.orderType !== 'table' && (() => {
+               // LOGICA CHIUSURA: Definiamo se il locale è chiuso ora
+               const oraAttuale = new Date().getHours();
+               const isChiusoOra = (oraAttuale < 11 || (oraAttuale >= 15 && oraAttuale < 17) || oraAttuale >= 23);
+               
+               return (
+                  <div className="bg-white p-6 rounded-3xl border border-wood-100 shadow-sm space-y-6 animate-in fade-in">
+                     <h3 className="font-bold text-lg text-wood-900 mb-2">{t('your_data', lang)}</h3>
+                     
+                     {/* Messaggio Locale Chiuso (appare solo se è orario di chiusura e hai scelto 'Oggi') */}
+                     {isChiusoOra && orderDate === 'Oggi' && (
+                        <div className="p-4 bg-orange-50 border border-orange-100 rounded-2xl text-orange-800 text-sm flex items-start gap-3">
+                           <Info size={20} className="shrink-0 mt-0.5" />
+                           <p>🤠 <strong>Siamo chiusi al momento!</strong><br/>Puoi comunque inviare l'ordine: lo riceveremo alla prossima apertura.</p>
+                        </div>
+                     )}
 
-                   {orderForm.orderType === 'delivery' && (
-                      <>
-                         <div><label className="block text-xs font-bold text-wood-500 uppercase mb-1">{t('city', lang)} *</label><select required value={orderForm.deliveryCity} onChange={e => setOrderForm({...orderForm, deliveryCity: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#45856c] focus:ring-1 focus:ring-[#45856c]">{DELIVERY_ZONES.map(z => <option key={z.name} value={z.name}>{z.name} {z.cost > 0 ? `(+€${z.cost.toFixed(2)})` : '(Gratis)'}</option>)}</select></div>
-                         <div><label className="block text-xs font-bold text-wood-500 uppercase mb-1">{t('address', lang)} *</label><input required type="text" value={orderForm.deliveryAddress} onChange={e => setOrderForm({...orderForm, deliveryAddress: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#45856c] focus:ring-1 focus:ring-[#45856c]" placeholder="Via Roma 1, Campanello Rossi" /></div>
-                      </>
-                   )}
+                     {/* Nome e Telefono */}
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><label className="block text-xs font-bold text-wood-500 uppercase mb-1">{t('name', lang)} *</label><input required type="text" value={orderForm.customerName} onChange={e => setOrderForm({...orderForm, customerName: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:border-[#45856c]" /></div>
+                        <div><label className="block text-xs font-bold text-wood-500 uppercase mb-1">Email *</label><input required type="email" value={orderForm.customerEmail} onChange={e => setOrderForm({...orderForm, customerEmail: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:border-[#45856c]" /></div>
+                        <div><label className="block text-xs font-bold text-wood-500 uppercase mb-1">{t('phone', lang)} *</label><input required type="tel" value={orderForm.customerPhone} onChange={e => setOrderForm({...orderForm, customerPhone: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:border-[#45856c]" /></div>
+                     </div>
 
-                   <div className="pt-2"><label className="block text-xs font-bold text-wood-500 uppercase mb-1">{t('time', lang)} *</label><select required value={orderForm.deliveryTime} onChange={e => setOrderForm({...orderForm, deliveryTime: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#45856c] focus:ring-1 focus:ring-[#45856c]">{timeSlots.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                </div>
-              )}
+                     {/* Comune e Indirizzo (Solo per Consegna) */}
+                     {orderForm.orderType === 'delivery' && (
+                        <div className="space-y-4 pt-2 border-t border-wood-50">
+                           <div className="space-y-3">
+                              <label className="block text-xs font-bold text-wood-500 uppercase tracking-wider mb-2">
+                                 {t('city', lang)} *
+                              </label>
+                              <div className="grid grid-cols-1 gap-3">
+                                 {DELIVERY_ZONES.map((zone) => {
+                                    const isSelected = orderForm.deliveryCity === zone.name;
+                                    return (
+                                    <button
+                                       key={zone.name}
+                                       type="button"
+                                       onClick={() => setOrderForm({ ...orderForm, deliveryCity: zone.name })}
+                                       className={`relative p-4 rounded-2xl border-2 text-left transition-all duration-300 flex justify-between items-center ${
+                                          isSelected
+                                          ? 'border-[#45856c] bg-[#45856c]/5 shadow-md'
+                                          : 'border-wood-100 bg-white hover:border-wood-200'
+                                       }`}
+                                    >
+                                       <div className="flex flex-col">
+                                          <span className={`font-bold text-base ${isSelected ? 'text-[#45856c]' : 'text-wood-900'}`}>
+                                          {zone.name}
+                                          </span>
+                                          <span className="text-[10px] text-wood-400 font-medium uppercase tracking-tight">
+                                          {zone.cost === 0 ? 'Consegna Gratuita' : `Costo consegna: +€${zone.cost.toFixed(2)}`}
+                                          </span>
+                                       </div>
+                                       
+                                       <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                                          isSelected ? 'bg-[#45856c] border-[#45856c]' : 'border-wood-200'
+                                       }`}>
+                                          {isSelected && <Check size={14} className="text-white" />}
+                                       </div>
+                                    </button>
+                                    );
+                                 })}
+                              </div>
+                              </div>
+                           <div><label className="block text-xs font-bold text-wood-500 uppercase mb-1">{t('address', lang)} *</label><input required type="text" value={orderForm.deliveryAddress} onChange={e => setOrderForm({...orderForm, deliveryAddress: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3" placeholder="Via Roma 1, Campanello Rossi" /></div>
+                        </div>
+                     )}
+
+                     {/* --- NUOVA SEZIONE DATA E ORARIO (CHIPS) --- */}
+                     <div className="pt-4 border-t border-wood-50">
+                        <label className="block text-xs font-bold text-wood-500 uppercase mb-3">Quando?</label>
+                        <div className="flex gap-2 mb-6">
+                           {['Oggi', 'Domani'].map(d => (
+                              <button key={d} type="button" onClick={() => setOrderFormDate(d)} className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${orderDate === d ? 'border-[#45856c] bg-[#45856c] text-white shadow-md' : 'border-wood-100 bg-wood-50 text-wood-400'}`}>{d}</button>
+                           ))}
+                        </div>
+
+                        <label className="block text-xs font-bold text-wood-500 uppercase mb-3">{t('time', lang)}</label>
+                        <div className="flex flex-wrap gap-2 max-h-56 overflow-y-auto p-1 bg-wood-50/50 rounded-2xl border border-wood-100 p-3">
+                           <button type="button" onClick={() => setOrderForm({...orderForm, deliveryTime: 'Il prima possibile'})} className={`px-4 py-2 rounded-full font-bold text-[10px] border-2 transition-all ${orderForm.deliveryTime === 'Il prima possibile' ? 'border-[#45856c] bg-[#45856c] text-white' : 'border-white bg-white text-wood-500 shadow-sm'}`}>IL PRIMA POSSIBILE</button>
+                           {[...LUNCH_HOURS, ...DINNER_HOURS].map(time => (
+                              <button key={time} type="button" onClick={() => setOrderForm({...orderForm, deliveryTime: time})} className={`px-4 py-2 rounded-full font-bold text-xs border-2 transition-all ${orderForm.deliveryTime === time ? 'border-[#45856c] bg-[#45856c] text-white' : 'border-white bg-white text-wood-500 shadow-sm'}`}>{time}</button>
+                           ))}
+                        </div>
+                     </div>
+                  </div>
+               )
+               })()}
 
               {/* METODO DI PAGAMENTO E NOTE */}
               <div className="bg-white p-6 rounded-3xl border border-wood-100 shadow-sm">

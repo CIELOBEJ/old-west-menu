@@ -17,6 +17,12 @@ export const DRINK_SUBCATEGORIES = [
   "Amari e Digestivi"
 ];
 
+export const ADDON_SUBCATEGORIES = [
+  "Pizza",
+  "Hamburger",
+  "Generale"
+];
+
 export const SUBCATEGORY_TRANSLATIONS: Record<string, Record<LanguageCode, string>> = {
   "Acqua e Bibite": { it: "Acqua e Bibite", en: "Water & Soft Drinks", fr: "Eau et Boissons", de: "Wasser und Erfrischungsgetränke" },
   "Birre alla Spina": { it: "Birre alla Spina", en: "Draft Beers", fr: "Bières Pression", de: "Bier vom Fass" },
@@ -125,7 +131,7 @@ export const UI_TRANSLATIONS: Record<string, Record<LanguageCode, string>> = {
   'hero_title': { it: 'Il Gusto Autentico', en: 'The Authentic Taste', fr: 'Le Goût Authentique', de: 'Der Authentische Geschmack' },
   'no_products_section': { it: 'Nessun prodotto disponibile in questa sezione.', en: 'No products available in this section.', fr: 'Aucun produit disponible dans cette section.', de: 'Keine Produkte in diesem Bereich verfügbar.' },
   'select_category': { it: 'Seleziona una categoria', en: 'Select a category', fr: 'Sélectionnez une catégorie', de: 'Wählen Sie eine Kategorie' },
-  'create_your_taste': { it: 'Crea il tuo gusto', en: 'Create your taste', fr: 'Créez votre goût', de: 'Kreieren Sie Ihren Geschmack' },
+  'create_your_taste': { it: 'Hamburger fai da te', en: 'DIY Burger', fr: 'Burger sur mesure', de: 'Burger selbst zusammenstellen' },
   'diy_title': { it: 'Crea il tuo Capolavoro', en: 'Create your Masterpiece', fr: "Créez votre Chef-d'œuvre", de: 'Kreieren Sie Ihr Meisterwerk' },
   'diy_subtitle': { it: "Segui i 4 passaggi per comporre l'hamburger perfetto.", en: 'Follow the 4 steps to build your perfect burger.', fr: 'Suivez les 4 étapes pour composer votre burger parfait.', de: 'Folgen Sie den 4 Schritten zum perfekten Burger.' },
   'total': { it: 'Totale', en: 'Total', fr: 'Total', de: 'Gesamt' },
@@ -204,5 +210,7 @@ export const EXTRA_INGREDIENTS_ITEMS: MenuItem[] = [
 ];
 
 export const INITIAL_MENU_ITEMS: MenuItem[] = []; 
-
 export const CATEGORIES_LIST = Object.values(ProductCategory).filter(c => c !== ProductCategory.AGGIUNTE);
+
+export const LUNCH_HOURS = ["11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "14:30"];
+export const DINNER_HOURS = ["18:30", "19:00", "19:30", "20:00", "20:30", "21:00", "21:30", "22:00", "22:30", "23:00", "23:30"];
