@@ -60,6 +60,7 @@ export interface CartItem extends MenuItem {
   selectedAddons?: MenuItem[];
   removedIngredients?: string[]; // <--- AGGIUNGI QUESTA
   selectedSideDish?: string;
+  selectedFreeDrink?: string;
 }
 
 // --- NUOVI TIPI PER IL DELIVERY ---

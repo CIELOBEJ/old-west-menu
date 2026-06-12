@@ -151,6 +151,27 @@ export default function App() {
   const [isSideDishModalOpen, setIsSideDishModalOpen] = useState(false);
   const [sideDishItemIndex, setSideDishItemIndex] = useState<number | null>(null);
 
+  // --- STATI AGGIUNTI PER LA GESTIONE BEVANDA OMAGGIO NELLE PIZZE ---
+  const [isFreeDrinkModalOpen, setIsFreeDrinkModalOpen] = useState(false);
+  const [freeDrinkItemIndex, setFreeDrinkItemIndex] = useState<number | null>(null);
+
+  const openFreeDrinkModal = (index: number) => {
+    setFreeDrinkItemIndex(index);
+    setIsFreeDrinkModalOpen(true);
+  };
+
+  const selectFreeDrink = (drinkName: string) => {
+    if (freeDrinkItemIndex === null) return;
+    const newCart = [...cart];
+    newCart[freeDrinkItemIndex] = {
+      ...newCart[freeDrinkItemIndex],
+      selectedFreeDrink: drinkName
+    };
+    setCart(newCart);
+    setIsFreeDrinkModalOpen(false);
+    setFreeDrinkItemIndex(null);
+  };
+
 // Apre la modale per personalizzare (Togliere/Aggiungere ingredienti base)
   const openCustomizationModal = (index: number) => {
     setCustomizingItemIndex(index);
@@ -480,6 +501,18 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
     const finalCustomerName = orderForm.orderType === 'table' ? `TAVOLO ${orderForm.tableNumber}` : orderForm.customerName;
     const finalPhone = orderForm.orderType === 'table' ? 'N/D' : orderForm.customerPhone;
 
+    const isDeliveryOrTakeaway = orderForm.orderType === 'delivery' || orderForm.orderType === 'takeaway';
+    
+    // Controllo di sicurezza: impedisci l'invio se ci sono bibite omaggio non scelte
+    const hasMissingFreeDrinks = cart.some(item => 
+      isDeliveryOrTakeaway && item.category === ProductCategory.PIZZA && !item.selectedFreeDrink
+    );
+    if (hasMissingFreeDrinks) {
+      alert("Seleziona la bevanda omaggio per tutte le pizze prima di inviare l'ordine!");
+      setIsSubmittingOrder(false);
+      return;
+    }
+
     // Controllo di sicurezza: impedisci l'invio se ci sono contorni non scelti
     const hasMissingSideDishes = cart.some(item => 
       item.brand === "Contorno compreso" && !item.selectedSideDish
@@ -549,6 +582,18 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
               category: ProductCategory.AGGIUNTE,
               isAvailable: true
             });
+          });
+        }
+
+        // Se c'è una bevanda omaggio scelta per la pizza, la iniettiamo come "+ OMAGGIO: [NOME]"
+        if (isDeliveryOrTakeaway && item.category === ProductCategory.PIZZA && item.selectedFreeDrink) {
+          virtualAddons.push({
+            id: `virtual-drink-${item.selectedFreeDrink}-${Date.now()}`,
+            name: `OMAGGIO: ${item.selectedFreeDrink.toUpperCase()}`,
+            description: '',
+            price: 0,
+            category: ProductCategory.AGGIUNTE,
+            isAvailable: true
           });
         }
         
@@ -679,6 +724,7 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
                     {cart.map((item, index) => {
                        const requiresSideDish = item.brand === "Contorno compreso";
                        const isPizzaOrBurger = (item.category === ProductCategory.HAMBURGER || item.category === ProductCategory.PIZZA) && !item.id.startsWith('diy-');
+                       const isDeliveryOrTakeaway = orderForm.orderType === 'delivery' || orderForm.orderType === 'takeaway';
 
                        return (
                         <div key={item.cartId} className="flex justify-between items-start border-b border-wood-100 pb-6">
@@ -745,6 +791,26 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
                                  </div>
                               )}
 
+                              {/* SEZIONE BEVANDA OMAGGIO PER LE PIZZE IN CONSEGNA/RITIRO */}
+                              {isDeliveryOrTakeaway && item.category === ProductCategory.PIZZA && (
+                                 <div className="mt-2">
+                                    {item.selectedFreeDrink ? (
+                                       <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 text-xs font-bold px-3 py-1.5 rounded-xl w-fit">
+                                          <Check size={14} className="text-green-600" />
+                                          <span>Omaggio: {item.selectedFreeDrink.toUpperCase()}</span>
+                                          <button onClick={() => openFreeDrinkModal(index)} className="text-wood-400 hover:text-[#45856c] ml-2 font-bold underline">Modifica</button>
+                                       </div>
+                                    ) : (
+                                       <button 
+                                          onClick={() => openFreeDrinkModal(index)} 
+                                          className="text-xs font-bold bg-orange-50 border border-orange-200 text-orange-600 rounded-xl px-3 py-2 flex items-center gap-1.5 hover:bg-orange-100 transition-colors animate-pulse"
+                                       >
+                                          <AlertCircle size={14} /> * Scegli bibita omaggio (Obbligatorio)
+                                       </button>
+                                    )}
+                                 </div>
+                              )}
+
                               {/* TASTO PERSONALIZZA PRODOTTO (Sostituisce Tasto Aggiungi) */}
                               {isPizzaOrBurger && (
                                  <button 
@@ -768,26 +834,30 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
            <div className="p-6 border-t border-wood-100 bg-wood-50 pb-8">
               <div className="flex justify-between items-center mb-6"><span className="text-xl font-bold text-wood-900">{t('total', lang)}</span><span className="text-4xl font-western text-accent-600">€{getCartItemsTotal().toFixed(2)}</span></div>
               {(() => {
+                 const isDeliveryOrTakeaway = orderForm.orderType === 'delivery' || orderForm.orderType === 'takeaway';
                  const hasMissingSideDishes = cart.some(item => item.brand === "Contorno compreso" && !item.selectedSideDish);
+                 const hasMissingFreeDrinks = cart.some(item => isDeliveryOrTakeaway && item.category === ProductCategory.PIZZA && !item.selectedFreeDrink);
+                 const isButtonDisabled = hasMissingSideDishes || hasMissingFreeDrinks;
+
                  return (
                     <button 
                       onClick={() => { 
-                         if (hasMissingSideDishes) {
-                            alert("Seleziona il contorno per tutti i piatti che lo richiedono!");
+                         if (isButtonDisabled) {
+                            alert("Seleziona i contorni e le bibite omaggio per procedere!");
                             return;
                          }
                          setIsCartOpen(false); 
                          setView('CHECKOUT'); 
                          window.scrollTo(0,0); 
                       }} 
-                      disabled={hasMissingSideDishes}
+                      disabled={isButtonDisabled}
                       className={`w-full py-4 rounded-2xl font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] ${
-                         hasMissingSideDishes 
+                         isButtonDisabled 
                          ? 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-60' 
                          : 'bg-[#45856c] text-white hover:bg-opacity-90'
                       }`}
                     >
-                       <ShoppingBag size={24} /> {hasMissingSideDishes ? "Scegli i contorni per procedere" : t('show_staff', lang)}
+                       <ShoppingBag size={24} /> {isButtonDisabled ? "Scegli contorni/omaggi per procedere" : t('show_staff', lang)}
                     </button>
                  );
               })()}
@@ -1672,6 +1742,74 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
                      <button 
                         type="button" 
                         onClick={() => { setIsSideDishModalOpen(false); setSideDishItemIndex(null); }} 
+                        className="w-full py-3 rounded-xl font-bold text-wood-500 bg-wood-50 hover:bg-wood-100"
+                     >
+                        Annulla
+                     </button>
+                  </div>
+               </div>
+            </div>
+         );
+      })()}
+
+      {/* ================= MODALE DI SELEZIONE BEVANDA OMAGGIO (PIZZA) ================= */}
+      {isFreeDrinkModalOpen && freeDrinkItemIndex !== null && (() => {
+         // Filtriamo dinamicamente le bibite dal database che contengono "33" o "lattina" nel nome, o hanno un prezzo basso
+         // Filtro sobrio: escludiamo esplicitamente acqua, caffè, liquori e altre birre specifiche
+         // Filtro con limite di prezzo a 3.00 € compresi (minore o uguale)
+         const dbDrinks = items.filter(i => 
+           i.category === ProductCategory.BEVANDE && 
+           i.isAvailable !== false &&
+           !i.name.toLowerCase().includes("acqua") &&
+           !i.name.toLowerCase().includes("caffè") &&
+           !i.name.toLowerCase().includes("caffe") &&
+           !i.name.toLowerCase().includes("corretto") &&
+           i.price <= 3.00 && // <--- AGGIORNATO: include le bibite da 3.00 € ed esclude le birre più costose
+           (i.name.toLowerCase().includes("33") || i.name.toLowerCase().includes("lattina"))
+         );
+
+         // Costruiamo le opzioni di scelta pre-appendendo l'opzione generica "Birra Lattina" richiesta
+         const availableDrinks = [
+           { id: 'custom-beer', name: 'Birra Lattina' },
+           ...dbDrinks
+         ];
+
+         return (
+            <div className="fixed inset-0 bg-black/60 z-[70] flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
+               <div className="bg-white w-full md:max-w-md max-h-[75vh] md:rounded-3xl rounded-t-3xl p-6 flex flex-col shadow-2xl overflow-hidden">
+                  
+                  <div className="text-center mb-6 pb-4 border-b border-wood-100">
+                     <h4 className="font-western text-2xl text-wood-900 leading-none">BEVANDA OMAGGIO</h4>
+                     <p className="text-xs text-orange-500 font-bold uppercase mt-1">* Seleziona una bibita 33cl o Birra inclusa con la pizza</p>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                     {availableDrinks.map((drink) => {
+                        const currentItem = cart[freeDrinkItemIndex];
+                        const isSelected = currentItem.selectedFreeDrink === drink.name;
+
+                        return (
+                           <button 
+                              type="button"
+                              key={drink.id} 
+                              onClick={() => selectFreeDrink(drink.name)}
+                              className={`w-full flex justify-between items-center p-4 rounded-2xl border-2 text-left transition-all ${
+                                 isSelected 
+                                 ? 'border-[#45856c] bg-[#45856c]/5 shadow-sm font-bold' 
+                                 : 'border-wood-100 hover:border-wood-300 bg-wood-50/50'
+                              }`}
+                           >
+                              <span className={isSelected ? 'text-[#45856c]' : 'text-wood-800'}>{drink.name}</span>
+                              <span className="text-xs font-bold text-[#45856c] bg-[#45856c]/10 px-3 py-1 rounded-full uppercase">Omaggio</span>
+                           </button>
+                        );
+                     })}
+                  </div>
+
+                  <div className="pt-4 border-t border-wood-100">
+                     <button 
+                        type="button" 
+                        onClick={() => { setIsFreeDrinkModalOpen(false); setFreeDrinkItemIndex(null); }} 
                         className="w-full py-3 rounded-xl font-bold text-wood-500 bg-wood-50 hover:bg-wood-100"
                      >
                         Annulla
