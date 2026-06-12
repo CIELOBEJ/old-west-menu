@@ -138,6 +138,192 @@ export default function App() {
     tableNumber: '' 
   });
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+  // --- STATI AGGIUNTI PER IL CALCOLO CHILOMETRICO DELLA CONSEGNA ---
+  const [speseConsegna, setSpeseConsegna] = useState<number>(2.00); 
+  const [distanzaRilevata, setDistanzaRilevata] = useState<number | null>(null);
+  const [erroreIndirizzo, setErroreIndirizzo] = useState<string | null>(null);
+  const [isCalcolandoDistanza, setIsCalcolandoDistanza] = useState<boolean>(false);
+  // --- STATI AGGIUNTI PER PERSONALIZZAZIONE PRODOTTI E CONTORNI ---
+  const [isCustomizationModalOpen, setIsCustomizationModalOpen] = useState(false);
+  const [customizingItemIndex, setCustomizingItemIndex] = useState<number | null>(null);
+  const [tempIngredientsQty, setTempIngredientsQty] = useState<Record<string, number>>({});
+
+  const [isSideDishModalOpen, setIsSideDishModalOpen] = useState(false);
+  const [sideDishItemIndex, setSideDishItemIndex] = useState<number | null>(null);
+
+// Apre la modale per personalizzare (Togliere/Aggiungere ingredienti base)
+  const openCustomizationModal = (index: number) => {
+    setCustomizingItemIndex(index);
+    const cartItem = cart[index];
+    
+    // Ricaviamo gli ingredienti base splittando la descrizione per virgola
+    const baseIngredients = cartItem.description 
+      ? cartItem.description.split(',').map(i => i.trim()).filter(i => i && !i.includes('*'))
+      : [];
+      
+    const initialQty: Record<string, number> = {};
+    baseIngredients.forEach(ing => {
+      if (cartItem.removedIngredients?.includes(ing)) {
+        initialQty[ing] = 0;
+      } else {
+        // CONTROLLO DI MEMORIA: Verifichiamo se tra gli extra salvati c'è già questo raddoppio
+        const isDouble = cartItem.selectedAddons?.some((add: any) => 
+          add.name.toLowerCase().includes(ing.toLowerCase()) || 
+          ing.toLowerCase().includes(add.name.toLowerCase())
+        );
+        initialQty[ing] = isDouble ? 2 : 1;
+      }
+    });
+    
+    setTempIngredientsQty(initialQty);
+    setAddonSearch(''); // Resetta la barra di ricerca ingredienti extra
+    setIsCustomizationModalOpen(true);
+  };
+
+  // Salva le personalizzazioni nel carrello senza duplicare i dati
+  const handleConfirmCustomization = () => {
+    if (customizingItemIndex === null) return;
+    const newCart = [...cart];
+    const item = { ...newCart[customizingItemIndex] };
+    
+    // Ricaviamo gli ingredienti base di questo piatto specifico
+    const baseIngredients = item.description 
+      ? item.description.split(',').map(i => i.trim()).filter(i => i && !i.includes('*'))
+      : [];
+    
+    // 1. PULIZIA AUTOMATICA DOPPIONI: Rimuoviamo dagli addon gli extra degli ingredienti base 
+    // per poterli ricalcolare, lasciando però intatti gli extra cercati da tastiera (es: Scamorza)
+    const cleanedAddons = (item.selectedAddons || []).filter((add: any) => {
+      const isBaseExtra = baseIngredients.some(ing => 
+        add.name.toLowerCase().includes(ing.toLowerCase()) || 
+        ing.toLowerCase().includes(add.name.toLowerCase())
+      );
+      return !isBaseExtra; // Teniamo solo gli ingredienti indipendenti inseriti dalla ricerca
+    });
+    
+    const removed: string[] = [];
+    const extraAddonsToAppend: MenuItem[] = [];
+    
+    Object.entries(tempIngredientsQty).forEach(([ing, qty]) => {
+      if (qty === 0) {
+        removed.push(ing);
+      } else if (qty > 1) {
+        // Cerca se esiste l'aggiunta corrispondente nel database
+        const extraItem = items.find(i => 
+          i.category === ProductCategory.AGGIUNTE && 
+          (i.name.toLowerCase().includes(ing.toLowerCase()) || ing.toLowerCase().includes(i.name.toLowerCase()))
+        );
+        if (extraItem) {
+          extraAddonsToAppend.push(extraItem);
+        } else {
+          extraAddonsToAppend.push({
+            id: `extra-base-${ing}-${Date.now()}`,
+            name: `${ing} Extra`,
+            description: '',
+            price: 1.50,
+            category: ProductCategory.AGGIUNTE,
+            isAvailable: true
+          });
+        }
+      }
+    });
+    
+    item.removedIngredients = removed;
+    item.selectedAddons = [...cleanedAddons, ...extraAddonsToAppend]; // Uniamo gli extra rimasti e i nuovi raddoppi
+    
+    newCart[customizingItemIndex] = item;
+    setCart(newCart);
+    setIsCustomizationModalOpen(false);
+    setCustomizingItemIndex(null);
+  };
+
+  // Apre la modale per la scelta del contorno compreso
+  const openSideDishModal = (index: number) => {
+    setSideDishItemIndex(index);
+    setIsSideDishModalOpen(true);
+  };
+
+  // Salva il contorno nel carrello
+  const selectSideDish = (sideDishName: string) => {
+    if (sideDishItemIndex === null) return;
+    const newCart = [...cart];
+    newCart[sideDishItemIndex] = {
+      ...newCart[sideDishItemIndex],
+      selectedSideDish: sideDishName
+    };
+    setCart(newCart);
+    setIsSideDishModalOpen(false);
+    setSideDishItemIndex(null);
+  };
+
+  // Funzione matematica per calcolare i KM in linea d'aria (Formula di Haversine)
+  const calcolaDistanzaInKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Raggio medio della Terra in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Ritorna i km reali
+  };
+
+  // Funzione per contattare OpenStreetMap (Nominatim) e settare la corretta tariffa
+  const handleCalcolaSpeseConsegna = async (via: string, citta: string) => {
+    if (!via || !citta) return;
+    
+    setIsCalcolandoDistanza(true);
+    setErroreIndirizzo(null);
+    
+    // Uniamo la via con il comune selezionato limitando le ricerche in Italia
+    const query = `${via}, ${citta}, Italy`;
+    
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
+        { headers: { 'User-Agent': 'OldWestOnlineApp/1.0 (info@oldwest.click)' } }
+      );
+      const data = await response.json();
+      
+      if (data && data.length > 0) {
+        const destLat = parseFloat(data[0].lat);
+        const destLon = parseFloat(data[0].lon);
+        
+        // Coordinate ristorante Cameri (Via G. Galilei 35)
+        const localeLat = 45.49955;
+        const localeLon = 8.67277;
+        
+        const km = calcolaDistanzaInKm(localeLat, localeLon, destLat, destLon);
+        setDistanzaRilevata(km);
+        
+        // APPLICAZIONE TARIFFE RICHIESTE:
+        let costo = 2.00; // Fino a 5km
+        
+        if (km > 5 && km <= 10) {
+          costo = 5.00; // Da 5 a 10 km
+        } else if (km > 10 && km <= 15) {
+          costo = 8.00; // Da 10 a 15 km
+        } else if (km > 15) {
+          setErroreIndirizzo(`La tua posizione (~${km.toFixed(1)} km) supera il nostro limite massimo di consegna di 15km.`);
+          setSpeseConsegna(0);
+          setIsCalcolandoDistanza(false);
+          return;
+        }
+        
+        setSpeseConsegna(costo);
+      } else {
+        setErroreIndirizzo("Indirizzo non trovato. Verifica di aver inserito via e civico correttamente.");
+        setSpeseConsegna(2.00);
+      }
+    } catch (error) {
+      console.error("Errore Nominatim API:", error);
+      setErroreIndirizzo("Impossibile verificare la via. Verrà applicata una tariffa forfettaria.");
+      setSpeseConsegna(2.50);
+    } finally {
+      setIsCalcolandoDistanza(false);
+    }
+  };
 
   const carouselRef = useRef<HTMLDivElement>(null);
   const highlightsRef = useRef<HTMLDivElement>(null);
@@ -262,10 +448,9 @@ export default function App() {
   };
 
   const getDeliveryFee = () => {
-    // FIX COSTO CONSEGNA: Solo se l'ordine è 'delivery' applico il costo, altrimenti è 0 fisso.
+    // Solo se l'ordine è 'delivery' applico il costo, altrimenti è 0
     if (orderForm.orderType !== 'delivery') return 0;
-    const zone = DELIVERY_ZONES.find(z => z.name === orderForm.deliveryCity);
-    return zone ? zone.cost : 0;
+    return speseConsegna; // Utilizza il valore calcolato in chilometri
   };
 
   const getGrandTotal = () => getCartItemsTotal() + getCoverCharge() + getDeliveryFee();
@@ -288,41 +473,130 @@ export default function App() {
   const handleImportData = () => alert("Import locale disabilitato. Usa sync cloud.");
   const handleFactoryReset = () => alert("Reset locale disabilitato. Gestisci da DB.");
 
-  const handleSubmitOrder = async (e: React.FormEvent) => {
+const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmittingOrder(true);
     
-    // --- LOGICA FORMATTAZIONE TAVOLO (Recuperata!) ---
     const finalCustomerName = orderForm.orderType === 'table' ? `TAVOLO ${orderForm.tableNumber}` : orderForm.customerName;
     const finalPhone = orderForm.orderType === 'table' ? 'N/D' : orderForm.customerPhone;
 
+    // Controllo di sicurezza: impedisci l'invio se ci sono contorni non scelti
+    const hasMissingSideDishes = cart.some(item => 
+      item.brand === "Contorno compreso" && !item.selectedSideDish
+    );
+    if (hasMissingSideDishes) {
+      alert("Seleziona il contorno per tutti i piatti contrassegnati prima di inviare l'ordine!");
+      setIsSubmittingOrder(false);
+      return;
+    }
+
     try {
+      let finalDeliveryFee = getDeliveryFee();
+
+      // Controllo chilometrico d'emergenza
+      if (orderForm.orderType === 'delivery' && distanzaRilevata === null) {
+        const query = `${orderForm.deliveryAddress}, ${orderForm.deliveryCity}, Italy`;
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
+          { headers: { 'User-Agent': 'OldWestOnlineApp/1.0 (info@oldwest.click)' } }
+        );
+        const data = await response.json();
+        
+        if (data && data.length > 0) {
+          const destLat = parseFloat(data[0].lat);
+          const destLon = parseFloat(data[0].lon);
+          const km = calcolaDistanzaInKm(45.49955, 8.67277, destLat, destLon);
+          
+          if (km > 15) {
+            alert(`La tua posizione (~${km.toFixed(1)} km) supera il nostro limite di 15km.`);
+            setIsSubmittingOrder(false);
+            return;
+          }
+          
+          let costo = 2.00;
+          if (km > 5 && km <= 10) costo = 5.00;
+          else if (km > 10 && km <= 15) costo = 8.00;
+          
+          finalDeliveryFee = costo;
+          setSpeseConsegna(costo);
+          setDistanzaRilevata(km);
+          setErroreIndirizzo(null);
+        } else {
+          alert("Indirizzo non riconosciuto. Controlla via e civico.");
+          setIsSubmittingOrder(false);
+          return;
+        }
+      }
+      // Se c'è un blocco di errore attivo legato alla distanza o all'indirizzo, interrompiamo l'invio
+      if (orderForm.orderType === 'delivery' && erroreIndirizzo) {
+        alert(erroreIndirizzo);
+        setIsSubmittingOrder(false);
+        return;
+      }
+
+// TRASFORMAZIONE VIRTUALE PER LO SCONTRINO DELLO STAFF
+      const preparedCartItems = cart.map(item => {
+        const virtualAddons = [...(item.selectedAddons || [])];
+        
+        // Se ci sono ingredienti rimossi, li aggiungiamo come "+ SENZA [NOME]"
+        if (item.removedIngredients && item.removedIngredients.length > 0) {
+          item.removedIngredients.forEach((ing: string) => { // <--- AGGIUNTO TIPO STRINGA
+            virtualAddons.push({
+              id: `virtual-removed-${ing}-${Date.now()}`,
+              name: `SENZA ${ing.toUpperCase()}`,
+              description: '', // <--- AGGIUNTO PER RISOLVERE L'ERRORE TS
+              price: 0,
+              category: ProductCategory.AGGIUNTE,
+              isAvailable: true
+            });
+          });
+        }
+        
+        // Se c'è un contorno scelto, lo iniettiamo come "+ CONTORNO: [NOME]"
+        if (item.brand === "Contorno compreso" && item.selectedSideDish) {
+          virtualAddons.push({
+            id: `virtual-side-${item.selectedSideDish}-${Date.now()}`,
+            name: `CONTORNO: ${item.selectedSideDish.toUpperCase()}`,
+            description: '', // <--- AGGIUNTO PER RISOLVERE L'ERRORE TS
+            price: 0,
+            category: ProductCategory.AGGIUNTE,
+            isAvailable: true
+          });
+        }
+
+        return {
+          ...item,
+          selectedAddons: virtualAddons
+        };
+      });
+
+      const finalTotalAmount = getCartItemsTotal() + getCoverCharge() + finalDeliveryFee;
+
       const newOrder = {
-        customer_name: finalCustomerName, // Usiamo il nome formattato
-        customer_phone: finalPhone,       // Usiamo il telefono formattato
+        customer_name: finalCustomerName,
+        customer_phone: finalPhone,
         customer_email: orderForm.customerEmail,
         order_type: orderForm.orderType,
         delivery_address: orderForm.orderType === 'delivery' ? orderForm.deliveryAddress : null,
         delivery_city: orderForm.orderType === 'delivery' ? orderForm.deliveryCity : null,
         delivery_time: orderForm.orderType === 'table' ? 'Immediato' : orderForm.deliveryTime,
         payment_method: orderForm.paymentMethod,
-        total_amount: getGrandTotal(),
-        cart_items: cart,
+        total_amount: finalTotalAmount,
+        cart_items: preparedCartItems, // Inviamo il carrello preparato con le voci virtuali
         status: 'pending',
         notes: orderForm.notes
       };
 
-      // Invio a Supabase e recupero i dati inseriti (per avere l'ID)
-      const { data, error } = await supabase.from('orders').insert([newOrder]).select();
+      const { data: dbData, error } = await supabase.from('orders').insert([newOrder]).select();
 
       if (error) throw error;
       
-      if (data && data[0]) {
-        setActiveOrderId(data[0].id); // Memorizzo l'ID per il tracking
-        localStorage.setItem('activeOrderId', data[0].id);
-        setCurrentOrder(data[0]);     // Memorizzo i dati dell'ordine
-        setCart([]);                  // Svuoto il carrello
-        setView('TRACKING');          // Sposto il cliente sulla pagina Tracking
+      if (dbData && dbData[0]) {
+        setActiveOrderId(dbData[0].id);
+        localStorage.setItem('activeOrderId', dbData[0].id);
+        setCurrentOrder(dbData[0]);
+        setCart([]);
+        setView('TRACKING');
         window.scrollTo(0,0);
       }
     } catch (err) {
@@ -400,35 +674,123 @@ export default function App() {
                  <button onClick={() => setIsCartOpen(false)} className="p-2 bg-wood-100 rounded-full hover:bg-wood-200 transition-colors"><X size={20}/></button>
               </div>
               
-              {cart.length === 0 ? (<div className="text-center py-10 text-wood-400">{t('empty_cart', lang)}</div>) : (
+               {cart.length === 0 ? (<div className="text-center py-10 text-wood-400">{t('empty_cart', lang)}</div>) : (
                  <div className="space-y-6">
-                    {cart.map((item, index) => (
-                       <div key={item.cartId} className="flex justify-between items-start border-b border-wood-100 pb-6">
-                          <div className="flex-1 pr-4">
-                             <div className="flex items-center gap-2 mb-1"><span className="font-bold text-wood-900 text-lg">{item.quantity}x {item.name}</span></div>
-                             {item.selectedVariant && <span className="text-xs bg-wood-100 px-2 py-0.5 rounded text-wood-600 block w-fit mb-1">{item.selectedVariant.name}</span>}
-                             {item.id.startsWith('diy-') && (<p className="text-xs italic text-wood-500 mb-2 leading-relaxed">{item.description}</p>)}
-                             {item.selectedAddons && item.selectedAddons.length > 0 && (<div className="text-sm text-[#45856c] mt-1 space-y-1">{item.selectedAddons.map((add, addonIdx) => (<div key={addonIdx} className="flex items-center gap-3 group"> {/* Usiamo gap-3 per tenerli vicini */}<div className="flex items-center gap-1 font-medium"><Plus size={10} /> {add.name} (+€{add.price.toFixed(2)})</div>{/* CESTINO POSIZIONATO VICINO AL TESTO */}<button onClick={() => removeAddonFromItem(index, addonIdx)}className="p-1.5 bg-red-50 text-red-500 rounded-md hover:bg-red-100 transition-colors flex items-center justify-center shadow-sm border border-red-100"title="Rimuovi"><Trash2 size={12} /></button></div>))}</div>)}
-                             {(item.category === ProductCategory.HAMBURGER || item.category === ProductCategory.PIZZA) && (<button onClick={() => openAddonModal(index)} className="text-xs font-bold text-wood-400 mt-3 flex items-center gap-1 hover:text-accent-600 transition-colors border border-wood-200 rounded-lg px-3 py-1.5 w-fit"><Plus size={12}/> {t('add_ingredient', lang)}</button>)}
+                    {cart.map((item, index) => {
+                       const requiresSideDish = item.brand === "Contorno compreso";
+                       const isPizzaOrBurger = (item.category === ProductCategory.HAMBURGER || item.category === ProductCategory.PIZZA) && !item.id.startsWith('diy-');
+
+                       return (
+                        <div key={item.cartId} className="flex justify-between items-start border-b border-wood-100 pb-6">
+                           <div className="flex-1 pr-4">
+                              <div className="flex items-center gap-2 mb-1">
+                                 <span className="font-bold text-wood-900 text-lg">{item.quantity}x {item.name}</span>
+                              </div>
+                              {item.selectedVariant && <span className="text-xs bg-wood-100 px-2 py-0.5 rounded text-wood-600 block w-fit mb-1">{item.selectedVariant.name}</span>}
+                              {item.id.startsWith('diy-') && (<p className="text-xs italic text-wood-500 mb-2 leading-relaxed">{item.description}</p>)}
+                              
+                              {/* LISTA INGREDIENTI RIMOSSI IN ROSSO */}
+                              {item.removedIngredients && item.removedIngredients.length > 0 && (
+                                 <div className="text-xs font-bold text-red-600 mt-1 mb-2 space-y-0.5 uppercase tracking-wide">
+                                    {item.removedIngredients.map((ing, rIdx) => (
+                                       <div key={rIdx} className="flex items-center gap-1">
+                                          <span>- SENZA {ing}</span>
+                                          <button 
+                                             onClick={() => {
+                                                const newCart = [...cart];
+                                                const updated = { ...newCart[index] };
+                                                updated.removedIngredients = updated.removedIngredients?.filter(i => i !== ing);
+                                                newCart[index] = updated;
+                                                setCart(newCart);
+                                             }} 
+                                             className="text-red-400 hover:text-red-600 p-0.5"
+                                             title="Ripristina ingrediente"
+                                          >
+                                             <X size={10} />
+                                          </button>
+                                       </div>
+                                    ))}
+                                 </div>
+                              )}
+
+                              {/* LISTA INGREDIENTI EXTRA AGGIUNTI */}
+                              {item.selectedAddons && item.selectedAddons.length > 0 && (
+                                 <div className="text-sm text-[#45856c] mt-1 space-y-1">
+                                    {item.selectedAddons.map((add, addonIdx) => (
+                                       <div key={addonIdx} className="flex items-center gap-3 group">
+                                          <div className="flex items-center gap-1 font-medium"><Plus size={10} /> {add.name} (+€{add.price.toFixed(2)})</div>
+                                          <button onClick={() => removeAddonFromItem(index, addonIdx)} className="p-1.5 bg-red-50 text-red-500 rounded-md hover:bg-red-100 transition-colors flex items-center justify-center shadow-sm border border-red-100" title="Rimuovi"><Trash2 size={12} /></button>
+                                       </div>
+                                    ))}
+                                 </div>
+                              )}
+
+                              {/* SEZIONE CONTORNO COMPRESO */}
+                              {requiresSideDish && (
+                                 <div className="mt-2">
+                                    {item.selectedSideDish ? (
+                                       <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 text-xs font-bold px-3 py-1.5 rounded-xl w-fit">
+                                          <Check size={14} className="text-green-600" />
+                                          <span>Contorno: {item.selectedSideDish.toUpperCase()}</span>
+                                          <button onClick={() => openSideDishModal(index)} className="text-wood-400 hover:text-[#45856c] ml-2 font-bold underline">Modifica</button>
+                                       </div>
+                                    ) : (
+                                       <button 
+                                          onClick={() => openSideDishModal(index)} 
+                                          className="text-xs font-bold bg-orange-50 border border-orange-200 text-orange-600 rounded-xl px-3 py-2 flex items-center gap-1.5 hover:bg-orange-100 transition-colors animate-pulse"
+                                       >
+                                          <AlertCircle size={14} /> * Scegli il contorno (Obbligatorio)
+                                       </button>
+                                    )}
+                                 </div>
+                              )}
+
+                              {/* TASTO PERSONALIZZA PRODOTTO (Sostituisce Tasto Aggiungi) */}
+                              {isPizzaOrBurger && (
+                                 <button 
+                                    onClick={() => openCustomizationModal(index)} 
+                                    className="text-xs font-bold text-wood-500 mt-3 flex items-center gap-1.5 hover:text-accent-600 transition-colors border border-wood-200 rounded-xl px-3 py-1.5 w-fit bg-wood-50 hover:bg-white"
+                                 >
+                                    <Pencil size={12}/> Personalizza prodotto
+                                 </button>
+                              )}
+                           </div>
+                           <div className="flex flex-col items-end gap-3">
+                              <span className="font-mono font-bold text-lg">€{((item.selectedVariant ? item.selectedVariant.price : item.price) * item.quantity + (item.selectedAddons?.reduce((s, a) => s + Number(a.price), 0) || 0) * item.quantity).toFixed(2)}</span>
+                              <div className="flex items-center gap-3 bg-wood-50 rounded-xl p-1 shadow-inner"><button onClick={() => { if(item.quantity > 1) updateCartItemQuantity(item.cartId, -1); else removeFromCart(item.cartId); }} className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm text-wood-600 hover:text-red-500"><Minus size={14}/></button><span className="text-sm font-bold w-4 text-center">{item.quantity}</span><button onClick={() => updateCartItemQuantity(item.cartId, 1)} className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm text-wood-600 hover:text-green-500"><Plus size={14}/></button></div>
                           </div>
-                          <div className="flex flex-col items-end gap-3">
-                             <span className="font-mono font-bold text-lg">€{((item.selectedVariant ? item.selectedVariant.price : item.price) * item.quantity + (item.selectedAddons?.reduce((s, a) => s + Number(a.price), 0) || 0) * item.quantity).toFixed(2)}</span>
-                             <div className="flex items-center gap-3 bg-wood-50 rounded-xl p-1 shadow-inner"><button onClick={() => { if(item.quantity > 1) updateCartItemQuantity(item.cartId, -1); else removeFromCart(item.cartId); }} className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm text-wood-600 hover:text-red-500"><Minus size={14}/></button><span className="text-sm font-bold w-4 text-center">{item.quantity}</span><button onClick={() => updateCartItemQuantity(item.cartId, 1)} className="w-8 h-8 flex items-center justify-center bg-white rounded-lg shadow-sm text-wood-600 hover:text-green-500"><Plus size={14}/></button></div>
-                          </div>
-                       </div>
-                    ))}
-                    {/* FIX: Eliminata la riga COPERTO da qui. Appare solo nel checkout */}
+                        </div>
+                       );
+                    })}
                  </div>
               )}
            </div>
            <div className="p-6 border-t border-wood-100 bg-wood-50 pb-8">
               <div className="flex justify-between items-center mb-6"><span className="text-xl font-bold text-wood-900">{t('total', lang)}</span><span className="text-4xl font-western text-accent-600">€{getCartItemsTotal().toFixed(2)}</span></div>
-              <button 
-                onClick={() => { setIsCartOpen(false); setView('CHECKOUT'); window.scrollTo(0,0); }} 
-                className="w-full bg-[#45856c] text-white py-4 rounded-2xl font-bold text-xl shadow-lg flex items-center justify-center gap-3 hover:bg-opacity-90 transition-all active:scale-[0.98]"
-              >
-                 <ShoppingBag size={24} /> {t('show_staff', lang)}
-              </button>
+              {(() => {
+                 const hasMissingSideDishes = cart.some(item => item.brand === "Contorno compreso" && !item.selectedSideDish);
+                 return (
+                    <button 
+                      onClick={() => { 
+                         if (hasMissingSideDishes) {
+                            alert("Seleziona il contorno per tutti i piatti che lo richiedono!");
+                            return;
+                         }
+                         setIsCartOpen(false); 
+                         setView('CHECKOUT'); 
+                         window.scrollTo(0,0); 
+                      }} 
+                      disabled={hasMissingSideDishes}
+                      className={`w-full py-4 rounded-2xl font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] ${
+                         hasMissingSideDishes 
+                         ? 'bg-gray-400 text-gray-200 cursor-not-allowed opacity-60' 
+                         : 'bg-[#45856c] text-white hover:bg-opacity-90'
+                      }`}
+                    >
+                       <ShoppingBag size={24} /> {hasMissingSideDishes ? "Scegli i contorni per procedere" : t('show_staff', lang)}
+                    </button>
+                 );
+              })()}
            </div>
         </div>
         {isAddonModalOpen && (
@@ -553,14 +915,19 @@ export default function App() {
                               <label className="block text-xs font-bold text-wood-500 uppercase tracking-wider mb-2">
                                  {t('city', lang)} *
                               </label>
-                              <div className="grid grid-cols-1 gap-3">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                  {DELIVERY_ZONES.map((zone) => {
                                     const isSelected = orderForm.deliveryCity === zone.name;
                                     return (
                                     <button
                                        key={zone.name}
                                        type="button"
-                                       onClick={() => setOrderForm({ ...orderForm, deliveryCity: zone.name })}
+                                       onClick={() => {
+                                          setOrderForm({ ...orderForm, deliveryCity: zone.name });
+                                          // Se cambia comune, resettiamo la convalida per calcolare i km corretti sulla nuova destinazione
+                                          setDistanzaRilevata(null);
+                                          setErroreIndirizzo(null);
+                                       }}
                                        className={`relative p-4 rounded-2xl border-2 text-left transition-all duration-300 flex justify-between items-center ${
                                           isSelected
                                           ? 'border-[#45856c] bg-[#45856c]/5 shadow-md'
@@ -570,9 +937,6 @@ export default function App() {
                                        <div className="flex flex-col">
                                           <span className={`font-bold text-base ${isSelected ? 'text-[#45856c]' : 'text-wood-900'}`}>
                                           {zone.name}
-                                          </span>
-                                          <span className="text-[10px] text-wood-400 font-medium uppercase tracking-tight">
-                                          {zone.cost === 0 ? 'Consegna Gratuita' : `Costo consegna: +€${zone.cost.toFixed(2)}`}
                                           </span>
                                        </div>
                                        
@@ -585,8 +949,50 @@ export default function App() {
                                     );
                                  })}
                               </div>
+                           </div>
+
+                           {/* Campo Indirizzo con Calcolo Chilometrico Integrato */}
+                           <div>
+                              <label className="block text-xs font-bold text-wood-500 uppercase mb-1">{t('address', lang)} *</label>
+                              <div className="flex gap-2">
+                                 <input 
+                                    required 
+                                    type="text" 
+                                    value={orderForm.deliveryAddress} 
+                                    onChange={e => {
+                                       setOrderForm({...orderForm, deliveryAddress: e.target.value});
+                                       // Resettiamo lo stato di convalida non appena l'utente digita una modifica
+                                       setDistanzaRilevata(null);
+                                       setErroreIndirizzo(null);
+                                    }} 
+                                    className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#45856c]" 
+                                    placeholder="Via dei Mille 26 (specifica via e numero civico)" 
+                                 />
+                                 <button
+                                    type="button"
+                                    onClick={() => handleCalcolaSpeseConsegna(orderForm.deliveryAddress, orderForm.deliveryCity)}
+                                    disabled={isCalcolandoDistanza || !orderForm.deliveryAddress}
+                                    className="px-4 py-3 bg-wood-900 text-white rounded-xl font-bold text-xs hover:bg-[#45856c] transition-colors shrink-0 disabled:opacity-50 flex items-center gap-2"
+                                 >
+                                    {isCalcolandoDistanza ? <Loader2 className="animate-spin" size={16} /> : "CALCOLA KM"}
+                                 </button>
                               </div>
-                           <div><label className="block text-xs font-bold text-wood-500 uppercase mb-1">{t('address', lang)} *</label><input required type="text" value={orderForm.deliveryAddress} onChange={e => setOrderForm({...orderForm, deliveryAddress: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3" placeholder="Via Roma 1, Campanello Rossi" /></div>
+
+                              {/* Feedback Visivo sullo Stato della Consegna */}
+                              {distanzaRilevata !== null && !erroreIndirizzo && (
+                                 <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-xl text-green-800 text-xs font-bold flex items-center gap-2 animate-in fade-in">
+                                    <CheckCircle2 size={16} className="text-green-600" />
+                                    <span>Indirizzo verificato! Distanza: {distanzaRilevata.toFixed(1)} km. Costo consegna: €{speseConsegna.toFixed(2)}</span>
+                                 </div>
+                              )}
+
+                              {erroreIndirizzo && (
+                                 <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs font-bold flex items-center gap-2 animate-in fade-in">
+                                    <AlertCircle size={16} className="text-red-600" />
+                                    <span>{erroreIndirizzo}</span>
+                                 </div>
+                              )}
+                           </div>
                         </div>
                      )}
 
@@ -864,7 +1270,7 @@ export default function App() {
            )}
         </div>
         <div className="bg-wood-900 text-wood-300 py-12 border-t border-wood-800"><div className="container mx-auto px-4 text-center"><WesternLogo size="lg" className="mx-auto mb-6 opacity-80" /><div className="flex flex-col gap-2 items-center mb-6 font-bold text-white"><div className="flex items-center gap-2"><Phone size={16} className="text-accent-500" /> 0321 510220</div><div className="flex items-center gap-2"><MapPin size={16} className="text-accent-500" /> Via G. Galilei 35 - Cameri (NO)</div></div><p className="text-xs opacity-50">&copy; {new Date().getFullYear()} Old West. {t('rights_reserved', lang)}</p></div></div>
-        {suggestionToast.show && (<div className="fixed top-24 left-1/2 -translate-x-1/2 z-[60] animate-in fade-in slide-in-from-top-5 duration-300"><div className="bg-wood-900/95 backdrop-blur-md text-white px-6 py-3 rounded-full shadow-2xl border border-wood-700 flex items-center gap-3"><Sparkles className="text-accent-500" size={20} /><span className="font-medium text-sm">{suggestionToast.text}</span></div></div>)}
+        {suggestionToast.show && (<div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in slide-in-from-top-5 duration-300"><div className="bg-wood-900/95 backdrop-blur-md text-white px-6 py-3 rounded-full shadow-2xl border border-wood-700 flex items-center gap-3"><Sparkles className="text-accent-500" size={20} /><span className="font-medium text-sm">{suggestionToast.text}</span></div></div>)}
       </div>
     );
   };
@@ -1095,6 +1501,187 @@ export default function App() {
           </div>
         );
       })()}
+
+            {/* ================= MODALE DI PERSONALIZZAZIONE PRODOTTO (MCDONALD STYLE) ================= */}
+      {isCustomizationModalOpen && customizingItemIndex !== null && (() => {
+         const item = cart[customizingItemIndex];
+         const baseIngredients = item.description 
+           ? item.description.split(',').map(i => i.trim()).filter(i => i && !i.includes('*'))
+           : [];
+
+         // Filtriamo gli ingredienti extra da cercare in base alla categoria
+         const addons = items.filter(i => {
+           if (i.category !== ProductCategory.AGGIUNTE) return false;
+           return i.subCategory === "Generale" || i.subCategory === item.category;
+         });
+         const filteredAddons = addons.filter(a => a.name.toLowerCase().includes(addonSearch.toLowerCase()));
+
+         return (
+            <div className="fixed inset-0 bg-black/60 z-[70] flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
+               <div className="bg-white w-full md:max-w-md h-[90vh] md:h-auto md:max-h-[85vh] md:rounded-3xl rounded-t-3xl p-6 flex flex-col shadow-2xl overflow-hidden">
+                  
+                  <div className="text-center mb-4 pb-4 border-b border-wood-100">
+                     <h4 className="font-western text-2xl text-wood-900 leading-none uppercase">{item.name}</h4>
+                     <p className="text-xs text-wood-400 font-bold uppercase mt-1">Personalizza il tuo prodotto</p>
+                  </div>
+
+                  {/* INGREDIENTI DI BASE (- 1 +) */}
+                  <div className="flex-1 overflow-y-auto space-y-4 pr-1 custom-scrollbar">
+                     {baseIngredients.length > 0 && (
+                        <div className="space-y-3 bg-wood-50/50 p-4 rounded-2xl border border-wood-100">
+                           <span className="text-[10px] font-bold text-wood-400 uppercase tracking-widest block mb-1">Ingredienti inclusi:</span>
+                           {baseIngredients.map((ing) => {
+                              const qty = tempIngredientsQty[ing] ?? 1;
+                              return (
+                                 <div key={ing} className="flex justify-between items-center py-1">
+                                    <span className={`font-bold text-sm uppercase transition-colors ${qty === 0 ? 'line-through text-red-500 opacity-60' : qty > 1 ? 'text-[#45856c]' : 'text-wood-800'}`}>
+                                       {ing} {qty > 1 && <span className="text-xs font-normal">(Doppio)</span>}
+                                    </span>
+                                    
+                                    <div className="flex items-center gap-3 bg-white rounded-lg p-1 shadow-sm border border-wood-100">
+                                       <button 
+                                          type="button"
+                                          onClick={() => setTempIngredientsQty(prev => ({ ...prev, [ing]: Math.max(0, qty - 1) }))}
+                                          className="w-7 h-7 flex items-center justify-center bg-wood-50 rounded text-wood-600 hover:text-red-500 font-bold"
+                                       >
+                                          -
+                                       </button>
+                                       <span className="text-xs font-bold w-4 text-center">{qty}</span>
+                                       <button 
+                                          type="button"
+                                          onClick={() => setTempIngredientsQty(prev => ({ ...prev, [ing]: Math.min(2, qty + 1) }))}
+                                          className="w-7 h-7 flex items-center justify-center bg-wood-50 rounded text-wood-600 hover:text-green-500 font-bold"
+                                       >
+                                          +
+                                       </button>
+                                    </div>
+                                 </div>
+                              );
+                           })}
+                        </div>
+                     )}
+
+                     {/* RICERCA EXTRA AGGIUNTI */}
+                     <div className="mt-6">
+                        <span className="text-[10px] font-bold text-wood-400 uppercase tracking-widest block mb-2">Vuoi aggiungere altro?</span>
+                        <div className="relative mb-3">
+                           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-wood-400" size={16}/>
+                           <input 
+                              type="text" 
+                              placeholder={t('search_addon', lang)} 
+                              value={addonSearch} 
+                              onChange={(e) => setAddonSearch(e.target.value)} 
+                              className="w-full bg-wood-50 border border-wood-200 rounded-xl py-2.5 pl-9 pr-4 text-sm outline-none focus:ring-1 focus:ring-[#45856c] focus:border-[#45856c]" 
+                           />
+                        </div>
+
+                        <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                           {filteredAddons.map(addon => (
+                              <button 
+                                 type="button"
+                                 key={addon.id} 
+                                 onClick={() => {
+                                    // Aggiunge l'extra nel carrello per il piatto corrente
+                                    const newCart = [...cart];
+                                    const updatedItem = { ...newCart[customizingItemIndex] };
+                                    updatedItem.selectedAddons = [...(updatedItem.selectedAddons || []), addon];
+                                    newCart[customizingItemIndex] = updatedItem;
+                                    setCart(newCart);
+                                    setAddonSearch('');
+                                    
+                                    // TRIGGER DEL TUO TOAST FLUTTUANTE
+                                    setSuggestionToast({ 
+                                       show: true, 
+                                       text: `AGGIUNTO: ${addon.name.toUpperCase()}` 
+                                    });
+                                    setTimeout(() => setSuggestionToast({ show: false, text: '' }), 2500);
+                                 }} 
+                                 className="w-full flex justify-between items-center p-3 hover:bg-green-50 rounded-xl transition-all border border-transparent hover:border-[#45856c]/20 text-left"
+                              >
+                                 <span className="text-sm font-medium text-wood-700">{addon.name}</span>
+                                 <span className="font-mono font-bold text-xs text-[#45856c] bg-[#45856c]/10 px-2 py-1 rounded-lg">+€{addon.price.toFixed(2)}</span>
+                              </button>
+                           ))}
+                        </div>
+                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pt-4 border-t border-wood-100">
+                     <button 
+                        type="button" 
+                        onClick={() => { setIsCustomizationModalOpen(false); setCustomizingItemIndex(null); }} 
+                        className="py-3 rounded-xl font-bold text-wood-500 bg-wood-50 hover:bg-wood-100"
+                     >
+                        Annulla
+                     </button>
+                     <button 
+                        type="button" 
+                        onClick={handleConfirmCustomization} 
+                        className="py-3 rounded-xl font-bold text-white bg-[#45856c] hover:bg-opacity-90"
+                     >
+                        Conferma
+                     </button>
+                  </div>
+               </div>
+            </div>
+         );
+      })()}
+
+
+      {/* ================= MODALE DI SELEZIONE CONTORNO COMPRESO ================= */}
+      {isSideDishModalOpen && sideDishItemIndex !== null && (() => {
+         // Carichiamo dinamicamente tutti i contorni disponibili nel menu dell'applicazione
+         const availableSideDishes = items.filter(i => i.category === ProductCategory.CONTORNI && i.isAvailable !== false);
+
+         return (
+            <div className="fixed inset-0 bg-black/60 z-[70] flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
+               <div className="bg-white w-full md:max-w-md max-h-[75vh] md:rounded-3xl rounded-t-3xl p-6 flex flex-col shadow-2xl overflow-hidden">
+                  
+                  <div className="text-center mb-6 pb-4 border-b border-wood-100">
+                     <h4 className="font-western text-2xl text-wood-900 leading-none">SCEGLI IL CONTORNO</h4>
+                     <p className="text-xs text-orange-500 font-bold uppercase mt-1">* Seleziona il contorno incluso nel piatto (0,00 €)</p>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                     {availableSideDishes.map((side) => {
+                        const currentItem = cart[sideDishItemIndex];
+                        const isSelected = currentItem.selectedSideDish === side.name;
+
+                        return (
+                           <button 
+                              type="button"
+                              key={side.id} 
+                              onClick={() => selectSideDish(side.name)}
+                              className={`w-full flex justify-between items-center p-4 rounded-2xl border-2 text-left transition-all ${
+                                 isSelected 
+                                 ? 'border-[#45856c] bg-[#45856c]/5 shadow-sm font-bold' 
+                                 : 'border-wood-100 hover:border-wood-300 bg-wood-50/50'
+                              }`}
+                           >
+                              <span className={isSelected ? 'text-[#45856c]' : 'text-wood-800'}>{side.name}</span>
+                              <span className="text-xs font-bold text-[#45856c] bg-[#45856c]/10 px-3 py-1 rounded-full uppercase">Incluso</span>
+                           </button>
+                        );
+                     })}
+                     {availableSideDishes.length === 0 && (
+                        <p className="text-center py-10 text-wood-400">Nessun contorno disponibile nel menu.</p>
+                     )}
+                  </div>
+
+                  <div className="pt-4 border-t border-wood-100">
+                     <button 
+                        type="button" 
+                        onClick={() => { setIsSideDishModalOpen(false); setSideDishItemIndex(null); }} 
+                        className="w-full py-3 rounded-xl font-bold text-wood-500 bg-wood-50 hover:bg-wood-100"
+                     >
+                        Annulla
+                     </button>
+                  </div>
+               </div>
+            </div>
+         );
+      })()}
+
     </>
   );
 }

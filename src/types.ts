@@ -58,6 +58,8 @@ export interface CartItem extends MenuItem {
   quantity: number;
   selectedVariant?: ProductVariant;
   selectedAddons?: MenuItem[];
+  removedIngredients?: string[]; // <--- AGGIUNGI QUESTA
+  selectedSideDish?: string;
 }
 
 // --- NUOVI TIPI PER IL DELIVERY ---
