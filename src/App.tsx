@@ -4,7 +4,7 @@ import {
   ChevronLeft, ChevronRight, Lock, Utensils, Star, MapPin, Clock, Instagram, Facebook, Phone, LayoutGrid, 
   ArrowRight, Upload, Image as ImageIcon, Download, RotateCcw, Save, ChevronDown, ChevronUp, X, Loader2, 
   Pencil, RefreshCw, Wheat, CircleDot, Globe, Languages, Check, Leaf, Flame, Award, QrCode, Database, Sprout, ShoppingBag, 
-  Milk, Egg, Nut, Bean, AlertCircle, Wine, Shell, Info, Search, Sandwich, Sparkles, Bike, Store, CheckCircle2, Copy 
+  Milk, Egg, Nut, Bean, AlertCircle, Wine, Shell, Info, Search, Sandwich, Sparkles, Bike, Store, CheckCircle2, Copy, User 
 } from 'lucide-react';
 import { MenuItem, ProductCategory, ViewState, LanguageCode, ActiveFilters, CartItem, AllergenType, ProductVariant, OrderType, PaymentMethod } from './types';
 import { INITIAL_MENU_ITEMS, CATEGORIES_LIST, HAMBURGER_SUBCATEGORIES, DRINK_SUBCATEGORIES, DIY_OPTIONS, UI_TRANSLATIONS, CATEGORY_TRANSLATIONS, SUBCATEGORY_TRANSLATIONS, DATA_VERSION, ALLERGENS_CONFIG, EXTRA_INGREDIENTS_ITEMS, DELIVERY_ZONES, LUNCH_HOURS, DINNER_HOURS, ADDON_SUBCATEGORIES } from './constants';
@@ -149,6 +149,164 @@ export default function App() {
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
   const [currentOrder, setCurrentOrder] = useState<any>(null);
   const [suggestionToast, setSuggestionToast] = useState<{show: boolean, text: string}>({ show: false, text: '' });
+  // --- STATI AGGIUNTI PER L'AUTENTICAZIONE CLIENTE ---
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
+  const [authForm, setAuthForm] = useState({
+    email: '',
+    password: '',
+    fullName: '',
+    phone: '',
+    address: '',
+    city: DELIVERY_ZONES[0]?.name || ''
+  });
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [isProcessingAuth, setIsProcessingAuth] = useState(false);
+   // Effetto per caricare l'utente e il suo profilo all'avvio
+  useEffect(() => {
+    const loadSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setUser(session.user);
+        const { data: profileData } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+        if (profileData) setProfile(profileData);
+      }
+    };
+    loadSession();
+
+    // Ascolta i cambiamenti di autenticazione (Login / Logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session) {
+        setUser(session.user);
+        const { data: profileData } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+        if (profileData) setProfile(profileData);
+      } else {
+        setUser(null);
+        setProfile(null);
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Precompila automaticamente il form di spedizione con i dati del profilo salvati
+  useEffect(() => {
+    if (profile && user) {
+      setOrderForm(prev => ({
+        ...prev,
+        customerName: profile.full_name || '',
+        customerEmail: user.email || '',
+        customerPhone: profile.phone || '',
+        deliveryAddress: profile.address || '',
+        deliveryCity: profile.city || prev.deliveryCity
+      }));
+    }
+  }, [profile, user]);
+
+  // Registrazione utente + Inserimento record nella tabella dei profili
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    setIsProcessingAuth(true);
+
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email: authForm.email,
+        password: authForm.password
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        const { error: profileError } = await supabase.from('profiles').insert([
+          {
+            id: data.user.id,
+            full_name: authForm.fullName,
+            phone: authForm.phone,
+            address: authForm.address,
+            city: authForm.city
+          }
+        ]);
+
+        if (profileError) throw profileError;
+
+        alert("Registrazione completata con successo!");
+        setIsAuthModalOpen(false);
+        setAuthForm({ email: '', password: '', fullName: '', phone: '', address: '', city: DELIVERY_ZONES[0]?.name || '' });
+      }
+    } catch (err: any) {
+      console.error(err);
+      setAuthError(err.message || "Errore durante la registrazione.");
+    } finally {
+      setIsProcessingAuth(false);
+    }
+  };
+
+  // Login classico email/password
+  const handleLoginUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError(null);
+    setIsProcessingAuth(true);
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: authForm.email,
+        password: authForm.password
+      });
+
+      if (error) throw error;
+
+      setIsAuthModalOpen(false);
+      setAuthForm({ email: '', password: '', fullName: '', phone: '', address: '', city: DELIVERY_ZONES[0]?.name || '' });
+    } catch (err: any) {
+      console.error(err);
+      setAuthError("Email o password errati.");
+    } finally {
+      setIsProcessingAuth(false);
+    }
+  };
+
+  // Aggiornamento dei dati personali dal pannello utente
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setAuthError(null);
+    setIsProcessingAuth(true);
+
+    try {
+      const { error } = await supabase.from('profiles').update({
+        full_name: authForm.fullName,
+        phone: authForm.phone,
+        address: authForm.address,
+        city: authForm.city
+      }).eq('id', user.id);
+
+      if (error) throw error;
+
+      const { data: updatedProfile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      if (updatedProfile) setProfile(updatedProfile);
+
+      alert("Dati personali aggiornati!");
+      setIsProfileOpen(false);
+    } catch (err: any) {
+      console.error(err);
+      setAuthError("Errore durante l'aggiornamento.");
+    } finally {
+      setIsProcessingAuth(false);
+    }
+  };
+
+  const handleLogoutUser = async () => {
+    if (window.confirm("Sei sicuro di voler uscire dal tuo account?")) {
+      await supabase.auth.signOut();
+      setIsProfileOpen(false);
+    }
+  };
 
   // CHECKOUT STATE AGGIORNATO (Aggiunto tableNumber)
   const [orderForm, setOrderForm] = useState({
@@ -682,7 +840,8 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
         total_amount: finalTotalAmount,
         cart_items: preparedCartItems, // Inviamo il carrello preparato con le voci virtuali
         status: 'pending',
-        notes: orderForm.notes
+        notes: orderForm.notes,
+        user_id: user ? user.id : null
       };
 
       const { data: dbData, error } = await supabase.from('orders').insert([newOrder]).select();
@@ -720,7 +879,30 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
                 <button onClick={() => setIsLangMenuOpen(!isLangMenuOpen)} className="flex items-center gap-2 bg-wood-800 hover:bg-wood-700 transition-colors pl-3 pr-2 py-1.5 rounded-xl border border-wood-700 text-white"><span className="text-xl leading-none">{LANGUAGES_CONFIG.find(l => l.code === lang)?.flag}</span><ChevronDown size={14} className={`text-wood-400 transition-transform ${isLangMenuOpen ? 'rotate-180' : ''}`} /></button>
                 {isLangMenuOpen && (<div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-wood-100 overflow-hidden py-1 z-50 animate-in fade-in zoom-in-95 duration-200">{LANGUAGES_CONFIG.map((l) => (<button key={l.code} onClick={() => { setLang(l.code as LanguageCode); setIsLangMenuOpen(false); }} className={`w-full flex items-center justify-between px-4 py-3 hover:bg-wood-50 transition-colors text-left ${lang === l.code ? 'bg-accent-50 text-accent-700' : 'text-wood-700'}`}><div className="flex items-center gap-3"><span className="text-2xl leading-none shadow-sm rounded-sm">{l.flag}</span><span className="text-sm font-bold">{l.label}</span></div>{lang === l.code && <Check size={16} />}</button>))}</div>)}
              </div>
-             <button onClick={() => setView('LOGIN')} className="w-10 h-10 rounded-full flex items-center justify-center text-wood-400 hover:text-white hover:bg-wood-800 transition-all"><Settings size={20} /></button>
+             <button 
+                type="button"
+                onClick={() => {
+                   if (user) {
+                      // Carichiamo i dati del profilo correnti nel form prima di aprire il pannello di modifica
+                      setAuthForm({
+                         email: user.email || '',
+                         password: '',
+                         fullName: profile?.full_name || '',
+                         phone: profile?.phone || '',
+                         address: profile?.address || '',
+                         city: profile?.city || DELIVERY_ZONES[0]?.name || ''
+                      });
+                      setIsProfileOpen(true);
+                   } else {
+                      setAuthMode('LOGIN');
+                      setAuthForm({ email: '', password: '', fullName: '', phone: '', address: '', city: DELIVERY_ZONES[0]?.name || '' });
+                      setIsAuthModalOpen(true);
+                   }
+                }} 
+                className="w-10 h-10 rounded-full flex items-center justify-center text-wood-400 hover:text-white hover:bg-wood-800 transition-all"
+             >
+                <User size={22} className={user ? 'text-[#45856c]' : ''} />
+             </button>
           </div>
         ) : (<button onClick={() => { setView('MENU'); setActiveCategory('Tutti'); window.scrollTo(0,0); }} className="flex items-center gap-2 bg-wood-800 text-white px-5 py-2 rounded-full hover:bg-accent-600 transition-colors text-sm font-medium"><LogOut size={16} /> <span className="hidden md:inline">{t('back_to_menu', lang)}</span></button>)}
       </div>
@@ -1959,6 +2141,144 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
             </div>
          );
       })()}
+
+      {/* ================= MODALE DI ACCESSO / REGISTRAZIONE UTENTE ================= */}
+      {isAuthModalOpen && (
+         <div className="fixed inset-0 bg-black/60 z-[70] flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
+            <div className="bg-white w-full md:max-w-md max-h-[90vh] md:max-h-[85vh] md:rounded-3xl rounded-t-3xl p-6 flex flex-col shadow-2xl overflow-y-auto custom-scrollbar">
+               
+               <div className="flex justify-between items-center mb-6">
+                  <h4 className="font-western text-2xl text-wood-900 uppercase">
+                     {authMode === 'LOGIN' ? 'Accedi al tuo Account' : 'Crea un Account'}
+                  </h4>
+                  <button type="button" onClick={() => setIsAuthModalOpen(false)} className="p-2 bg-wood-50 rounded-full"><X/></button>
+               </div>
+
+               {authError && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs font-bold flex items-center gap-2">
+                     <AlertCircle size={16} className="text-red-600" />
+                     <span>{authError}</span>
+                  </div>
+               )}
+
+               <form onSubmit={authMode === 'LOGIN' ? handleLoginUser : handleRegister} className="space-y-4">
+                  <div>
+                     <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Email *</label>
+                     <input required type="email" value={authForm.email} onChange={e => setAuthForm({...authForm, email: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-sm" placeholder="esempio@mail.com" />
+                  </div>
+                  <div>
+                     <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Password *</label>
+                     <input required type="password" value={authForm.password} onChange={e => setAuthForm({...authForm, password: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-sm" placeholder="Scegli una password" />
+                  </div>
+
+                  {authMode === 'REGISTER' && (
+                     <div className="space-y-4 pt-4 border-t border-wood-100 animate-in fade-in duration-300">
+                        <span className="text-[10px] font-bold text-wood-400 uppercase tracking-widest block">Dati di consegna preferiti (Salvati per i prossimi ordini):</span>
+                        <div>
+                           <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Nome e Cognome *</label>
+                           <input required type="text" value={authForm.fullName} onChange={e => setAuthForm({...authForm, fullName: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-sm" placeholder="Rossi Mario" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                           <div>
+                              <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Telefono *</label>
+                              <input required type="tel" value={authForm.phone} onChange={e => setAuthForm({...authForm, phone: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-sm" placeholder="3331234567" />
+                           </div>
+                           <div>
+                              <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Comune *</label>
+                              <div className="relative">
+                                 <select value={authForm.city} onChange={e => setAuthForm({...authForm, city: e.target.value})} className="w-full appearance-none bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-sm pr-8">
+                                    {DELIVERY_ZONES.map(zone => (
+                                       <option key={zone.name} value={zone.name}>{zone.name}</option>
+                                    ))}
+                                 </select>
+                                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-wood-400 pointer-events-none" size={14} />
+                              </div>
+                           </div>
+                        </div>
+                        <div>
+                           <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Indirizzo di consegna *</label>
+                           <input required type="text" value={authForm.address} onChange={e => setAuthForm({...authForm, address: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-sm" placeholder="Via dei Mille 26" />
+                        </div>
+                     </div>
+                  )}
+
+                  <button type="submit" disabled={isProcessingAuth} className="w-full bg-[#45856c] text-white py-3 rounded-xl font-bold shadow-md hover:bg-opacity-90 transition-all flex items-center justify-center gap-2">
+                     {isProcessingAuth ? <Loader2 className="animate-spin" size={18} /> : authMode === 'LOGIN' ? 'Accedi' : 'Registrati ed Entra'}
+                  </button>
+               </form>
+
+               <div className="mt-6 pt-4 border-t border-wood-100 text-center text-sm">
+                  {authMode === 'LOGIN' ? (
+                     <p className="text-wood-500">Non hai ancora un account? <button type="button" onClick={() => { setAuthMode('REGISTER'); setAuthError(null); }} className="text-[#45856c] font-bold underline">Registrati ora</button></p>
+                  ) : (
+                     <p className="text-wood-500">Hai già un account? <button type="button" onClick={() => { setAuthMode('LOGIN'); setAuthError(null); }} className="text-[#45856c] font-bold underline">Accedi</button></p>
+                  )}
+               </div>
+            </div>
+         </div>
+      )}
+
+
+      {/* ================= MODALE PROFILO UTENTE (LOGGATO) ================= */}
+      {isProfileOpen && user && (
+         <div className="fixed inset-0 bg-black/60 z-[70] flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
+            <div className="bg-white w-full md:max-w-md max-h-[90vh] md:rounded-3xl rounded-t-3xl p-6 flex flex-col shadow-2xl overflow-y-auto custom-scrollbar">
+               
+               <div className="flex justify-between items-center mb-6 border-b border-wood-100 pb-4">
+                  <div>
+                     <h4 className="font-western text-2xl text-wood-900 leading-none">IL MIO PROFILO</h4>
+                     <span className="text-xs text-wood-400 font-semibold">{user.email}</span>
+                  </div>
+                  <button type="button" onClick={() => setIsProfileOpen(false)} className="p-2 bg-wood-50 rounded-full"><X/></button>
+               </div>
+
+               {authError && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs font-bold flex items-center gap-2">
+                     <AlertCircle size={16} className="text-red-600" />
+                     <span>{authError}</span>
+                  </div>
+               )}
+
+               <form onSubmit={handleUpdateProfile} className="space-y-4">
+                  <span className="text-[10px] font-bold text-wood-400 uppercase tracking-widest block">I tuoi dati di spedizione preferiti:</span>
+                  <div>
+                     <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Nome e Cognome *</label>
+                     <input required type="text" value={authForm.fullName} onChange={e => setAuthForm({...authForm, fullName: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-sm font-bold text-wood-800" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                     <div>
+                        <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Telefono *</label>
+                        <input required type="tel" value={authForm.phone} onChange={e => setAuthForm({...authForm, phone: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-sm font-bold text-wood-800" />
+                     </div>
+                     <div>
+                        <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Comune *</label>
+                        <div className="relative">
+                           <select value={authForm.city} onChange={e => setAuthForm({...authForm, city: e.target.value})} className="w-full appearance-none bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-sm font-bold text-wood-800 pr-8">
+                              {DELIVERY_ZONES.map(zone => (
+                                 <option key={zone.name} value={zone.name}>{zone.name}</option>
+                              ))}
+                           </select>
+                           <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-wood-400 pointer-events-none" size={14} />
+                        </div>
+                     </div>
+                  </div>
+                  <div>
+                     <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Indirizzo di consegna *</label>
+                     <input required type="text" value={authForm.address} onChange={e => setAuthForm({...authForm, address: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-sm font-bold text-wood-800" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pt-6 border-t border-wood-100">
+                     <button type="button" onClick={handleLogoutUser} className="py-3 rounded-xl font-bold text-red-600 bg-red-50 hover:bg-red-100 flex items-center justify-center gap-2">
+                        <LogOut size={16} /> Disconnetti
+                     </button>
+                     <button type="submit" disabled={isProcessingAuth} className="py-3 rounded-xl font-bold text-white bg-[#45856c] hover:bg-opacity-90 flex items-center justify-center gap-2 shadow-md">
+                        {isProcessingAuth ? <Loader2 className="animate-spin" size={16} /> : <><Save size={16} /> Salva Dati</>}
+                     </button>
+                  </div>
+               </form>
+            </div>
+         </div>
+      )}
 
     </>
   );
