@@ -1936,6 +1936,11 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
            ? item.description.split(',').map(i => i.trim()).filter(i => i && !i.includes('*'))
            : [];
          const labelDoppio = lang === 'it' ? 'Doppio' : lang === 'en' ? 'Double' : lang === 'fr' ? 'Double' : 'Doppelt';  
+         const labelCustomizeSubtitle = lang === 'it' ? 'Personalizza il tuo prodotto' : lang === 'en' ? 'Customize your product' : lang === 'fr' ? 'Personnalisez votre produit' : 'Produkt anpassen';
+         const labelIngredientsIncluded = lang === 'it' ? 'Ingredienti inclusi:' : lang === 'en' ? 'Ingredients included:' : lang === 'fr' ? 'Ingrédients inclus:' : 'Inbegriffene Zutaten:';
+         const labelWantToAddMore = lang === 'it' ? 'Vuoi aggiungere altro?' : lang === 'en' ? 'Want to add more?' : lang === 'fr' ? 'Voulez-vous ajouter autre chose?' : 'Möchten Sie mehr hinzufügen?';
+         const labelCancel = lang === 'it' ? 'Annulla' : lang === 'en' ? 'Cancel' : lang === 'fr' ? 'Annuler' : 'Abbrechen';
+         const labelConfirm = lang === 'it' ? 'Conferma' : lang === 'en' ? 'Confirm' : lang === 'fr' ? 'Confirmer' : 'Bestätigen';
 
          // Filtriamo gli ingredienti extra da cercare in base alla categoria
          const addons = items.filter(i => {
@@ -1949,15 +1954,15 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
                <div className="bg-white w-full md:max-w-md h-[90vh] md:h-auto md:max-h-[85vh] md:rounded-3xl rounded-t-3xl p-6 flex flex-col shadow-2xl overflow-hidden">
                   
                   <div className="text-center mb-4 pb-4 border-b border-wood-100">
-                     <h4 className="font-western text-2xl text-wood-900 leading-none uppercase">{item.name}</h4>
-                     <p className="text-xs text-wood-400 font-bold uppercase mt-1">Personalizza il tuo prodotto</p>
+                     <h4 className="font-western text-2xl text-wood-900 leading-none uppercase">{getProductContent(item).name}</h4>
+                     <p className="text-xs text-wood-400 font-bold uppercase mt-1">{labelCustomizeSubtitle}</p>
                   </div>
 
                   {/* INGREDIENTI DI BASE (- 1 +) */}
                   <div className="flex-1 overflow-y-auto space-y-4 pr-1 custom-scrollbar">
                      {baseIngredients.length > 0 && (
                         <div className="space-y-3 bg-wood-50/50 p-4 rounded-2xl border border-wood-100">
-                           <span className="text-[10px] font-bold text-wood-400 uppercase tracking-widest block mb-1">Ingredienti inclusi:</span>
+                           <span className="text-[10px] font-bold text-wood-400 uppercase tracking-widest block mb-1">{labelIngredientsIncluded}</span>
                            {baseIngredients.map((ing) => {
                               const qty = tempIngredientsQty[ing] ?? 1;
                               // TRADUCIAMO L'INGREDIENTE BASE IN TEMPO REALE SULLO SCHERMO
@@ -1994,7 +1999,7 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
 
                      {/* RICERCA EXTRA AGGIUNTI */}
                      <div className="mt-6">
-                        <span className="text-[10px] font-bold text-wood-400 uppercase tracking-widest block mb-2">Vuoi aggiungere altro?</span>
+                        <span className="text-[10px] font-bold text-wood-400 uppercase tracking-widest block mb-2">{labelWantToAddMore}</span>
                         <div className="relative mb-3">
                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-wood-400" size={16}/>
                            <input 
@@ -2045,14 +2050,14 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
                         onClick={() => { setIsCustomizationModalOpen(false); setCustomizingItemIndex(null); }} 
                         className="py-3 rounded-xl font-bold text-wood-500 bg-wood-50 hover:bg-wood-100"
                      >
-                        Annulla
+                        {labelCancel}
                      </button>
                      <button 
                         type="button" 
                         onClick={handleConfirmCustomization} 
                         className="py-3 rounded-xl font-bold text-white bg-[#45856c] hover:bg-opacity-90"
                      >
-                        Conferma
+                        {labelConfirm}
                      </button>
                   </div>
                </div>
