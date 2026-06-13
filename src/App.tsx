@@ -306,7 +306,7 @@ const handleRegister = async (e: React.FormEvent) => {
     }
   };
 
-  // Aggiornamento dei dati personali dal pannello utente
+  // Aggiornamento dei dati personali dal pannello utente con notifica fluttuante
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -323,11 +323,17 @@ const handleRegister = async (e: React.FormEvent) => {
 
       if (error) throw error;
 
+      // Rinfresca il profilo locale
       const { data: updatedProfile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       if (updatedProfile) setProfile(updatedProfile);
 
-      alert("Dati personali aggiornati!");
-      setIsProfileOpen(false);
+      // SOSTITUZIONE ALERT DI WINDOWS CON IL TUO TOAST FLUTTUANTE
+      setSuggestionToast({ 
+         show: true, 
+         text: "💾 DATI PERSONALI AGGIORNATI CON SUCCESSO! 💾" 
+      });
+      setTimeout(() => setSuggestionToast({ show: false, text: '' }), 3000);
+
     } catch (err: any) {
       console.error(err);
       setAuthError("Errore durante l'aggiornamento.");
