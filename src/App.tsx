@@ -24,30 +24,6 @@ const uploadImageToSupabase = async (file: File): Promise<string | null> => {
   } catch (error) { console.error('Error:', error); return null; }
 };
 
-const translateIngredient = (ing: string, lang: LanguageCode): string => {
-  const dict: Record<string, Record<string, string>> = {
-    'mozzarella': { en: 'Mozzarella', fr: 'Mozzarella', de: 'Mozzarella' },
-    'pancetta': { en: 'Bacon', fr: 'Bacon', de: 'Speck' },
-    'grana in cottura': { en: 'Baked Grana Cheese', fr: 'Grana cuit', de: 'Gebackener Grana' },
-    'zucchine fritte': { en: 'Fried Zucchini', fr: 'Courgettes frites', de: 'Frittierte Zucchini' },
-    'rucola': { en: 'Arugula', fr: 'Roquette', de: 'Rucola' },
-    'gorgonzola': { en: 'Gorgonzola', fr: 'Gorgonzola', de: 'Gorgonzola' },
-    'bacon': { en: 'Bacon', fr: 'Bacon', de: 'Speck' },
-    'pomodorini secchi': { en: 'Dried Tomatoes', fr: 'Tomates séchées', de: 'Getrocknete Tomaten' },
-    'salsa burger': { en: 'Burger Sauce', fr: 'Sauce burger', de: 'Burgersauce' },
-    'cipolle': { en: 'Onions', fr: 'Oignons', de: 'Zwiebeln' },
-    'insalata di lattuga e radicchio': { en: 'Lettuce & Radicchio Salad', fr: 'Salade laitue & radicchio', de: 'Salat mit Lattich & Radicchio' },
-    'scamorza affumicata': { en: 'Smoked Scamorza', fr: 'Scamorza fumée', de: 'Geräucherter Scamorza' },
-    'acciughe': { en: 'Anchovies', fr: 'Anchois', de: 'Sardellen' },
-    'zucchine': { en: 'Zucchini', fr: 'Courgettes', de: 'Zucchini' },
-    'pomodoro': { en: 'Tomato', fr: 'Tomate', de: 'Tomate' }
-  };
-  const key = ing.toLowerCase().trim();
-  if (dict[key] && dict[key][lang]) {
-    return dict[key][lang];
-  }
-  return ing; // Ritorna l'italiano se non c'è una traduzione specifica
-};
 
 const CategoryIcon = ({ category, className }: { category: ProductCategory | 'Tutti'; className?: string }) => {
   switch (category) {
@@ -1934,13 +1910,19 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
          const item = cart[customizingItemIndex];
          const baseIngredients = item.description 
            ? item.description.split(',').map(i => i.trim()).filter(i => i && !i.includes('*'))
+           : [];  
+          // 2. RECUPERIAMO LA DESCRIZIONE TRADOTTA DAL DATABASE (usata per lo schermo del cliente)
+         const translatedDesc = getProductContent(item).description;
+         const translatedIngredients = translatedDesc
+           ? translatedDesc.split(',').map(i => i.trim()).filter(i => i && !i.includes('*'))
            : [];
-         const labelDoppio = lang === 'it' ? 'Doppio' : lang === 'en' ? 'Double' : lang === 'fr' ? 'Double' : 'Doppelt';  
+
          const labelCustomizeSubtitle = lang === 'it' ? 'Personalizza il tuo prodotto' : lang === 'en' ? 'Customize your product' : lang === 'fr' ? 'Personnalisez votre produit' : 'Produkt anpassen';
          const labelIngredientsIncluded = lang === 'it' ? 'Ingredienti inclusi:' : lang === 'en' ? 'Ingredients included:' : lang === 'fr' ? 'Ingrédients inclus:' : 'Inbegriffene Zutaten:';
-         const labelWantToAddMore = lang === 'it' ? 'Vuoi aggiungere altro?' : lang === 'en' ? 'Want to add more?' : lang === 'fr' ? 'Voulez-vous ajouter autre chose?' : 'Möchten Sie mehr hinzufügen?';
+         const labelWantToAddMore = lang === 'it' ? 'Vuoi aggiungere altro?' : lang === 'en' ? 'Want to add more?' : lang === 'fr' ? 'Voulez-vous ajouter autre chose?' : 'Möchten Sie mehr aggiungere?';
          const labelCancel = lang === 'it' ? 'Annulla' : lang === 'en' ? 'Cancel' : lang === 'fr' ? 'Annuler' : 'Abbrechen';
          const labelConfirm = lang === 'it' ? 'Conferma' : lang === 'en' ? 'Confirm' : lang === 'fr' ? 'Confirmer' : 'Bestätigen';
+         const labelDoppio = lang === 'it' ? 'Doppio' : lang === 'en' ? 'Double' : lang === 'fr' ? 'Double' : 'Doppelt';
 
          // Filtriamo gli ingredienti extra da cercare in base alla categoria
          const addons = items.filter(i => {
@@ -1963,10 +1945,11 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
                      {baseIngredients.length > 0 && (
                         <div className="space-y-3 bg-wood-50/50 p-4 rounded-2xl border border-wood-100">
                            <span className="text-[10px] font-bold text-wood-400 uppercase tracking-widest block mb-1">{labelIngredientsIncluded}</span>
-                           {baseIngredients.map((ing) => {
+                           {baseIngredients.map((ing, idx) => { // <--- AGGIUNTO IL PARAMETRO "idx"
                               const qty = tempIngredientsQty[ing] ?? 1;
-                              // TRADUCIAMO L'INGREDIENTE BASE IN TEMPO REALE SULLO SCHERMO
-                              const translatedIngredient = translateIngredient(ing, lang);
+                              
+                              // RECUPERA AUTOMATICAMENTE IL TERMINE DALLA DESCRIZIONE TRADOTTA CORRISPONDENTE
+                              const translatedIngredient = translatedIngredients[idx] || ing;
 
                               return (
                                  <div key={ing} className="flex justify-between items-center py-1">
