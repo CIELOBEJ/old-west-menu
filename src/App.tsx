@@ -4,7 +4,7 @@ import {
   ChevronLeft, ChevronRight, Lock, Utensils, Star, MapPin, Clock, Instagram, Facebook, Phone, LayoutGrid, 
   ArrowRight, Upload, Image as ImageIcon, Download, RotateCcw, Save, ChevronDown, ChevronUp, X, Loader2, 
   Pencil, RefreshCw, Wheat, CircleDot, Globe, Languages, Check, Leaf, Flame, Award, QrCode, Database, Sprout, ShoppingBag, 
-  Milk, Egg, Nut, Bean, AlertCircle, Wine, Shell, Info, Search, Sandwich, Sparkles, Bike, Store, CheckCircle2 
+  Milk, Egg, Nut, Bean, AlertCircle, Wine, Shell, Info, Search, Sandwich, Sparkles, Bike, Store, CheckCircle2, Copy 
 } from 'lucide-react';
 import { MenuItem, ProductCategory, ViewState, LanguageCode, ActiveFilters, CartItem, AllergenType, ProductVariant, OrderType, PaymentMethod } from './types';
 import { INITIAL_MENU_ITEMS, CATEGORIES_LIST, HAMBURGER_SUBCATEGORIES, DRINK_SUBCATEGORIES, DIY_OPTIONS, UI_TRANSLATIONS, CATEGORY_TRANSLATIONS, SUBCATEGORY_TRANSLATIONS, DATA_VERSION, ALLERGENS_CONFIG, EXTRA_INGREDIENTS_ITEMS, DELIVERY_ZONES, LUNCH_HOURS, DINNER_HOURS, ADDON_SUBCATEGORIES } from './constants';
@@ -22,6 +22,31 @@ const uploadImageToSupabase = async (file: File): Promise<string | null> => {
     const { data: publicUrlData } = supabase.storage.from('menu-images').getPublicUrl(filePath);
     return publicUrlData.publicUrl;
   } catch (error) { console.error('Error:', error); return null; }
+};
+
+const translateIngredient = (ing: string, lang: LanguageCode): string => {
+  const dict: Record<string, Record<string, string>> = {
+    'mozzarella': { en: 'Mozzarella', fr: 'Mozzarella', de: 'Mozzarella' },
+    'pancetta': { en: 'Bacon', fr: 'Bacon', de: 'Speck' },
+    'grana in cottura': { en: 'Baked Grana Cheese', fr: 'Grana cuit', de: 'Gebackener Grana' },
+    'zucchine fritte': { en: 'Fried Zucchini', fr: 'Courgettes frites', de: 'Frittierte Zucchini' },
+    'rucola': { en: 'Arugula', fr: 'Roquette', de: 'Rucola' },
+    'gorgonzola': { en: 'Gorgonzola', fr: 'Gorgonzola', de: 'Gorgonzola' },
+    'bacon': { en: 'Bacon', fr: 'Bacon', de: 'Speck' },
+    'pomodorini secchi': { en: 'Dried Tomatoes', fr: 'Tomates séchées', de: 'Getrocknete Tomaten' },
+    'salsa burger': { en: 'Burger Sauce', fr: 'Sauce burger', de: 'Burgersauce' },
+    'cipolle': { en: 'Onions', fr: 'Oignons', de: 'Zwiebeln' },
+    'insalata di lattuga e radicchio': { en: 'Lettuce & Radicchio Salad', fr: 'Salade laitue & radicchio', de: 'Salat mit Lattich & Radicchio' },
+    'scamorza affumicata': { en: 'Smoked Scamorza', fr: 'Scamorza fumée', de: 'Geräucherter Scamorza' },
+    'acciughe': { en: 'Anchovies', fr: 'Anchois', de: 'Sardellen' },
+    'zucchine': { en: 'Zucchini', fr: 'Courgettes', de: 'Zucchini' },
+    'pomodoro': { en: 'Tomato', fr: 'Tomate', de: 'Tomate' }
+  };
+  const key = ing.toLowerCase().trim();
+  if (dict[key] && dict[key][lang]) {
+    return dict[key][lang];
+  }
+  return ing; // Ritorna l'italiano se non c'è una traduzione specifica
 };
 
 const CategoryIcon = ({ category, className }: { category: ProductCategory | 'Tutti'; className?: string }) => {
@@ -118,6 +143,7 @@ export default function App() {
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [newItem, setNewItem] = useState<Partial<MenuItem>>({ category: ProductCategory.HAMBURGER, isAvailable: true, subCategory: HAMBURGER_SUBCATEGORIES[0], translations: {}, allergens: [] });
+  const [adminSearchQuery, setAdminSearchQuery] = useState(''); // Stato per la ricerca dei prodotti in Admin
   const [addedItemId, setAddedItemId] = useState<string | null>(null);
   const [infoItem, setInfoItem] = useState<MenuItem | null>(null);
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
@@ -484,6 +510,33 @@ export default function App() {
   const handleEditItem = (item: MenuItem) => { setNewItem({ ...item }); setEditingId(item.id); setAdminLang('it'); document.getElementById('new-product-form')?.scrollIntoView({ behavior: 'smooth' }); };
   const handleCancelEdit = () => { setEditingId(null); setNewItem({ category: ProductCategory.HAMBURGER, subCategory: HAMBURGER_SUBCATEGORIES[0], isAvailable: true, name: '', description: '', price: 0, imageUrl: '', translations: {}, brand: undefined, variants: undefined, allergens: [] }); setAdminLang('it'); };
   const handleDeleteItem = async (id: string, e?: React.MouseEvent) => { if (e) { e.preventDefault(); e.stopPropagation(); } if (window.confirm('Eliminare?')) { try { await supabase.from('menu_items').delete().eq('id', id); fetchItems(); if (editingId === id) handleCancelEdit(); } catch (error) { console.error(error); alert('Errore eliminazione.'); } } };
+  const handleDuplicateItem = async (item: MenuItem, e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation(); if (window.confirm(`Vuoi duplicare il prodotto "${item.name}"?`)) {   // Creiamo l'oggetto copiando i campi ma escludendo l'ID originale (Supabase ne genererà uno nuovo)
+   const duplicatedItem = {
+        name: `${item.name} - Copia`,
+        description: item.description || '',
+        price: item.price,
+        category: item.category,
+        subCategory: item.subCategory || null,
+        imageUrl: item.imageUrl || null,
+        isAvailable: item.isAvailable !== undefined ? item.isAvailable : true,
+        tags: item.tags || [],
+        brand: item.brand || null,
+        variants: item.variants || null,
+        translations: item.translations || null,
+        allergens: item.allergens || []
+      };
+
+      try {
+        const { error } = await supabase.from('menu_items').insert([duplicatedItem]);
+        if (error) throw error;
+        alert('Prodotto duplicato con successo!');
+        fetchItems(); // Ricarica la lista aggiornata dal database
+      } catch (error) {
+        console.error("Errore durante la duplicazione:", error);
+        alert('Errore durante la duplicazione del prodotto.');
+      }
+    }
+  };
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { setIsProcessingImage(true); try { const url = await uploadImageToSupabase(file); if(url) setCustomLogo(url); } catch(e){alert('Errore upload');} finally{setIsProcessingImage(false);} } };
   const handleSaveLogo = () => { if(customLogo) { localStorage.setItem('oldWestLogoUrl', customLogo); alert('Logo salvato!'); } };
   const handleResetLogo = () => { if(window.confirm('Reset logo?')) { setCustomLogo(''); localStorage.removeItem('oldWestLogoUrl'); } };
@@ -691,6 +744,20 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
   };
 
   const renderCartDrawer = () => {
+    // --- DIZIONARIO TRADUZIONI LOCALI PER IL CARRELLO ---
+    const labelSenza = lang === 'it' ? 'SENZA' : lang === 'en' ? 'WITHOUT' : lang === 'fr' ? 'SANS' : 'OHNE';
+    const labelContorno = lang === 'it' ? 'Contorno' : lang === 'en' ? 'Side dish' : lang === 'fr' ? 'Accompagnement' : 'Beilage';
+    const labelOmaggio = lang === 'it' ? 'Omaggio' : lang === 'en' ? 'Free drink' : lang === 'fr' ? 'Boisson offerte' : 'Gratis getränk';
+    const labelScegliContorno = lang === 'it' ? 'Scegli il contorno' : lang === 'en' ? 'Choose side dish' : lang === 'fr' ? 'Choisir l\'accompagnement' : 'Beilage wählen';
+    const labelScegliOmaggio = lang === 'it' ? 'Scegli bibita omaggio' : lang === 'en' ? 'Choose free drink' : lang === 'fr' ? 'Choisir boisson' : 'Gratis getränk scegliere';
+    const labelObbligatorio = lang === 'it' ? 'Obbligatorio' : lang === 'en' ? 'Required' : lang === 'fr' ? 'Obligatoire' : 'Erforderlich';
+    const labelModifica = lang === 'it' ? 'Modifica' : lang === 'en' ? 'Change' : lang === 'fr' ? 'Modifier' : 'Bearbeiten';
+    const labelScegliContorniOmaggi = lang === 'it' ? 'Scegli contorni/omaggi per procedere' : lang === 'en' ? 'Choose side dishes/free drinks to proceed' : lang === 'fr' ? 'Choisissez accompagnements/boissons pour procéder' : 'Beilagen/Gratisgetränke wählen';
+    const labelPersonalizzaProdotto = lang === 'it' ? 'Personalizza prodotto' : lang === 'en' ? 'Customize product' : lang === 'fr' ? 'Personnaliser le prodotto' : 'Produkt anpassen';
+    const labelDoppio = lang === 'it' ? 'Doppio' : lang === 'en' ? 'Double' : lang === 'fr' ? 'Double' : 'Doppelt';
+
+    // Recuperiamo il prodotto che stiamo modificando dal carrello... (il resto del tuo codice continua qui) 
+
     // Recuperiamo il prodotto che stiamo modificando dal carrello
     const itemBeingEdited = editingCartItemIndex !== null ? cart[editingCartItemIndex] : null;
 
@@ -730,7 +797,7 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
                         <div key={item.cartId} className="flex justify-between items-start border-b border-wood-100 pb-6">
                            <div className="flex-1 pr-4">
                               <div className="flex items-center gap-2 mb-1">
-                                 <span className="font-bold text-wood-900 text-lg">{item.quantity}x {item.name}</span>
+                                 <span className="font-bold text-wood-900 text-lg">{item.quantity}x {getProductContent(item).name}</span>
                               </div>
                               {item.selectedVariant && <span className="text-xs bg-wood-100 px-2 py-0.5 rounded text-wood-600 block w-fit mb-1">{item.selectedVariant.name}</span>}
                               {item.id.startsWith('diy-') && (<p className="text-xs italic text-wood-500 mb-2 leading-relaxed">{item.description}</p>)}
@@ -740,7 +807,7 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
                                  <div className="text-xs font-bold text-red-600 mt-1 mb-2 space-y-0.5 uppercase tracking-wide">
                                     {item.removedIngredients.map((ing, rIdx) => (
                                        <div key={rIdx} className="flex items-center gap-1">
-                                          <span>- SENZA {ing}</span>
+                                          <span>- {labelSenza} {ing}</span>
                                           <button 
                                              onClick={() => {
                                                 const newCart = [...cart];
@@ -771,53 +838,53 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
                                  </div>
                               )}
 
-                              {/* SEZIONE CONTORNO COMPRESO */}
-                              {requiresSideDish && (
-                                 <div className="mt-2">
-                                    {item.selectedSideDish ? (
-                                       <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 text-xs font-bold px-3 py-1.5 rounded-xl w-fit">
-                                          <Check size={14} className="text-green-600" />
-                                          <span>Contorno: {item.selectedSideDish.toUpperCase()}</span>
-                                          <button onClick={() => openSideDishModal(index)} className="text-wood-400 hover:text-[#45856c] ml-2 font-bold underline">Modifica</button>
-                                       </div>
-                                    ) : (
-                                       <button 
-                                          onClick={() => openSideDishModal(index)} 
-                                          className="text-xs font-bold bg-orange-50 border border-orange-200 text-orange-600 rounded-xl px-3 py-2 flex items-center gap-1.5 hover:bg-orange-100 transition-colors animate-pulse"
-                                       >
-                                          <AlertCircle size={14} /> * Scegli il contorno (Obbligatorio)
-                                       </button>
-                                    )}
-                                 </div>
-                              )}
+                              {/* SEZIONE CONTORNO COMPRESO TRADOTTA */}
+                           {requiresSideDish && (
+                              <div className="mt-2">
+                                 {item.selectedSideDish ? (
+                                    <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 text-xs font-bold px-3 py-1.5 rounded-xl w-fit">
+                                       <Check size={14} className="text-green-600" />
+                                       <span>{labelContorno}: {item.selectedSideDish.toUpperCase()}</span>
+                                       <button onClick={() => openSideDishModal(index)} className="text-wood-400 hover:text-[#45856c] ml-2 font-bold underline">{labelModifica}</button>
+                                    </div>
+                                 ) : (
+                                    <button 
+                                       onClick={() => openSideDishModal(index)} 
+                                       className="text-xs font-bold bg-orange-50 border border-orange-200 text-orange-600 rounded-xl px-3 py-2 flex items-center gap-1.5 hover:bg-orange-100 transition-colors animate-pulse"
+                                    >
+                                       <AlertCircle size={14} /> * {labelScegliContorno} ({labelObbligatorio})
+                                    </button>
+                                 )}
+                              </div>
+                           )}
 
-                              {/* SEZIONE BEVANDA OMAGGIO PER LE PIZZE IN CONSEGNA/RITIRO */}
-                              {isDeliveryOrTakeaway && item.category === ProductCategory.PIZZA && (
-                                 <div className="mt-2">
-                                    {item.selectedFreeDrink ? (
-                                       <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 text-xs font-bold px-3 py-1.5 rounded-xl w-fit">
-                                          <Check size={14} className="text-green-600" />
-                                          <span>Omaggio: {item.selectedFreeDrink.toUpperCase()}</span>
-                                          <button onClick={() => openFreeDrinkModal(index)} className="text-wood-400 hover:text-[#45856c] ml-2 font-bold underline">Modifica</button>
-                                       </div>
-                                    ) : (
-                                       <button 
-                                          onClick={() => openFreeDrinkModal(index)} 
-                                          className="text-xs font-bold bg-orange-50 border border-orange-200 text-orange-600 rounded-xl px-3 py-2 flex items-center gap-1.5 hover:bg-orange-100 transition-colors animate-pulse"
-                                       >
-                                          <AlertCircle size={14} /> * Scegli bibita omaggio (Obbligatorio)
-                                       </button>
-                                    )}
-                                 </div>
-                              )}
+                              {/* SEZIONE BEVANDA OMAGGIO TRADOTTA */}
+                           {isDeliveryOrTakeaway && item.category === ProductCategory.PIZZA && (
+                              <div className="mt-2">
+                                 {item.selectedFreeDrink ? (
+                                    <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 text-xs font-bold px-3 py-1.5 rounded-xl w-fit">
+                                       <Check size={14} className="text-green-600" />
+                                       <span>{labelOmaggio}: {item.selectedFreeDrink.toUpperCase()}</span>
+                                       <button onClick={() => openFreeDrinkModal(index)} className="text-wood-400 hover:text-[#45856c] ml-2 font-bold underline">{labelModifica}</button>
+                                    </div>
+                                 ) : (
+                                    <button 
+                                       onClick={() => openFreeDrinkModal(index)} 
+                                       className="text-xs font-bold bg-orange-50 border border-orange-200 text-orange-600 rounded-xl px-3 py-2 flex items-center gap-1.5 hover:bg-orange-100 transition-colors animate-pulse"
+                                    >
+                                       <AlertCircle size={14} /> * {labelScegliOmaggio} ({labelObbligatorio})
+                                    </button>
+                                 )}
+                              </div>
+                           )}
 
-                              {/* TASTO PERSONALIZZA PRODOTTO (Sostituisce Tasto Aggiungi) */}
+                              {/* TASTO PERSONALIZZA PRODOTTO (Sostituisce Tasto Aggiungi e traduce) */}
                               {isPizzaOrBurger && (
                                  <button 
                                     onClick={() => openCustomizationModal(index)} 
                                     className="text-xs font-bold text-wood-500 mt-3 flex items-center gap-1.5 hover:text-accent-600 transition-colors border border-wood-200 rounded-xl px-3 py-1.5 w-fit bg-wood-50 hover:bg-white"
                                  >
-                                    <Pencil size={12}/> Personalizza prodotto
+                                    <Pencil size={12}/> {labelPersonalizzaProdotto}
                                  </button>
                               )}
                            </div>
@@ -857,7 +924,7 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
                          : 'bg-[#45856c] text-white hover:bg-opacity-90'
                       }`}
                     >
-                       <ShoppingBag size={24} /> {isButtonDisabled ? "Scegli contorni/omaggi per procedere" : t('show_staff', lang)}
+                       <ShoppingBag size={24} /> {isButtonDisabled ? labelScegliContorniOmaggi : t('show_staff', lang)}
                     </button>
                  );
               })()}
@@ -1361,7 +1428,28 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
 
   const renderAdmin = () => {
     const sortedItems = [...items].sort((a, b) => a.name.localeCompare(b.name));
-    const displayItems = activeCategory === 'Tutti' ? sortedItems : sortedItems.filter(i => i.category === activeCategory);
+    
+    // LOGICA DI FILTRAGGIO E RICERCA AVANZATA
+    const displayItems = sortedItems.filter(i => {
+      // 1. Filtro per Categoria o Sottocategoria Extra
+      let matchesCategory = true;
+      if (activeCategory !== 'Tutti') {
+        if (activeCategory === 'Aggiunte - Hamburger') {
+          matchesCategory = i.category === ProductCategory.AGGIUNTE && i.subCategory === 'Hamburger';
+        } else if (activeCategory === 'Aggiunte - Pizza') {
+          matchesCategory = i.category === ProductCategory.AGGIUNTE && i.subCategory === 'Pizza';
+        } else if (activeCategory === 'Aggiunte - Generale') {
+          matchesCategory = i.category === ProductCategory.AGGIUNTE && i.subCategory === 'Generale';
+        } else {
+          matchesCategory = i.category === activeCategory;
+        }
+      }
+      
+      // 2. Filtro di ricerca per Nome (Cerca prodotto ed extra)
+      const matchesSearch = i.name.toLowerCase().includes(adminSearchQuery.toLowerCase());
+      
+      return matchesCategory && matchesSearch;
+    });
 
     return (
     <div className="min-h-screen bg-wood-50 pt-20 pb-20">
@@ -1425,9 +1513,49 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
            </form>
         </div>
         <div>
-           <div className="flex items-center justify-between mb-6">
-             <h3 className="text-2xl font-western text-wood-900">Prodotti nel Menu ({items.length})</h3>
-             <div className="relative"><select value={activeCategory} onChange={e => handleCategoryClick(e.target.value)} className="appearance-none bg-white border border-wood-200 rounded-full px-4 py-2 pr-8 text-sm font-bold text-wood-600 focus:outline-none">{['Tutti', ...CATEGORIES_LIST, ProductCategory.AGGIUNTE].map(cat => (<option key={cat} value={cat}>{tCategory(cat, lang)}</option>))}</select><ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-wood-400 pointer-events-none" size={14} /></div>
+           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+             <h3 className="text-2xl font-western text-wood-900 shrink-0">
+               Prodotti nel Menu ({displayItems.length})
+             </h3>
+             
+             <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                {/* BARRA DI RICERCA PRODOTTO ED EXTRA */}
+                <div className="relative flex-1 sm:w-64">
+                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-wood-400" size={16}/>
+                   <input 
+                      type="text" 
+                      placeholder="Cerca prodotto o extra..." 
+                      value={adminSearchQuery} 
+                      onChange={(e) => setAdminSearchQuery(e.target.value)} 
+                      className="w-full bg-white border border-wood-200 rounded-full py-2 pl-9 pr-8 text-sm outline-none focus:ring-1 focus:ring-[#45856c] focus:border-[#45856c]" 
+                   />
+                   {adminSearchQuery && (
+                     <button type="button" onClick={() => setAdminSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-wood-400 hover:text-wood-600">
+                       <X size={14} />
+                     </button>
+                   )}
+                </div>
+
+                {/* TENDINA CATEGORIE CON SOTTOCATEGORIE EXTRA INCOPORATE */}
+                <div className="relative shrink-0">
+                   <select 
+                      value={activeCategory} 
+                      onChange={e => handleCategoryClick(e.target.value)} 
+                      className="appearance-none bg-white border border-wood-200 rounded-full px-4 py-2 pr-8 text-sm font-bold text-wood-600 focus:outline-none w-full sm:w-auto"
+                   >
+                     <option value="Tutti">Tutte le Categorie</option>
+                     {CATEGORIES_LIST.map(cat => (
+                         <option key={cat} value={cat}>{tCategory(cat, lang)}</option>
+                     ))}
+                     <option value={ProductCategory.AGGIUNTE}>Tutti gli Ingredienti Extra</option>
+                     {/* Sotto-Filtri per gli Extra richiesti da te */}
+                     <option value="Aggiunte - Hamburger">Extra - Hamburger</option>
+                     <option value="Aggiunte - Pizza">Extra - Pizza</option>
+                     <option value="Aggiunte - Generale">Extra - Generale</option>
+                   </select>
+                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-wood-400 pointer-events-none" size={14} />
+                </div>
+             </div>
            </div>
            <div className="space-y-3">
               {displayItems.map(item => (
@@ -1438,8 +1566,14 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
                       <p className="text-xs text-wood-400 truncate">{item.description}</p>
                       <div className="flex items-center gap-2 mt-1"><span className="text-sm font-mono font-bold text-accent-600">€{item.price.toFixed(2)}</span><span className="text-[10px] text-wood-300 uppercase tracking-wider bg-wood-50 px-2 rounded-full">{tCategory(item.category, lang)}</span></div>
                    </div>
-                   <div className="flex items-center gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                   <div className="flex items-center gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                      {/* BOTTONE MODIFICA */}
                       <button onClick={() => handleEditItem(item)} className="w-8 h-8 rounded-lg bg-wood-100 text-wood-600 flex items-center justify-center hover:bg-accent-500 hover:text-white transition-colors" title="Modifica"><Pencil size={14} /></button>
+                      
+                      {/* NUOVO BOTTONE DUPLICA */}
+                      <button onClick={(e) => handleDuplicateItem(item, e)} className="w-8 h-8 rounded-lg bg-green-50 text-green-600 flex items-center justify-center hover:bg-green-600 hover:text-white transition-colors animate-in fade-in" title="Duplica"><Copy size={14} /></button>
+                      
+                      {/* BOTTONE ELIMINA */}
                       <button onClick={(e) => handleDeleteItem(item.id, e)} className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors" title="Elimina"><Trash2 size={14} /></button>
                    </div>
                 </div>
@@ -1578,6 +1712,7 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
          const baseIngredients = item.description 
            ? item.description.split(',').map(i => i.trim()).filter(i => i && !i.includes('*'))
            : [];
+         const labelDoppio = lang === 'it' ? 'Doppio' : lang === 'en' ? 'Double' : lang === 'fr' ? 'Double' : 'Doppelt';  
 
          // Filtriamo gli ingredienti extra da cercare in base alla categoria
          const addons = items.filter(i => {
@@ -1602,10 +1737,13 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
                            <span className="text-[10px] font-bold text-wood-400 uppercase tracking-widest block mb-1">Ingredienti inclusi:</span>
                            {baseIngredients.map((ing) => {
                               const qty = tempIngredientsQty[ing] ?? 1;
+                              // TRADUCIAMO L'INGREDIENTE BASE IN TEMPO REALE SULLO SCHERMO
+                              const translatedIngredient = translateIngredient(ing, lang);
+
                               return (
                                  <div key={ing} className="flex justify-between items-center py-1">
                                     <span className={`font-bold text-sm uppercase transition-colors ${qty === 0 ? 'line-through text-red-500 opacity-60' : qty > 1 ? 'text-[#45856c]' : 'text-wood-800'}`}>
-                                       {ing} {qty > 1 && <span className="text-xs font-normal">(Doppio)</span>}
+                                       {translatedIngredient} {qty > 1 && <span className="text-xs font-normal">({labelDoppio})</span>}
                                     </span>
                                     
                                     <div className="flex items-center gap-3 bg-white rounded-lg p-1 shadow-sm border border-wood-100">
@@ -1646,12 +1784,15 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
                         </div>
 
                         <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                           {filteredAddons.map(addon => (
+                           {filteredAddons.map(addon => {
+                              // RECUPERIAMO IL NOME TRADOTTO IN AUTOMATICO DAL DATABASE
+                              const { name } = getProductContent(addon);
+                              
+                              return (
                               <button 
                                  type="button"
                                  key={addon.id} 
                                  onClick={() => {
-                                    // Aggiunge l'extra nel carrello per il piatto corrente
                                     const newCart = [...cart];
                                     const updatedItem = { ...newCart[customizingItemIndex] };
                                     updatedItem.selectedAddons = [...(updatedItem.selectedAddons || []), addon];
@@ -1659,19 +1800,18 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
                                     setCart(newCart);
                                     setAddonSearch('');
                                     
-                                    // TRIGGER DEL TUO TOAST FLUTTUANTE
                                     setSuggestionToast({ 
                                        show: true, 
-                                       text: `AGGIUNTO: ${addon.name.toUpperCase()}` 
+                                       text: `AGGIUNTO: ${name.toUpperCase()}` // Usa il nome tradotto anche nel toast fluttuante!
                                     });
                                     setTimeout(() => setSuggestionToast({ show: false, text: '' }), 2500);
                                  }} 
                                  className="w-full flex justify-between items-center p-3 hover:bg-green-50 rounded-xl transition-all border border-transparent hover:border-[#45856c]/20 text-left"
                               >
-                                 <span className="text-sm font-medium text-wood-700">{addon.name}</span>
+                                 <span className="text-sm font-medium text-wood-700">{name}</span>
                                  <span className="font-mono font-bold text-xs text-[#45856c] bg-[#45856c]/10 px-2 py-1 rounded-lg">+€{addon.price.toFixed(2)}</span>
                               </button>
-                           ))}
+                           )})}
                         </div>
                      </div>
                   </div>
