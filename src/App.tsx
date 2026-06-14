@@ -1472,7 +1472,7 @@ const renderMenu = () => {
 
     return (
       <div className="min-h-screen bg-wood-50 flex flex-col justify-between">
-        <div className="flex-1 pb-32">
+        <div className="flex-1 pb-20">
           {/* HERO */}
           <div className="relative h-96 bg-wood-900 overflow-hidden">
             <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: "url('https://oldwest.click/wp-content/uploads/2018/07/background1.jpg')" }}></div>
@@ -1652,7 +1652,7 @@ const renderMenu = () => {
                            const isAdded = addedItemId === item.id;
                            const isDrink = item.category === ProductCategory.BEVANDE;
                            return (
-                             <div key={item.id} className="bg-white rounded-3xl border border-wood-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group">
+                             <div key={item.id} onClick={() => setInfoItem(item)} className="bg-white rounded-3xl border border-wood-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group cursor-pointer">
                                {!isDrink && (
                                  <div className="relative h-56 bg-wood-50 overflow-hidden">
                                    {item.imageUrl ? (<img src={item.imageUrl} alt={name} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />) : (<div className="w-full h-full flex items-center justify-center bg-wood-100"><WesternLogo size="lg" className="opacity-50 grayscale" /></div>)}
