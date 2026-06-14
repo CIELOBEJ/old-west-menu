@@ -129,6 +129,113 @@ export default function App() {
   // --- STATI AGGIUNTI PER L'AUTENTICAZIONE CLIENTE ---
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
+  // --- STATI AGGIUNTI PER IL CONTROLLO SOVRACCARICO E FASCE ORARIE ---
+  const [blockedSlots, setBlockedSlots] = useState<string[]>([]);
+  const [isCheckingSlots, setIsCheckingSlots] = useState(false);
+
+  // Genera dinamicamente tutti gli orari possibili ogni 15 minuti basandosi sulle aperture reali del locale
+  const generateTimeSlots = (): string[] => {
+    const slots: string[] = [];
+    
+    // Pranzo: 11:45 - 14:30
+    let h = 11, m = 45;
+    while (h < 14 || (h === 14 && m <= 30)) {
+      slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+      m += 15;
+      if (m >= 60) { m = 0; h += 1; }
+    }
+    
+    // Cena: 18:45 - 22:30
+    h = 18; m = 45;
+    while (h < 22 || (h === 22 && m <= 30)) {
+      slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+      m += 15;
+      if (m >= 60) { m = 0; h += 1; }
+    }
+    
+    return slots;
+  };
+
+  // Filtra gli orari passati o imminenti se l'ordine è per "Oggi" (richiede minimo 30 min di preparazione)
+  const getAvailableSlots = (allSlots: string[], dateChoice: string): string[] => {
+    if (dateChoice !== 'Oggi') return allSlots;
+    
+    const now = new Date();
+    const limitTimeInMinutes = now.getHours() * 60 + now.getMinutes() + 30; // Ora attuale + 30 min
+    
+    return allSlots.filter(slot => {
+      const [sh, sm] = slot.split(':').map(Number);
+      return (sh * 60 + sm) >= limitTimeInMinutes;
+    });
+  };
+
+  // Interroga Supabase per calcolare se una fascia è sovraccarica (Max 4 consegne OPPURE Max 12 pizze)
+  const checkSlotCapacities = async (selectedDateLabel: string) => {
+    setIsCheckingSlots(false);
+    try {
+      const targetDate = new Date();
+      if (selectedDateLabel === 'Domani') {
+        targetDate.setDate(targetDate.getDate() + 1);
+      }
+      const dateStr = targetDate.toISOString().slice(0, 10); // AAAA-MM-DD
+      
+      const startOfDay = `${dateStr}T00:00:00.000Z`;
+      const endOfDay = `${dateStr}T23:59:59.999Z`;
+
+      // Scarica gli ordini attivi di quel giorno specifico
+      const { data, error } = await supabase
+        .from('orders')
+        .select('delivery_time, cart_items, status')
+        .gte('created_at', startOfDay)
+        .lte('created_at', endOfDay)
+        .neq('status', 'cancelled');
+
+      if (error) throw error;
+
+      if (data) {
+        const slotsCount: Record<string, { orders: number; pizzas: number }> = {};
+        
+        data.forEach(order => {
+          const time = order.delivery_time;
+          if (!time || time === 'Il prima possibile') return;
+          
+          if (!slotsCount[time]) {
+            slotsCount[time] = { orders: 0, pizzas: 0 };
+          }
+          
+          slotsCount[time].orders += 1;
+          
+          // Conta le pizze presenti in quell'ordine
+          const pizzasCount = order.cart_items?.reduce((sum: number, item: any) => {
+            if (item.category === 'Pizza') return sum + item.quantity;
+            return sum;
+          }, 0) || 0;
+          
+          slotsCount[time].pizzas += pizzasCount;
+        });
+
+        // Individua le fasce sature (>= 4 ordini o >= 12 pizze)
+        const blocked: string[] = [];
+        Object.entries(slotsCount).forEach(([time, stats]) => {
+          if (stats.orders >= 4 || stats.pizzas >= 12) {
+             blocked.push(time);
+          }
+        });
+        
+        setBlockedSlots(blocked);
+      }
+    } catch (err) {
+      console.error("Errore nel calcolo della congestione:", err);
+    }
+  };
+
+  // Attiva il controllo di congestione ogni volta che si apre il checkout o cambia giorno
+  useEffect(() => {
+    if (view === 'CHECKOUT') {
+      checkSlotCapacities(orderDate);
+    }
+  }, [view, orderDate]);
+
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
@@ -1258,7 +1365,18 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
                      {/* Nome e Telefono */}
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div><label className="block text-xs font-bold text-wood-500 uppercase mb-1">{t('name', lang)} *</label><input required type="text" value={orderForm.customerName} onChange={e => setOrderForm({...orderForm, customerName: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:border-[#45856c]" /></div>
-                        <div><label className="block text-xs font-bold text-wood-500 uppercase mb-1">Email *</label><input required type="email" value={orderForm.customerEmail} onChange={e => setOrderForm({...orderForm, customerEmail: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:border-[#45856c]" /></div>
+                        <div>
+                           <label className="block text-xs font-bold text-wood-500 uppercase mb-1">
+                              {orderForm.orderType === 'delivery' ? 'Email *' : 'Email (Opzionale)'}
+                           </label>
+                           <input 
+                              required={orderForm.orderType === 'delivery'} 
+                              type="email" 
+                              value={orderForm.customerEmail} 
+                              onChange={e => setOrderForm({...orderForm, customerEmail: e.target.value})} 
+                              className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:border-[#45856c]" 
+                           />
+                        </div>
                         <div><label className="block text-xs font-bold text-wood-500 uppercase mb-1">{t('phone', lang)} *</label><input required type="tel" value={orderForm.customerPhone} onChange={e => setOrderForm({...orderForm, customerPhone: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:border-[#45856c]" /></div>
                      </div>
 
@@ -1361,10 +1479,46 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
 
                         <label className="block text-xs font-bold text-wood-500 uppercase mb-3">{t('time', lang)}</label>
                         <div className="flex flex-wrap gap-2 max-h-56 overflow-y-auto p-1 bg-wood-50/50 rounded-2xl border border-wood-100 p-3">
-                           <button type="button" onClick={() => setOrderForm({...orderForm, deliveryTime: 'Il prima possibile'})} className={`px-4 py-2 rounded-full font-bold text-[10px] border-2 transition-all ${orderForm.deliveryTime === 'Il prima possibile' ? 'border-[#45856c] bg-[#45856c] text-white' : 'border-white bg-white text-wood-500 shadow-sm'}`}>IL PRIMA POSSIBILE</button>
-                           {[...LUNCH_HOURS, ...DINNER_HOURS].map(time => (
-                              <button key={time} type="button" onClick={() => setOrderForm({...orderForm, deliveryTime: time})} className={`px-4 py-2 rounded-full font-bold text-xs border-2 transition-all ${orderForm.deliveryTime === time ? 'border-[#45856c] bg-[#45856c] text-white' : 'border-white bg-white text-wood-500 shadow-sm'}`}>{time}</button>
-                           ))}
+                           {/* Pulsante 'Il prima possibile' (disponibile solo per oggi) */}
+                           {orderDate === 'Oggi' && (
+                              <button 
+                                 type="button" 
+                                 onClick={() => setOrderForm({...orderForm, deliveryTime: 'Il prima possibile'})} 
+                                 className={`px-4 py-2 rounded-full font-bold text-[10px] border-2 transition-all ${orderForm.deliveryTime === 'Il prima possibile' ? 'border-[#45856c] bg-[#45856c] text-white shadow-sm' : 'border-white bg-white text-wood-500 shadow-sm'}`}
+                              >
+                                 IL PRIMA POSSIBILE
+                              </button>
+                           )}
+                           
+                           {/* Generazione dinamica a 15 minuti con blocco di congestione */}
+                           {(() => {
+                              const baseSlots = generateTimeSlots();
+                              const availableSlots = getAvailableSlots(baseSlots, orderDate);
+
+                              return availableSlots.map(time => {
+                                 const isBlocked = blockedSlots.includes(time);
+                                 const isSelected = orderForm.deliveryTime === time;
+
+                                 return (
+                                    <button 
+                                       key={time} 
+                                       type="button" 
+                                       disabled={isBlocked}
+                                       onClick={() => setOrderForm({...orderForm, deliveryTime: time})} 
+                                       className={`px-4 py-2 rounded-full font-bold text-xs border-2 transition-all ${
+                                          isBlocked
+                                          ? 'border-gray-100 bg-gray-100 text-gray-300 cursor-not-allowed line-through'
+                                          : isSelected 
+                                            ? 'border-[#45856c] bg-[#45856c] text-white shadow-sm font-black' 
+                                            : 'border-white bg-white text-wood-500 shadow-sm'
+                                       }`}
+                                       title={isBlocked ? "Fascia oraria satura" : "Seleziona orario"}
+                                    >
+                                       {time} {isBlocked && " (Pieno)"}
+                                    </button>
+                                 );
+                              });
+                           })()}
                         </div>
                      </div>
                   </div>
