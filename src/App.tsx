@@ -99,6 +99,7 @@ export default function App() {
   const [view, setView] = useState<ViewState>('MENU');
   const [activeCategory, setActiveCategory] = useState<string>('Tutti');
   const [activeSubCategoryView, setActiveSubCategoryView] = useState<string | null>(null);
+  const [categories, setCategories] = useState<{ id: string; image_url: string | null }[]>([]);
   const [diyStep, setDiyStep] = useState(0);
   const [diySelections, setDiySelections] = useState<Record<number, any>>({});
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -564,7 +565,11 @@ const handleRegister = async (e: React.FormEvent) => {
     } catch (error) { console.error('Error fetching data:', error); setItems([...INITIAL_MENU_ITEMS, ...EXTRA_INGREDIENTS_ITEMS]); } finally { setIsDataLoaded(true); }
   };
 
-  useEffect(() => { fetchItems(); const savedLogo = localStorage.getItem('oldWestLogoUrl'); if (savedLogo) setCustomLogo(savedLogo); const savedOrderId = localStorage.getItem('activeOrderId');
+  useEffect(() => { fetchItems(); const savedLogo = localStorage.getItem('oldWestLogoUrl'); if (savedLogo) setCustomLogo(savedLogo); const fetchCategories = async () => {
+      const { data } = await supabase.from('categories').select('*');
+      if (data) setCategories(data);
+    };
+    fetchCategories(); const savedOrderId = localStorage.getItem('activeOrderId');
       if (savedOrderId) {
       // Controlliamo se l'ordine esiste ancora e che stato ha
       const checkOrder = async () => {
@@ -1433,7 +1438,7 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
     );
   };
 
-  const renderMenu = () => {
+const renderMenu = () => {
     if (activeCategory === ProductCategory.HAMBURGER && activeSubCategoryView === 'Hamburger "Fai da te"') { return renderDIY(); }
     const hasActiveFilters = activeFilters.vegetarian || activeFilters.vegan || activeFilters.spicy || activeFilters.bestseller;
     const filteredItems = items.filter(item => {
@@ -1447,166 +1452,225 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
     const highlightedItems = items.filter(i => (i.tags?.includes('Best Seller') || i.tags?.includes('Consigliato')) && i.category !== ProductCategory.AGGIUNTE);
 
     return (
-      <div className="min-h-screen bg-wood-50 pb-40">
-        <div className="relative h-96 bg-wood-900 overflow-hidden">
-          <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: "url('https://oldwest.click/wp-content/uploads/2018/07/background1.jpg')" }}></div>
-          <div className="absolute inset-0 bg-gradient-to-t from-wood-900 via-transparent to-transparent"></div>
-          <div className="relative z-10 flex flex-col items-center justify-center h-full text-center text-white pb-10 px-4 pt-16"><h1 className="text-4xl md:text-7xl font-western mb-4 shadow-sm drop-shadow-md tracking-wide pt-10">{t('hero_title', lang)}</h1><div className="flex flex-col items-center gap-2 text-wood-200 text-base md:text-xl font-medium"><p className="flex items-center gap-2"><MapPin size={20} className="text-accent-500" /> Via G. Galilei 35 - Cameri (NO)</p><p className="flex items-center gap-2 text-sm md:text-base opacity-80"><Clock size={16} /> 11:00 - 15:00 | 17:00 - 00:00</p></div></div>
-        </div>
-        <div className="sticky top-16 md:top-20 z-40 bg-wood-50/95 backdrop-blur-sm border-b border-wood-200 shadow-sm">
-          <div className="container mx-auto px-4 py-4">
-             <div className="relative group">
-                <button onClick={() => scrollCarousel('left', carouselRef)} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"><ChevronLeft size={18} /></button>
-                <div ref={carouselRef} className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 pt-1 px-1 cursor-grab active:cursor-grabbing" onMouseDown={(e) => handleMouseDown(e, carouselRef)} onMouseLeave={handleMouseLeave} onMouseUp={handleMouseUp} onMouseMove={(e) => handleMouseMove(e, carouselRef)}><button id="btn-Tutti" onClick={() => handleCategoryClick('Tutti')} className={`flex items-center gap-2 px-5 py-2.5 rounded-full whitespace-nowrap transition-all duration-300 font-bold text-sm shadow-sm select-none ${activeCategory === 'Tutti' ? 'bg-wood-900 text-white scale-105 ring-2 ring-wood-900 ring-offset-2' : 'bg-white text-wood-600 border border-wood-200 hover:border-wood-400'}`}><LayoutGrid size={16} /> {tCategory('Tutti', lang)}</button>{CATEGORIES_LIST.map(cat => (<button key={cat} id={`btn-${cat}`} onClick={() => handleCategoryClick(cat)} className={`flex items-center gap-2 px-5 py-2.5 rounded-full whitespace-nowrap transition-all duration-300 font-bold text-sm shadow-sm select-none ${activeCategory === cat ? 'bg-accent-500 text-white scale-105 ring-2 ring-accent-500 ring-offset-2' : 'bg-white text-wood-600 border border-wood-200 hover:border-accent-300 hover:text-accent-600'}`}><CategoryIcon category={cat} className="w-4 h-4" /> {tCategory(cat, lang)}</button>))}</div>
-                <button onClick={() => scrollCarousel('right', carouselRef)} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"><ChevronRight size={18} /></button>
-             </div>
-             <div className="mt-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                {activeCategory === ProductCategory.HAMBURGER && (<div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1"><button onClick={() => setActiveSubCategoryView(null)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${activeSubCategoryView === null ? 'bg-wood-800 text-white' : 'bg-wood-200 text-wood-600 hover:bg-wood-300'}`}>{t('all', lang)}</button>{HAMBURGER_SUBCATEGORIES.map(sub => (<button key={sub} onClick={() => setActiveSubCategoryView(sub)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${activeSubCategoryView === sub ? 'bg-wood-800 text-white' : 'bg-wood-200 text-wood-600 hover:bg-wood-300'}`}>{sub}</button>))}</div>)}
-                <div className="flex gap-2 overflow-x-auto scrollbar-hide ml-auto">
-                   <button onClick={() => setActiveFilters({...activeFilters, vegetarian: !activeFilters.vegetarian})} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all whitespace-nowrap ${activeFilters.vegetarian ? 'bg-green-100 border-green-300 text-green-700' : 'bg-white border-wood-200 text-wood-500 hover:border-wood-400'}`}><Leaf size={12} /> {t('filter_veg', lang)}</button>
-                   <button onClick={() => setActiveFilters({...activeFilters, vegan: !activeFilters.vegan})} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all whitespace-nowrap ${activeFilters.vegan ? 'bg-green-100 border-green-300 text-green-700' : 'bg-white border-wood-200 text-wood-500 hover:border-wood-400'}`}><Sprout size={12} /> {t('filter_vegan', lang)}</button>
-                   <button onClick={() => setActiveFilters({...activeFilters, spicy: !activeFilters.spicy})} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all whitespace-nowrap ${activeFilters.spicy ? 'bg-red-100 border-red-300 text-red-700' : 'bg-white border-wood-200 text-wood-500 hover:border-wood-400'}`}><Flame size={12} /> {t('filter_spicy', lang)}</button>
-                </div>
-             </div>
+      <div className="min-h-screen bg-wood-50 flex flex-col justify-between">
+        <div className="flex-1 pb-32">
+          {/* HERO */}
+          <div className="relative h-96 bg-wood-900 overflow-hidden">
+            <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: "url('https://oldwest.click/wp-content/uploads/2018/07/background1.jpg')" }}></div>
+            <div className="absolute inset-0 bg-gradient-to-t from-wood-900 via-transparent to-transparent"></div>
+            <div className="relative z-10 flex flex-col items-center justify-center h-full text-center text-white pb-10 px-4 pt-16"><h1 className="text-4xl md:text-7xl font-western mb-4 shadow-sm drop-shadow-md tracking-wide pt-10">{t('hero_title', lang)}</h1><div className="flex flex-col items-center gap-2 text-wood-200 text-base md:text-xl font-medium"><p className="flex items-center gap-2"><MapPin size={20} className="text-accent-500" /> Via G. Galilei 35 - Cameri (NO)</p><p className="flex items-center gap-2 text-sm md:text-base opacity-80"><Clock size={16} /> 11:00 - 15:00 | 17:00 - 00:00</p></div></div>
           </div>
-        </div>
-        <div className="container mx-auto px-4 mt-6"><div className="bg-gradient-to-r from-accent-500 to-accent-600 text-white p-3 rounded-xl shadow-md text-center text-sm font-bold tracking-wide">✨ Aggiunta ingredienti da € 1,00 a € 6,00 ✨</div></div>
-        {activeCategory === 'Tutti' && !hasActiveFilters && highlightedItems.length > 0 && (
-          <div className="container mx-auto px-4 mt-8 mb-4">
-            <h3 className="text-xl font-bold text-wood-900 mb-4 flex items-center gap-2"><Star size={20} className="text-accent-500" fill="currentColor" /> In Evidenza</h3>
-            <div className="relative group/hl">
-                <button onClick={() => scrollCarousel('left', highlightsRef)} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover/hl:opacity-100 transition-opacity disabled:opacity-0"><ChevronLeft size={18} /></button>
-                <div ref={highlightsRef} className="flex gap-4 overflow-x-auto scrollbar-hide pb-4 snap-x px-1" onMouseDown={(e) => handleMouseDown(e, highlightsRef)} onMouseLeave={handleMouseLeave} onMouseUp={handleMouseUp} onMouseMove={(e) => handleMouseMove(e, highlightsRef)}>{highlightedItems.map(item => { 
-   const { name } = getProductContent(item);
-   const isAdded = addedItemId === item.id; // Feedback visivo se aggiunto
 
-   return (
-     <div 
-       key={item.id} 
-       className="snap-center shrink-0 w-48 bg-white rounded-2xl border border-wood-100 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col cursor-pointer"
-       onClick={() => setInfoItem(item)} // Ora apre il popup invece di cambiare pagina
-     >
-        <div className="h-32 bg-wood-50 relative">
-           {item.imageUrl ? (
-              <img src={item.imageUrl} alt={name} className="w-full h-full object-cover" />
-           ) : (
-              <div className="w-full h-full flex items-center justify-center text-wood-300">
-                 <UtensilsCrossed size={16} />
-              </div>
-           )}
-           <span className="absolute top-2 left-2 bg-accent-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm">
-              {item.tags?.includes('Best Seller') ? 'BEST' : 'TOP'}
-           </span>
-        </div>
-        
-        <div className="p-3 flex flex-col flex-1">
-           <h4 className="font-bold text-sm text-wood-900 line-clamp-2 mb-1">{name}</h4>
-           <div className="mt-auto flex justify-between items-center">
-              <span className="font-mono font-bold text-accent-600 text-sm">€{item.price.toFixed(2)}</span>
-              
-              {/* BOTTONE AGGIUNGI REALE */}
-              <button 
-                 onClick={(e) => { 
-                    e.stopPropagation(); // IMPORTANTE: evita di attivare il click della card (cambio categoria)
-                    addToCart(item); 
-                 }}
-                 className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-sm ${isAdded ? 'bg-green-500 text-white' : 'bg-wood-900 text-white hover:bg-[#45856c]'}`}
-              >
-                 {isAdded ? <Check size={14} /> : <Plus size={14} />}
-              </button>
-           </div>
-        </div>
-     </div>
-   ) 
-})}</div>
-                <button onClick={() => scrollCarousel('right', highlightsRef)} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover/hl:opacity-100 transition-opacity disabled:opacity-0"><ChevronRight size={18} /></button>
+          {/* BARRA FILTRI STICKY */}
+          <div className="sticky top-16 md:top-20 z-40 bg-wood-50/95 backdrop-blur-sm border-b border-wood-200 shadow-sm">
+            <div className="container mx-auto px-4 py-4">
+               <div className="relative group">
+                  <button onClick={() => scrollCarousel('left', carouselRef)} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"><ChevronLeft size={18} /></button>
+                  <div ref={carouselRef} className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 pt-1 px-1 cursor-grab active:cursor-grabbing" onMouseDown={(e) => handleMouseDown(e, carouselRef)} onMouseLeave={handleMouseLeave} onMouseUp={handleMouseUp} onMouseMove={(e) => handleMouseMove(e, carouselRef)}><button id="btn-Tutti" onClick={() => handleCategoryClick('Tutti')} className={`flex items-center gap-2 px-5 py-2.5 rounded-full whitespace-nowrap transition-all duration-300 font-bold text-sm shadow-sm select-none ${activeCategory === 'Tutti' ? 'bg-wood-900 text-white scale-105 ring-2 ring-wood-900 ring-offset-2' : 'bg-white text-wood-600 border border-wood-200 hover:border-wood-400'}`}><LayoutGrid size={16} /> {tCategory('Tutti', lang)}</button>{CATEGORIES_LIST.map(cat => (<button key={cat} id={`btn-${cat}`} onClick={() => handleCategoryClick(cat)} className={`flex items-center gap-2 px-5 py-2.5 rounded-full whitespace-nowrap transition-all duration-300 font-bold text-sm shadow-sm select-none ${activeCategory === cat ? 'bg-accent-500 text-white scale-105 ring-2 ring-accent-500 ring-offset-2' : 'bg-white text-wood-600 border border-wood-200 hover:border-accent-300 hover:text-accent-600'}`}><CategoryIcon category={cat} className="w-4 h-4" /> {tCategory(cat, lang)}</button>))}</div>
+                  <button onClick={() => scrollCarousel('right', carouselRef)} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"><ChevronRight size={18} /></button>
+               </div>
+               <div className="mt-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  {activeCategory === ProductCategory.HAMBURGER && (<div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1"><button onClick={() => setActiveSubCategoryView(null)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${activeSubCategoryView === null ? 'bg-wood-800 text-white' : 'bg-wood-200 text-wood-600 hover:bg-wood-300'}`}>{t('all', lang)}</button>{HAMBURGER_SUBCATEGORIES.map(sub => (<button key={sub} onClick={() => setActiveSubCategoryView(sub)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${activeSubCategoryView === sub ? 'bg-wood-800 text-white' : 'bg-wood-200 text-wood-600 hover:bg-wood-300'}`}>{sub}</button>))}</div>)}
+                  <div className="flex gap-2 overflow-x-auto scrollbar-hide ml-auto">
+                     <button onClick={() => setActiveFilters({...activeFilters, vegetarian: !activeFilters.vegetarian})} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all whitespace-nowrap ${activeFilters.vegetarian ? 'bg-green-100 border-green-300 text-green-700' : 'bg-white border-wood-200 text-wood-500 hover:border-wood-400'}`}><Leaf size={12} /> {t('filter_veg', lang)}</button>
+                     <button onClick={() => setActiveFilters({...activeFilters, vegan: !activeFilters.vegan})} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all whitespace-nowrap ${activeFilters.vegan ? 'bg-green-100 border-green-300 text-green-700' : 'bg-white border-wood-200 text-wood-500 hover:border-wood-400'}`}><Sprout size={12} /> {t('filter_vegan', lang)}</button>
+                     <button onClick={() => setActiveFilters({...activeFilters, spicy: !activeFilters.spicy})} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all whitespace-nowrap ${activeFilters.spicy ? 'bg-red-100 border-red-300 text-red-700' : 'bg-white border-wood-200 text-wood-500 hover:border-wood-400'}`}><Flame size={12} /> {t('filter_spicy', lang)}</button>
+                  </div>
+               </div>
             </div>
           </div>
-        )}
-        <div className="container mx-auto px-4 py-8">
-           {activeCategory === 'Tutti' && !hasActiveFilters ? (
-             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">{CATEGORIES_LIST.map(cat => (<button key={cat} onClick={() => handleCategoryClick(cat)} className="bg-accent-500 border-2 border-transparent rounded-3xl p-4 flex flex-col items-center justify-center gap-3 shadow-sm hover:shadow-xl transition-all group aspect-square hover:scale-105"><div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center text-white"><CategoryIcon category={cat} className="w-7 h-7" /></div><span className="font-western text-sm md:text-xl text-white text-center leading-tight">{tCategory(cat, lang)}</span></button>))}</div>
-           ) : (
-             <>
-               {activeCategory === ProductCategory.BEVANDE ? (
-                  <div className="space-y-10">
-                     {DRINK_SUBCATEGORIES.map(subCat => {
-                        const subCatItems = filteredItems.filter(i => i.subCategory === subCat);
-                        if (subCatItems.length === 0) return null;
-                        return (
-                           <div key={subCat}>
-                              <h3 className="text-2xl font-western text-wood-900 mb-4 border-b-2 border-accent-500 pb-2 inline-block">{tSubCategory(subCat, lang)}</h3>
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                 {subCatItems.map(item => {
-                                     const { name, description } = getProductContent(item);
-                                     const isAdded = addedItemId === item.id;
-                                     return (
-                                       <div key={item.id} className="bg-white rounded-2xl border border-wood-100 overflow-hidden shadow-sm p-4 flex justify-between items-center gap-4 hover:shadow-md transition-all">
-                                          <div className="flex-1 min-w-0"><div className="flex flex-col items-start"><h4 className="font-bold text-wood-900 leading-tight truncate w-full">{name}</h4>{item.brand && <span className="text-xs text-accent-600 font-bold mt-0.5">{item.brand}</span>}</div>{description && <p className="text-xs text-wood-500 mt-1 line-clamp-2">{description}</p>}</div>
-                                          <div className="flex items-center gap-3 shrink-0"><span className="font-western text-xl text-wood-900">€{item.price.toFixed(2)}</span><button onClick={() => addToCart(item)} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm ${isAdded ? 'bg-green-500 text-white' : 'bg-wood-900 text-white hover:bg-accent-600'}`}>{isAdded ? <Check size={18} /> : <Plus size={18} />}</button></div>
-                                       </div>
-                                     );
-                                 })}
-                              </div>
-                           </div>
-                        )
-                     })}
-                     {filteredItems.filter(i => !i.subCategory).length > 0 && (
-                        <div>
-                           <h3 className="text-2xl font-western text-wood-900 mb-4 border-b-2 border-wood-200 pb-2 inline-block">Altro</h3>
-                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                              {filteredItems.filter(i => !i.subCategory).map(item => {
-                                 const { name, description } = getProductContent(item);
-                                 const isAdded = addedItemId === item.id;
-                                 return (
-                                   <div key={item.id} className="bg-white rounded-2xl border border-wood-100 overflow-hidden shadow-sm p-4 flex justify-between items-center gap-4 hover:shadow-md transition-all">
-                                      <div className="flex-1 min-w-0"><div className="flex flex-col items-start"><h4 className="font-bold text-wood-900 leading-tight truncate w-full">{name}</h4>{item.brand && <span className="text-xs text-accent-600 font-bold mt-0.5">{item.brand}</span>}</div>{description && <p className="text-xs text-wood-500 mt-1 line-clamp-2">{description}</p>}</div>
-                                      <div className="flex items-center gap-3 shrink-0"><span className="font-western text-xl text-wood-900">€{item.price.toFixed(2)}</span><button onClick={() => addToCart(item)} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm ${isAdded ? 'bg-green-500 text-white' : 'bg-wood-900 text-white hover:bg-accent-600'}`}>{isAdded ? <Check size={18} /> : <Plus size={18} />}</button></div>
-                                   </div>
-                                 );
-                              })}
-                           </div>
-                        </div>
-                     )}
-                  </div>
-               ) : (
-                 <>
-                   {filteredItems.length === 0 ? (
-                     <div className="text-center py-20"><div className="inline-block p-6 bg-wood-100 rounded-full mb-4"><UtensilsCrossed size={40} className="text-wood-400" /></div><h3 className="text-xl font-bold text-wood-600">{t('no_products_section', lang)}</h3><p className="text-wood-400 mt-2">{t('select_category', lang)}</p></div>
-                   ) : (
-                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                       {filteredItems.map(item => {
-                         const { name, description } = getProductContent(item);
-                         const isAdded = addedItemId === item.id;
-                         const isDrink = item.category === ProductCategory.BEVANDE;
-                         const suggestion = getCrossSellSuggestion(item);
-                         return (
-                           <div key={item.id} className="bg-white rounded-3xl border border-wood-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group">
-                             {!isDrink && (
-                               <div className="relative h-56 bg-wood-50 overflow-hidden">
-                                 {item.imageUrl ? (<img src={item.imageUrl} alt={name} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />) : (<div className="w-full h-full flex items-center justify-center bg-wood-100"><WesternLogo size="lg" className="opacity-50 grayscale" /></div>)}
-                                 {item.tags && item.tags.length > 0 && (<div className="absolute top-4 left-4 flex flex-col gap-1">{item.tags.map(tag => (<span key={tag} className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider shadow-sm ${tag === 'Piccante' ? 'bg-red-500 text-white' : tag === 'Vegetariano' || tag === 'Vegano' ? 'bg-green-500 text-white' : 'bg-accent-500 text-white'}`}>{tag}</span>))}</div>)}
-                                 <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-lg shadow-sm border border-wood-100 flex items-center gap-1"><span className="text-xs font-bold text-wood-500">€</span><span className="text-xl font-western text-wood-900">{item.price.toFixed(2)}</span></div>
-                               </div>
+
+          <div className="container mx-auto px-4 mt-6">
+            <div className="bg-gradient-to-r from-accent-500 to-accent-600 text-white p-3 rounded-xl shadow-md text-center text-sm font-bold tracking-wide">
+              ✨ Aggiunta ingredienti da € 1,00 a € 6,00 ✨
+            </div>
+          </div>
+
+          {/* IN EVIDENZA */}
+          {activeCategory === 'Tutti' && !hasActiveFilters && highlightedItems.length > 0 && (
+            <div className="container mx-auto px-4 mt-8 mb-4">
+              <h3 className="text-xl font-bold text-wood-900 mb-4 flex items-center gap-2"><Star size={20} className="text-accent-500" fill="currentColor" /> In Evidenza</h3>
+              <div className="relative group/hl">
+                  <button type="button" onClick={() => scrollCarousel('left', highlightsRef)} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover/hl:opacity-100 transition-opacity disabled:opacity-0"><ChevronLeft size={18} /></button>
+                  <div ref={highlightsRef} className="flex gap-4 overflow-x-auto scrollbar-hide pb-4 snap-x px-1" onMouseDown={(e) => handleMouseDown(e, highlightsRef)} onMouseLeave={handleMouseLeave} onMouseUp={handleMouseUp} onMouseMove={(e) => handleMouseMove(e, highlightsRef)}>{highlightedItems.map(item => { 
+     const { name } = getProductContent(item);
+     const isAdded = addedItemId === item.id;
+
+     return (
+       <div 
+         key={item.id} 
+         className="snap-center shrink-0 w-48 bg-white rounded-2xl border border-wood-100 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col cursor-pointer"
+         onClick={() => setInfoItem(item)}
+       >
+          <div className="h-32 bg-wood-50 relative">
+             {item.imageUrl ? (
+                <img src={item.imageUrl} alt={name} className="w-full h-full object-cover" />
+             ) : (
+                <div className="w-full h-full flex items-center justify-center text-wood-300">
+                   <UtensilsCrossed size={16} />
+                </div>
+             )}
+             <span className="absolute top-2 left-2 bg-accent-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm">
+                {item.tags?.includes('Best Seller') ? 'BEST' : 'TOP'}
+             </span>
+          </div>
+          
+          <div className="p-3 flex flex-col flex-1">
+             <h4 className="font-bold text-sm text-wood-900 line-clamp-2 mb-1">{name}</h4>
+             <div className="mt-auto flex justify-between items-center">
+                <span className="font-mono font-bold text-accent-600 text-sm">€{item.price.toFixed(2)}</span>
+                <button 
+                   type="button"
+                   onClick={(e) => { 
+                      e.stopPropagation();
+                      addToCart(item); 
+                   }}
+                   className={`w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-sm ${isAdded ? 'bg-green-500 text-white' : 'bg-wood-900 text-white hover:bg-[#45856c]'}`}
+                >
+                   {isAdded ? <Check size={14} /> : <Plus size={14} />}
+                </button>
+             </div>
+          </div>
+       </div>
+     ) 
+  })}</div>
+                  <button type="button" onClick={() => scrollCarousel('right', highlightsRef)} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover/hl:opacity-100 transition-opacity disabled:opacity-0"><ChevronRight size={18} /></button>
+              </div>
+            </div>
+          )}
+
+          {/* GRID DELLE CATEGORIE O PRODOTTI */}
+          <div className="container mx-auto px-4 py-8">
+             {activeCategory === 'Tutti' && !hasActiveFilters ? (
+               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                 {CATEGORIES_LIST.map(cat => {
+                    // Controlla se a questa categoria corrisponde una foto reale sul database
+                    const catData = categories.find(c => c.id === cat);
+                    const imageUrl = catData?.image_url;
+
+                    return (
+                       <div 
+                          key={cat} 
+                          onClick={() => handleCategoryClick(cat)} 
+                          className="bg-white rounded-3xl border border-wood-100 overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 flex flex-col aspect-square hover:scale-105 cursor-pointer group"
+                       >
+                          {/* 3/4 SUPERIORE: FOTO REALE DEL PIATTO (O BLOCCO VERDE CON ICONA SE VUOTA) */}
+                          <div className="h-3/4 w-full bg-wood-50 relative overflow-hidden">
+                             {imageUrl ? (
+                                <img 
+                                   src={imageUrl} 
+                                   alt={cat} 
+                                   className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500" 
+                                />
+                             ) : (
+                                <div className="w-full h-full bg-[#45856c] flex items-center justify-center text-white">
+                                   <CategoryIcon category={cat} className="w-10 h-10 md:w-12 md:h-12" />
+                                </div>
                              )}
-                             <div className="p-6 flex-1 flex flex-col">
-                               <div className="flex justify-between items-start mb-2"><div className="flex-1 min-w-0"><h3 className="text-xl font-bold text-wood-900 leading-tight break-words">{name}</h3>{item.brand && <p className="text-accent-600 font-bold text-sm mb-1">{item.brand}</p>}{item.category === ProductCategory.HAMBURGER && item.subCategory && <span className="text-[10px] font-bold text-wood-400 bg-wood-50 px-2 py-1 rounded-md whitespace-nowrap">{item.subCategory}</span>}</div>{isDrink && (<div className="flex items-center gap-1 pl-2 shrink-0"><span className="text-sm font-bold text-wood-500">€</span><span className="text-xl font-western text-wood-900">{item.price.toFixed(2)}</span></div>)}</div>
-                               <div className="flex-1 mb-4">{description && <p className="text-sm text-wood-500 line-clamp-3">{description}</p>}{description.includes('*') && (<p className="text-[10px] text-wood-400 italic mt-1">* Prodotto surgelato</p>)}</div>
-                               {item.allergens && item.allergens.length > 0 && (<div className="flex flex-wrap gap-1 mb-4 border-t border-wood-100 pt-2">{item.allergens.map(a => (<div key={a} className="group/allergen relative p-1"><AllergenIcon type={a} className="w-4 h-4 text-wood-400" /><span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-wood-800 text-white text-[10px] rounded opacity-0 group-hover/allergen:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">{a}</span></div>))}</div>)}
-                               <button onClick={() => addToCart(item)} className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all duration-200 shadow-lg ${isAdded ? 'bg-green-500 text-white scale-95' : 'bg-wood-900 text-white hover:bg-accent-600 shadow-wood-200'}`}>{isAdded ? <Check size={18} /> : <Plus size={18} />} {t('add_to_cart', lang)}</button>
+                          </div>
+
+                          {/* 1/4 INFERIORE: NOME DELLA CATEGORIA CENTRATO E MAIUSCOLO */}
+                          <div className="h-1/4 w-full bg-white flex items-center justify-center p-2 border-t border-wood-50">
+                             <span className="font-western text-xs sm:text-base text-wood-900 text-center leading-none truncate uppercase tracking-wider">
+                                {tCategory(cat, lang)}
+                             </span>
+                          </div>
+                       </div>
+                    );
+                 })}
+               </div>
+             ) : (
+               <>
+                 {activeCategory === ProductCategory.BEVANDE ? (
+                    <div className="space-y-10">
+                       {DRINK_SUBCATEGORIES.map(subCat => {
+                          const subCatItems = filteredItems.filter(i => i.subCategory === subCat);
+                          if (subCatItems.length === 0) return null;
+                          return (
+                             <div key={subCat}>
+                                <h3 className="text-2xl font-western text-wood-900 mb-4 border-b-2 border-accent-500 pb-2 inline-block">{tSubCategory(subCat, lang)}</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                   {subCatItems.map(item => {
+                                       const { name, description } = getProductContent(item);
+                                       const isAdded = addedItemId === item.id;
+                                       return (
+                                         <div key={item.id} className="bg-white rounded-2xl border border-wood-100 overflow-hidden shadow-sm p-4 flex justify-between items-center gap-4 hover:shadow-md transition-all">
+                                            <div className="flex-1 min-w-0"><div className="flex flex-col items-start"><h4 className="font-bold text-wood-900 leading-tight truncate w-full">{name}</h4>{item.brand && <span className="text-xs text-accent-600 font-bold mt-0.5">{item.brand}</span>}</div>{description && <p className="text-xs text-wood-500 mt-1 line-clamp-2">{description}</p>}</div>
+                                            <div className="flex items-center gap-3 shrink-0"><span className="font-western text-xl text-wood-900">€{item.price.toFixed(2)}</span><button onClick={() => addToCart(item)} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm ${isAdded ? 'bg-green-500 text-white' : 'bg-wood-900 text-white hover:bg-accent-600'}`}>{isAdded ? <Check size={18} /> : <Plus size={18} />}</button></div>
+                                         </div>
+                                       );
+                                   })}
+                                </div>
                              </div>
-                           </div>
-                         );
+                          )
                        })}
-                     </div>
-                   )}
-                 </>
-               )}
-             </>
-           )}
+                       {filteredItems.filter(i => !i.subCategory).length > 0 && (
+                          <div>
+                             <h3 className="text-2xl font-western text-wood-900 mb-4 border-b-2 border-wood-200 pb-2 inline-block">Altro</h3>
+                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {filteredItems.filter(i => !i.subCategory).map(item => {
+                                   const { name, description } = getProductContent(item);
+                                   const isAdded = addedItemId === item.id;
+                                   return (
+                                     <div key={item.id} className="bg-white rounded-2xl border border-wood-100 overflow-hidden shadow-sm p-4 flex justify-between items-center gap-4 hover:shadow-md transition-all">
+                                        <div className="flex-1 min-w-0"><div className="flex flex-col items-start"><h4 className="font-bold text-wood-900 leading-tight truncate w-full">{name}</h4>{item.brand && <span className="text-xs text-accent-600 font-bold mt-0.5">{item.brand}</span>}</div>{description && <p className="text-xs text-wood-500 mt-1 line-clamp-2">{description}</p>}</div>
+                                        <div className="flex items-center gap-3 shrink-0"><span className="font-western text-xl text-wood-900">€{item.price.toFixed(2)}</span><button onClick={() => addToCart(item)} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm ${isAdded ? 'bg-green-500 text-white' : 'bg-wood-900 text-white hover:bg-accent-600'}`}>{isAdded ? <Check size={18} /> : <Plus size={18} />}</button></div>
+                                     </div>
+                                   );
+                                })}
+                             </div>
+                          </div>
+                       )}
+                    </div>
+                 ) : (
+                   <>
+                     {filteredItems.length === 0 ? (
+                       <div className="text-center py-20"><div className="inline-block p-6 bg-wood-100 rounded-full mb-4"><UtensilsCrossed size={40} className="text-wood-400" /></div><h3 className="text-xl font-bold text-wood-600">{t('no_products_section', lang)}</h3><p className="text-wood-400 mt-2">{t('select_category', lang)}</p></div>
+                     ) : (
+                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                         {filteredItems.map(item => {
+                           const { name, description } = getProductContent(item);
+                           const isAdded = addedItemId === item.id;
+                           const isDrink = item.category === ProductCategory.BEVANDE;
+                           return (
+                             <div key={item.id} className="bg-white rounded-3xl border border-wood-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group">
+                               {!isDrink && (
+                                 <div className="relative h-56 bg-wood-50 overflow-hidden">
+                                   {item.imageUrl ? (<img src={item.imageUrl} alt={name} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />) : (<div className="w-full h-full flex items-center justify-center bg-wood-100"><WesternLogo size="lg" className="opacity-50 grayscale" /></div>)}
+                                   {item.tags && item.tags.length > 0 && (<div className="absolute top-4 left-4 flex flex-col gap-1">{item.tags.map(tag => (<span key={tag} className={`text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider shadow-sm ${tag === 'Piccante' ? 'bg-red-500 text-white' : tag === 'Vegetariano' || tag === 'Vegano' ? 'bg-green-500 text-white' : 'bg-accent-500 text-white'}`}>{tag}</span>))}</div>)}
+                                   <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-lg shadow-sm border border-wood-100 flex items-center gap-1"><span className="text-xs font-bold text-wood-500">€</span><span className="text-xl font-western text-wood-900">{item.price.toFixed(2)}</span></div>
+                                 </div>
+                               )}
+                               <div className="p-6 flex-1 flex flex-col">
+                                 <div className="flex justify-between items-start mb-2"><div className="flex-1 min-w-0"><h3 className="text-xl font-bold text-wood-900 leading-tight break-words">{name}</h3>{item.brand && <p className="text-accent-600 font-bold text-sm mb-1">{item.brand}</p>}{item.category === ProductCategory.HAMBURGER && item.subCategory && <span className="text-[10px] font-bold text-wood-400 bg-wood-50 px-2 py-1 rounded-md whitespace-nowrap">{item.subCategory}</span>}</div>{isDrink && (<div className="flex items-center gap-1 pl-2 shrink-0"><span className="text-sm font-bold text-wood-500">€</span><span className="text-xl font-western text-wood-900">{item.price.toFixed(2)}</span></div>)}</div>
+                                 <div className="flex-1 mb-4">{description && <p className="text-sm text-wood-500 line-clamp-3">{description}</p>}{description.includes('*') && (<p className="text-[10px] text-wood-400 italic mt-1">* Prodotto surgelato</p>)}</div>
+                                 {item.allergens && item.allergens.length > 0 && (<div className="flex flex-wrap gap-1 mb-4 border-t border-wood-100 pt-2">{item.allergens.map(a => (<div key={a} className="group/allergen relative p-1"><AllergenIcon type={a} className="w-4 h-4 text-wood-400" /><span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-wood-800 text-white text-[10px] rounded opacity-0 group-hover/allergen:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">{a}</span></div>))}</div>)}
+                                 <button onClick={() => addToCart(item)} className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all duration-200 shadow-lg ${isAdded ? 'bg-green-500 text-white scale-95' : 'bg-wood-900 text-white hover:bg-accent-600 shadow-wood-200'}`}>{isAdded ? <Check size={18} /> : <Plus size={18} />} {t('add_to_cart', lang)}</button>
+                               </div>
+                             </div>
+                           );
+                         })}
+                       </div>
+                     )}
+                   </>
+                 )}
+               </>
+             )}
+          </div>
         </div>
-        <div className="bg-wood-900 text-wood-300 py-12 border-t border-wood-800"><div className="container mx-auto px-4 text-center"><WesternLogo size="md" className="mx-auto mb-6 opacity-80" /><div className="flex flex-col gap-2 items-center mb-6 font-bold text-white"><div className="flex items-center gap-2"><Phone size={16} className="text-accent-500" /> 0321 510220</div><div className="flex items-center gap-2"><MapPin size={16} className="text-accent-500" /> Via G. Galilei 35 - Cameri (NO)</div></div><p className="text-xs opacity-50">&copy; {new Date().getFullYear()} Old West. {t('rights_reserved', lang)}</p></div></div>
-        {suggestionToast.show && (<div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in slide-in-from-top-5 duration-300"><div className="bg-wood-900/95 backdrop-blur-md text-white px-6 py-3 rounded-full shadow-2xl border border-wood-700 flex items-center gap-3"><Sparkles className="text-accent-500" size={20} /><span className="font-medium text-sm">{suggestionToast.text}</span></div></div>)}
+
+        {/* FOOTER SCURO */}
+        <div className="bg-wood-900 text-wood-300 py-12 border-t border-wood-800 shrink-0">
+          <div className="container mx-auto px-4 text-center">
+            <WesternLogo size="md" className="mx-auto mb-6 opacity-80" />
+            <div className="flex flex-col gap-2 items-center mb-6 font-bold text-white">
+              <div className="flex items-center gap-2"><Phone size={16} className="text-accent-500" /> 0321 510220</div>
+              <div className="flex items-center gap-2"><MapPin size={16} className="text-accent-500" /> Via G. Galilei 35 - Cameri (NO)</div>
+            </div>
+            <p className="text-xs opacity-50">&copy; {new Date().getFullYear()} Old West. {t('rights_reserved', lang)}</p>
+          </div>
+        </div>
+
       </div>
     );
   };
