@@ -9,6 +9,11 @@ import {
 import { MenuItem, ProductCategory, ViewState, LanguageCode, ActiveFilters, CartItem, AllergenType, ProductVariant, OrderType, PaymentMethod } from './types';
 import { INITIAL_MENU_ITEMS, CATEGORIES_LIST, HAMBURGER_SUBCATEGORIES, DRINK_SUBCATEGORIES, DIY_OPTIONS, UI_TRANSLATIONS, CATEGORY_TRANSLATIONS, SUBCATEGORY_TRANSLATIONS, DATA_VERSION, ALLERGENS_CONFIG, EXTRA_INGREDIENTS_ITEMS, DELIVERY_ZONES, LUNCH_HOURS, DINNER_HOURS, ADDON_SUBCATEGORIES } from './constants';
 import { supabase } from './supabase';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
+
+// Inizializza Stripe con la tua chiave pubblica di Test (Sostituisci con la tua pk_test_... reale!)
+const stripePromise = loadStripe('pk_test_51TiIYsCXySNnuldcThqR3ZAY2XpOwaUEb7rdhJ663hAfI7IeKap5bJ3HnbUbUVknR62JWTk6NbuVgocFIdRNrWj800M7BvpfqR');
 
 // --- Helper Functions ---
 
@@ -89,6 +94,61 @@ const getDIYStepContent = (step: any, lang: LanguageCode) => {
 const getDIYOptionContent = (opt: any, lang: LanguageCode) => { 
   if (lang === 'it') return opt.name; 
   return opt.translations?.[lang]?.name || opt.name; 
+};
+
+// --- COMPONENTE RENDERIZZAZIONE CASSA SICURA STRIPE (SINGLE-PAGE APP) ---
+const StripeCheckoutForm = ({ clientSecret, onPaymentSuccess }: { clientSecret: string; onPaymentSuccess: () => void }) => {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+
+    setIsProcessing(true);
+    setErrorMessage(null);
+
+    // Conferma il pagamento su Stripe
+    const { error, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        return_url: `${window.location.origin}/?payment_success=true`,
+      },
+      redirect: 'if_required' // Evita il reindirizzamento forzato per le carte standard e Apple/Google Pay
+    });
+
+    if (error) {
+      if (error.type === "card_error" || error.type === "validation_error") {
+        setErrorMessage(error.message || "Errore durante l'elaborazione del pagamento.");
+      } else {
+        setErrorMessage("Si è verificato un errore imprevisto.");
+      }
+      setIsProcessing(false);
+    } else if (paymentIntent && paymentIntent.status === "succeeded") {
+      // Pagamento completato con successo senza ricaricare la pagina!
+      onPaymentSuccess();
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 mt-6 p-4 bg-white rounded-2xl text-black animate-in fade-in zoom-in-95 duration-300">
+      <PaymentElement />
+      {errorMessage && (
+         <div className="text-red-600 text-xs font-bold bg-red-50 p-3 rounded-xl border border-red-200">
+            ⚠️ {errorMessage}
+         </div>
+      )}
+      <button 
+        type="submit" 
+        disabled={isProcessing || !stripe} 
+        className="w-full bg-[#45856c] text-white py-4 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-3 hover:bg-opacity-90 transition-all disabled:opacity-50"
+      >
+         {isProcessing ? <Loader2 className="animate-spin" size={24} /> : "PAGA E INVIA ORDINE"}
+      </button>
+    </form>
+  );
 };
 
 // --- MAIN COMPONENT ---
@@ -447,6 +507,42 @@ const handleRegister = async (e: React.FormEvent) => {
     tableNumber: '' 
   });
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
+
+  // --- STATI AGGIUNTI PER I PAGAMENTI ONLINE STRIPE ---
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [isInitializingStripe, setIsInitializingStripe] = useState(false);
+
+  // Contatta la tua API serverless su Vercel per generare l'intenzione di pagamento segreta
+  const handleInitStripePayment = async () => {
+    setIsInitializingStripe(true);
+    try {
+      const response = await fetch('/api/create-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: getGrandTotal() }) // Invia il totale esatto in euro
+      });
+      const data = await response.json();
+      if (data.clientSecret) {
+        setClientSecret(data.clientSecret);
+      } else {
+        alert("Errore nell'inizializzazione della cassa online. Riprova.");
+      }
+    } catch (error) {
+      console.error("Errore inizializzazione Stripe:", error);
+      alert("Impossibile contattare il server dei pagamenti. Scegli un altro metodo.");
+    } finally {
+      setIsInitializingStripe(false);
+    }
+  };
+
+  // Se il cliente modifica le opzioni di consegna (cambiando il totale) mentre Stripe è attivo,
+  // ricalcola e aggiorna automaticamente l'intenzione di pagamento per addebitare la cifra esatta
+  useEffect(() => {
+    if (orderForm.paymentMethod === 'stripe' && view === 'CHECKOUT') {
+      handleInitStripePayment();
+    }
+  }, [orderForm.deliveryCity, orderForm.orderType, orderForm.paymentMethod, view]);
+  
   // --- STATI AGGIUNTI PER IL CALCOLO CHILOMETRICO DELLA CONSEGNA ---
   const [speseConsegna, setSpeseConsegna] = useState<number>(2.00); 
   const [distanzaRilevata, setDistanzaRilevata] = useState<number | null>(null);
@@ -1537,11 +1633,26 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
                        <input type="radio" name="payment" value="pos" checked={orderForm.paymentMethod === 'pos'} onChange={() => setOrderForm({...orderForm, paymentMethod: 'pos'})} className="w-5 h-5 accent-[#45856c]" />
                        <span className="font-medium text-wood-900">{t('pos', lang)}</span>
                     </label>
+                    
+                    {/* NUOVA OPZIONE: PAGAMENTO ONLINE STRIPE */}
+                    <label className="flex items-center gap-3 p-4 border border-[#45856c]/30 rounded-xl cursor-pointer hover:bg-green-50/30 transition-colors">
+                       <input 
+                          type="radio" 
+                          name="payment" 
+                          value="stripe" 
+                          checked={orderForm.paymentMethod === 'stripe'} 
+                          onChange={handleInitStripePayment} // Inizializza Stripe al click!
+                          className="w-5 h-5 accent-[#45856c]" 
+                       />
+                       <div className="flex flex-col">
+                          <span className="font-bold text-wood-900">Carta di Credito / Google Pay / Apple Pay</span>
+                          <span className="text-xs text-wood-400 font-medium">Pagamento online protetto e crittografato</span>
+                       </div>
+                    </label>
                  </div>
-                 
-                 <div className="mt-4"><label className="block text-xs font-bold text-wood-500 uppercase mb-1">{t('notes', lang)}</label><textarea rows={2} value={orderForm.notes} onChange={e => setOrderForm({...orderForm, notes: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl p-3 focus:outline-none focus:border-[#45856c] focus:ring-1 focus:ring-[#45856c] resize-none" placeholder={t('notes', lang)}></textarea></div>
-              </div>
+               </div>
 
+              {/* RIEPILOGO TOTALE */}
               {/* RIEPILOGO TOTALE */}
               <div className="bg-wood-900 p-6 rounded-3xl text-white shadow-xl">
                  <div className="space-y-2 mb-4 border-b border-wood-700 pb-4">
@@ -1554,9 +1665,34 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
                     <span className="text-4xl font-western text-accent-500">€{getGrandTotal().toFixed(2)}</span>
                  </div>
                  
-                 <button type="submit" disabled={isSubmittingOrder} className="w-full bg-[#45856c] text-white py-4 rounded-xl font-bold text-xl shadow-lg flex items-center justify-center gap-3 hover:bg-opacity-90 transition-all disabled:opacity-50">
-                    {isSubmittingOrder ? <Loader2 className="animate-spin" size={24} /> : <>{t('send_order', lang)} <ArrowRight size={24} /></>}
-                 </button>
+                 {/* STRIPE ELEMENT / PULSANTE CLASSICO DINAMICO */}
+                 {orderForm.paymentMethod === 'stripe' ? (
+                    isInitializingStripe ? (
+                       <div className="flex flex-col items-center justify-center py-4 gap-2 text-accent-500">
+                          <Loader2 className="animate-spin" size={32} />
+                          <span className="text-xs font-bold uppercase tracking-wider">Inizializzazione cassa sicura...</span>
+                       </div>
+                    ) : clientSecret ? (
+                       <Elements stripe={stripePromise} options={{ clientSecret, locale: lang }}>
+                          <StripeCheckoutForm 
+                             clientSecret={clientSecret} 
+                             onPaymentSuccess={() => {
+                                // Quando la transazione di Stripe ha successo, simula il submit del form e salva l'ordine su Supabase!
+                                const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
+                                handleSubmitOrder(fakeEvent);
+                             }} 
+                          />
+                       </Elements>
+                    ) : (
+                       <div className="text-center py-2 text-xs text-red-400 font-bold uppercase">
+                          Seleziona o compila l'indirizzo per caricare la cassa online.
+                       </div>
+                    )
+                 ) : (
+                    <button type="submit" disabled={isSubmittingOrder} className="w-full bg-[#45856c] text-white py-4 rounded-xl font-bold text-xl shadow-lg flex items-center justify-center gap-3 hover:bg-opacity-90 transition-all disabled:opacity-50">
+                       {isSubmittingOrder ? <Loader2 className="animate-spin" size={24} /> : <>{t('send_order', lang)} <ArrowRight size={24} /></>}
+                    </button>
+                 )}
               </div>
            </form>
         </div>

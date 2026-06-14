@@ -67,7 +67,7 @@ export interface CartItem extends MenuItem {
 export type ViewState = 'MENU' | 'LOGIN' | 'ADMIN' | 'CHECKOUT' | 'ORDER_SUCCESS' | 'TRACKING';
 
 export type OrderType = 'delivery' | 'takeaway' | 'table';
-export type PaymentMethod = 'cash' | 'pos';
+export type PaymentMethod = 'cash' | 'pos' | 'stripe';
 
 export interface DeliveryZone {
   name: string;
