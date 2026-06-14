@@ -1,6 +1,8 @@
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+import Stripe from 'stripe';
 
-module.exports = async (req, res) => {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
+export default async function handler(req, res) {
   // Abilita i permessi CORS per consentire i test in locale da localhost
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -46,4 +48,4 @@ module.exports = async (req, res) => {
     console.error('Stripe Server Error:', error);
     res.status(500).json({ error: error.message });
   }
-};
+}
