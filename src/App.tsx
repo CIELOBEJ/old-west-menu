@@ -97,7 +97,7 @@ const getDIYOptionContent = (opt: any, lang: LanguageCode) => {
 };
 
 // --- COMPONENTE RENDERIZZAZIONE CASSA SICURA STRIPE (SINGLE-PAGE APP) ---
-const StripeCheckoutForm = ({ clientSecret, onPaymentSuccess }: { clientSecret: string; onPaymentSuccess: () => void }) => {
+const StripeCheckoutForm = ({ clientSecret, onPaymentSuccess, cart, orderForm }: { clientSecret: string; onPaymentSuccess: () => void; cart: any[]; orderForm: any }) => {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -110,16 +110,24 @@ const StripeCheckoutForm = ({ clientSecret, onPaymentSuccess }: { clientSecret: 
     setIsProcessing(true);
     setErrorMessage(null);
 
+    // SALVA IL CARRELLO E IL FORM IN LOCAL STORAGE UN ISTANTE PRIMA DI PAGARE
+    localStorage.setItem('pending_checkout_cart', JSON.stringify(cart));
+    localStorage.setItem('pending_checkout_form', JSON.stringify(orderForm));
+
     // Conferma il pagamento su Stripe
     const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
       confirmParams: {
         return_url: `${window.location.origin}/?payment_success=true`,
       },
-      redirect: 'if_required' // Evita il reindirizzamento forzato per le carte standard e Apple/Google Pay
+      redirect: 'if_required' // Evita il reindirizzamento se la carta non richiede 3D Secure
     });
 
     if (error) {
+      // In caso di errore di pagamento, cancella il salvataggio in sospeso
+      localStorage.removeItem('pending_checkout_cart');
+      localStorage.removeItem('pending_checkout_form');
+
       if (error.type === "card_error" || error.type === "validation_error") {
         setErrorMessage(error.message || "Errore durante l'elaborazione del pagamento.");
       } else {
@@ -128,12 +136,14 @@ const StripeCheckoutForm = ({ clientSecret, onPaymentSuccess }: { clientSecret: 
       setIsProcessing(false);
     } else if (paymentIntent && paymentIntent.status === "succeeded") {
       // Pagamento completato con successo senza ricaricare la pagina!
+      localStorage.removeItem('pending_checkout_cart');
+      localStorage.removeItem('pending_checkout_form');
       onPaymentSuccess();
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 mt-6 p-4 bg-white rounded-2xl text-black animate-in fade-in zoom-in-95 duration-300">
+    <form id="stripe-payment-form" onSubmit={handleSubmit} className="space-y-4 mt-6 p-4 bg-white rounded-2xl text-black animate-in fade-in zoom-in-95 duration-300">
       <PaymentElement />
       {errorMessage && (
          <div className="text-red-600 text-xs font-bold bg-red-50 p-3 rounded-xl border border-red-200">
@@ -309,6 +319,7 @@ export default function App() {
   });
   const [authError, setAuthError] = useState<string | null>(null);
   const [isProcessingAuth, setIsProcessingAuth] = useState(false);
+
    // Effetto per caricare l'utente e il suo profilo all'avvio
   useEffect(() => {
     const loadSession = async () => {
@@ -320,6 +331,107 @@ export default function App() {
       }
     };
     loadSession();
+
+   // Recupera l'ordine in sospeso dopo il reindirizzamento riuscito di Stripe
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isPaymentSuccess = urlParams.get('payment_success') === 'true';
+
+    if (isPaymentSuccess) {
+      const pendingCart = localStorage.getItem('pending_checkout_cart');
+      const pendingForm = localStorage.getItem('pending_checkout_form');
+
+      if (pendingCart && pendingForm) {
+        const parsedCart = JSON.parse(pendingCart);
+        const parsedForm = JSON.parse(pendingForm);
+
+        const submitPaidOrderAfterRedirect = async () => {
+          const finalCustomerName = parsedForm.orderType === 'table' ? `TAVOLO ${parsedForm.tableNumber}` : parsedForm.customerName;
+          const finalPhone = parsedForm.orderType === 'table' ? 'N/D' : parsedForm.customerPhone;
+
+          // Ricalcola i totali in modo sicuro
+          const cartTotal = parsedCart.reduce((sum: number, item: any) => { 
+              const itemPrice = item.selectedVariant ? item.selectedVariant.price : item.price; 
+              const addonsPrice = item.selectedAddons?.reduce((aSum: number, addon: any) => aSum + Number(addon.price), 0) || 0; 
+              return sum + (itemPrice + addonsPrice) * item.quantity; 
+          }, 0);
+          const coverCharge = parsedForm.orderType === 'table' ? (parsedCart.some((item: any) => item.category !== 'Bevande') ? 2.00 : 0) : 0;
+          
+          // Costo consegna fisso o dinamico
+          const deliveryFee = parsedForm.orderType === 'delivery' ? speseConsegna : 0;
+
+          // Preparazione modificatori virtuali per la stampa
+          const preparedCartItems = parsedCart.map((item: any) => {
+            const virtualAddons = [...(item.selectedAddons || [])];
+            if (item.removedIngredients && item.removedIngredients.length > 0) {
+              item.removedIngredients.forEach((ing: string) => {
+                virtualAddons.push({
+                  id: `virtual-removed-${ing}-${Date.now()}`,
+                  name: `SENZA ${ing.toUpperCase()}`,
+                  description: '',
+                  price: 0,
+                  category: 'Ingredienti Extra',
+                  isAvailable: true
+                });
+              });
+            }
+            if (parsedForm.orderType === 'delivery' && item.category === 'Pizza' && item.selectedFreeDrink) {
+              virtualAddons.push({
+                id: `virtual-drink-${item.selectedFreeDrink}-${Date.now()}`,
+                name: `OMAGGIO: ${item.selectedFreeDrink.toUpperCase()}`,
+                description: '',
+                price: 0,
+                category: 'Ingredienti Extra',
+                isAvailable: true
+              });
+            }
+            return { ...item, selectedAddons: virtualAddons };
+          });
+
+          const newOrder = {
+            customer_name: finalCustomerName,
+            customer_phone: finalPhone,
+            customer_email: parsedForm.customerEmail,
+            order_type: parsedForm.orderType,
+            delivery_address: parsedForm.orderType === 'delivery' ? parsedForm.deliveryAddress : null,
+            delivery_city: parsedForm.orderType === 'delivery' ? parsedForm.deliveryCity : null,
+            delivery_time: parsedForm.orderType === 'table' ? 'Immediato' : parsedForm.deliveryTime,
+            payment_method: 'stripe',
+            total_amount: cartTotal + coverCharge + deliveryFee,
+            cart_items: preparedCartItems,
+            status: 'pending',
+            notes: parsedForm.notes,
+            user_id: user ? user.id : null
+          };
+
+          try {
+            const { data: dbData, error } = await supabase.from('orders').insert([newOrder]).select();
+            if (error) throw error;
+            
+            if (dbData && dbData[0]) {
+              setActiveOrderId(dbData[0].id);
+              localStorage.setItem('activeOrderId', dbData[0].id);
+              setCurrentOrder(dbData[0]);
+              
+              // Svuota carrello e pulisci la memoria temporanea
+              setCart([]);
+              localStorage.removeItem('pending_checkout_cart');
+              localStorage.removeItem('pending_checkout_form');
+              
+              // Pulisce l'indirizzo del browser eliminando i parametri "?payment_success=true"
+              window.history.replaceState({}, document.title, window.location.pathname);
+              
+              setView('TRACKING');
+              window.scrollTo(0,0);
+            }
+          } catch (e) {
+            console.error("Errore salvataggio post-redirect:", e);
+          }
+        };
+        submitPaidOrderAfterRedirect();
+      }
+    }
+  }, [user, speseConsegna]); // Si attiva quando l'utente o il costo consegna sono caricati 
 
     // Ascolta i cambiamenti di autenticazione (Login / Logout)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -525,6 +637,13 @@ const handleRegister = async (e: React.FormEvent) => {
       const data = await response.json();
       if (data.clientSecret) {
         setClientSecret(data.clientSecret);
+        // SCORRIMENTO AUTOMATICO MORBIDO VERSO IL MODULO DI PAGAMENTO
+        setTimeout(() => {
+           const stripeFormElement = document.getElementById('stripe-payment-form');
+           if (stripeFormElement) {
+              stripeFormElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+           }
+        }, 600); // Ritardo di 600ms per attendere che la modale sia disegnata a schermo
       } else {
         alert("Errore nell'inizializzazione della cassa online. Riprova.");
       }
@@ -1676,7 +1795,9 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
                     ) : clientSecret ? (
                        <Elements stripe={stripePromise} options={{ clientSecret, locale: lang }}>
                           <StripeCheckoutForm 
-                             clientSecret={clientSecret} 
+                             clientSecret={clientSecret}
+                             cart={cart}
+                             orderForm={orderForm}
                              onPaymentSuccess={() => {
                                 // Quando la transazione di Stripe ha successo, simula il submit del form e salva l'ordine su Supabase!
                                 const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
