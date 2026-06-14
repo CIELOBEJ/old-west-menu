@@ -4,7 +4,7 @@ import {
   ChevronLeft, ChevronRight, Lock, Utensils, Star, MapPin, Clock, Instagram, Facebook, Phone, LayoutGrid, 
   ArrowRight, Upload, Image as ImageIcon, Download, RotateCcw, Save, ChevronDown, ChevronUp, X, Loader2, 
   Pencil, RefreshCw, Wheat, CircleDot, Globe, Languages, Check, Leaf, Flame, Award, QrCode, Database, Sprout, ShoppingBag, 
-  Milk, Egg, Nut, Bean, AlertCircle, Wine, Shell, Info, Search, Sandwich, Sparkles, Bike, Store, CheckCircle2, Copy, User 
+  Milk, Egg, Nut, Bean, AlertCircle, Wine, Shell, Info, Search, Sandwich, Sparkles, Bike, Store, CheckCircle2, Copy, User, Mail, ShoppingCart 
 } from 'lucide-react';
 import { MenuItem, ProductCategory, ViewState, LanguageCode, ActiveFilters, CartItem, AllergenType, ProductVariant, OrderType, PaymentMethod } from './types';
 import { INITIAL_MENU_ITEMS, CATEGORIES_LIST, HAMBURGER_SUBCATEGORIES, DRINK_SUBCATEGORIES, DIY_OPTIONS, UI_TRANSLATIONS, CATEGORY_TRANSLATIONS, SUBCATEGORY_TRANSLATIONS, DATA_VERSION, ALLERGENS_CONFIG, EXTRA_INGREDIENTS_ITEMS, DELIVERY_ZONES, LUNCH_HOURS, DINNER_HOURS, ADDON_SUBCATEGORIES } from './constants';
@@ -903,6 +903,19 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
              </div>
              <button 
                 type="button"
+                onClick={() => setIsCartOpen(true)} 
+                className="w-10 h-10 rounded-full flex items-center justify-center text-wood-400 hover:text-white hover:bg-wood-800 transition-all relative"
+                title="Carrello"
+             >
+                <ShoppingCart size={20} />
+                {cart.length > 0 && (
+                   <span className="absolute -top-1 -right-1 bg-[#45856c] text-white w-5 h-5 rounded-full flex items-center justify-center font-bold text-[9px] animate-bounce shadow-sm border border-wood-950">
+                      {cart.reduce((sum, item) => sum + item.quantity, 0)}
+                   </span>
+                )}
+             </button>
+             <button 
+                type="button"
                 onClick={() => {
                    if (user) {
                       // Carichiamo i dati del profilo correnti nel form prima di aprire il pannello di modifica
@@ -1678,15 +1691,62 @@ const renderMenu = () => {
           </div>
         </div>
 
-        {/* FOOTER SCURO */}
+        
+        {/* FOOTER SCURO COMPLETO CON EMAIL, SOCIAL E PAGINE LEGALI */}
         <div className="bg-wood-900 text-wood-300 py-12 border-t border-wood-800 shrink-0">
           <div className="container mx-auto px-4 text-center">
+            
             <WesternLogo size="md" className="mx-auto mb-6 opacity-80" />
-            <div className="flex flex-col gap-2 items-center mb-6 font-bold text-white">
-              <div className="flex items-center gap-2"><Phone size={16} className="text-accent-500" /> 0321 510220</div>
-              <div className="flex items-center gap-2"><MapPin size={16} className="text-accent-500" /> Via G. Galilei 35 - Cameri (NO)</div>
+            
+            {/* CONTATTI DETTAGLIATI (TELEFONO, INDIRIZZO E EMAIL CLICCABILE) */}
+            <div className="flex flex-col gap-2 items-center mb-6 font-bold text-white text-sm">
+              <div className="flex items-center gap-2">
+                 <Phone size={16} className="text-accent-500" /> 
+                 <a href="tel:0321510220" className="hover:underline">0321 510220</a>
+              </div>
+              <div className="flex items-center gap-2">
+                 <MapPin size={16} className="text-accent-500" /> Via G. Galilei 35 - Cameri (NO)
+              </div>
+              <div className="flex items-center gap-2 hover:text-accent-500 transition-colors">
+                 <Mail size={16} className="text-accent-500" /> 
+                 <a href="mailto:oldwestconsegne@gmail.com" className="hover:underline">oldwestconsegne@gmail.com</a>
+              </div>
             </div>
+
+            {/* SEZIONE SOCIAL CON EFFETTO HOVER */}
+            <div className="flex justify-center gap-4 mb-8">
+               <a 
+                  href="https://www.facebook.com/OldWestCameri/" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="p-2.5 bg-wood-800 rounded-full text-white hover:bg-[#45856c] hover:scale-110 transition-all shadow-md" 
+                  title="Seguici su Facebook"
+               >
+                  <Facebook size={18} />
+               </a>
+               <a 
+                  href="https://www.instagram.com/oldwest_cameri/" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="p-2.5 bg-wood-800 rounded-full text-white hover:bg-[#45856c] hover:scale-110 transition-all shadow-md" 
+                  title="Seguici su Instagram"
+               >
+                  <Instagram size={18} />
+               </a>
+            </div>
+
+            {/* COPYRIGHT */}
             <p className="text-xs opacity-50">&copy; {new Date().getFullYear()} Old West. {t('rights_reserved', lang)}</p>
+            
+            {/* SEZIONE LINK LEGALI STATICI OSPITATI NELLA CARTELLA PUBLIC */}
+            <div className="flex justify-center gap-3 mt-4 text-[10px] opacity-40 hover:opacity-75 transition-opacity font-bold uppercase tracking-wider">
+               <a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="hover:underline">Privacy Policy</a>
+               <span>•</span>
+               <a href="/cookie.html" target="_blank" rel="noopener noreferrer" className="hover:underline">Cookie Policy</a>
+               <span>•</span>
+               <a href="/terms.html" target="_blank" rel="noopener noreferrer" className="hover:underline">Termini e Condizioni</a>
+            </div>
+
           </div>
         </div>
 
