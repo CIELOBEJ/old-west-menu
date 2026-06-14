@@ -1448,6 +1448,25 @@ const renderMenu = () => {
       if (activeCategory === ProductCategory.HAMBURGER && activeSubCategoryView && item.subCategory !== activeSubCategoryView) return false;
       return checkFilters(item);
     });
+    // ALGORITMO DI ORDINAMENTO INTELLIGENTE DEI PRODOTTI
+    const sortedFilteredItems = [...filteredItems].sort((a, b) => {
+      const nameA = a.name.toLowerCase();
+      const nameB = b.name.toLowerCase();
+      
+      // Regola 1: Qualsiasi prodotto della "Settimana" sale immediatamente al numero 1 in cima
+      const isWeeklyA = nameA.includes("settimana");
+      const isWeeklyB = nameB.includes("settimana");
+      if (isWeeklyA && !isWeeklyB) return -1;
+      if (!isWeeklyA && isWeeklyB) return 1;
+      
+      // Regola 2: Solo per le Pizze, ordina alfabeticamente dalla A alla Z tutti gli altri elementi
+      if (activeCategory === ProductCategory.PIZZA) {
+        return a.name.localeCompare(b.name, 'it', { sensitivity: 'base' });
+      }
+      
+      // Per le altre categorie (es. Hamburger) mantieni l'ordine predefinito del database
+      return 0;
+    });
     if (activeCategory === 'Tutti' && hasActiveFilters) { const categoryOrder = Object.values(ProductCategory); filteredItems.sort((a, b) => categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category)); }
     const highlightedItems = items.filter(i => (i.tags?.includes('Best Seller') || i.tags?.includes('Consigliato')) && i.category !== ProductCategory.AGGIUNTE);
 
@@ -1628,7 +1647,7 @@ const renderMenu = () => {
                        <div className="text-center py-20"><div className="inline-block p-6 bg-wood-100 rounded-full mb-4"><UtensilsCrossed size={40} className="text-wood-400" /></div><h3 className="text-xl font-bold text-wood-600">{t('no_products_section', lang)}</h3><p className="text-wood-400 mt-2">{t('select_category', lang)}</p></div>
                      ) : (
                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                         {filteredItems.map(item => {
+                         {sortedFilteredItems.map(item => {
                            const { name, description } = getProductContent(item);
                            const isAdded = addedItemId === item.id;
                            const isDrink = item.category === ProductCategory.BEVANDE;
