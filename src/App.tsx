@@ -514,6 +514,7 @@ const handleRegister = async (e: React.FormEvent) => {
 
   // Contatta la tua API serverless su Vercel per generare l'intenzione di pagamento segreta
   const handleInitStripePayment = async () => {
+    setOrderForm(prev => ({ ...prev, paymentMethod: 'stripe' }));   
     setIsInitializingStripe(true);
     try {
       const response = await fetch('/api/create-payment-intent', {
