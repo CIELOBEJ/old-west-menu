@@ -1615,7 +1615,7 @@ const renderMenu = () => {
                                        return (
                                          <div key={item.id} className="bg-white rounded-2xl border border-wood-100 overflow-hidden shadow-sm p-4 flex justify-between items-center gap-4 hover:shadow-md transition-all">
                                             <div className="flex-1 min-w-0"><div className="flex flex-col items-start"><h4 className="font-bold text-wood-900 leading-tight truncate w-full">{name}</h4>{item.brand && <span className="text-xs text-accent-600 font-bold mt-0.5">{item.brand}</span>}</div>{description && <p className="text-xs text-wood-500 mt-1 line-clamp-2">{description}</p>}</div>
-                                            <div className="flex items-center gap-3 shrink-0"><span className="font-western text-xl text-wood-900">€{item.price.toFixed(2)}</span><button onClick={() => addToCart(item)} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm ${isAdded ? 'bg-green-500 text-white' : 'bg-wood-900 text-white hover:bg-accent-600'}`}>{isAdded ? <Check size={18} /> : <Plus size={18} />}</button></div>
+                                            <div className="flex items-center gap-3 shrink-0"><span className="font-western text-xl text-wood-900">€{item.price.toFixed(2)}</span><button onClick={(e) => { e.preventDefault(); e.stopPropagation(); addToCart(item);}} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm ${isAdded ? 'bg-green-500 text-white' : 'bg-wood-900 text-white hover:bg-accent-600'}`}>{isAdded ? <Check size={18} /> : <Plus size={18} />}</button></div>
                                          </div>
                                        );
                                    })}
@@ -1652,7 +1652,7 @@ const renderMenu = () => {
                            const isAdded = addedItemId === item.id;
                            const isDrink = item.category === ProductCategory.BEVANDE;
                            return (
-                             <div key={item.id} onClick={() => setInfoItem(item)} className="bg-white rounded-3xl border border-wood-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group cursor-pointer">
+                             <div key={item.id} onClick={(e) => { const target = e.target as HTMLElement; if (target.closest('button')) return; setInfoItem(item);}} className="bg-white rounded-3xl border border-wood-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group cursor-pointer">
                                {!isDrink && (
                                  <div className="relative h-56 bg-wood-50 overflow-hidden">
                                    {item.imageUrl ? (<img src={item.imageUrl} alt={name} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />) : (<div className="w-full h-full flex items-center justify-center bg-wood-100"><WesternLogo size="lg" className="opacity-50 grayscale" /></div>)}
