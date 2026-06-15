@@ -418,25 +418,6 @@ export default function App() {
     };
   }, []);
 
-  // Recupera l'ordine in sospeso dopo il reindirizzamento riuscito di Stripe (Senza Duplicazione Codice)
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const isPaymentSuccess = urlParams.get('payment_success') === 'true';
-
-    if (isPaymentSuccess) {
-      const pendingCart = localStorage.getItem('pending_checkout_cart');
-      const pendingForm = localStorage.getItem('pending_checkout_form');
-
-      if (pendingCart && pendingForm) {
-        const parsedCart = JSON.parse(pendingCart);
-        const parsedForm = JSON.parse(pendingForm);
-
-        // CHIAMA LA FUNZIONE UNICA PASSANDO I DATI SALVATI NEL LOCAL STORAGE!
-        handleSubmitOrder(undefined, parsedCart, parsedForm);
-      }
-    }
-  }, [user, speseConsegna]);
-
   // Precompila automaticamente il form di spedizione con i dati del profilo salvati
   useEffect(() => {
     if (profile && user) {
@@ -1151,6 +1132,25 @@ export default function App() {
       setIsSubmittingOrder(false);
     }
   };
+
+  // Recupera l'ordine in sospeso dopo il reindirizzamento riuscito di Stripe (Senza Duplicazione Codice)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isPaymentSuccess = urlParams.get('payment_success') === 'true';
+
+    if (isPaymentSuccess) {
+      const pendingCart = localStorage.getItem('pending_checkout_cart');
+      const pendingForm = localStorage.getItem('pending_checkout_form');
+
+      if (pendingCart && pendingForm) {
+        const parsedCart = JSON.parse(pendingCart);
+        const parsedForm = JSON.parse(pendingForm);
+
+        // CHIAMA LA FUNZIONE UNICA PASSANDO I DATI SALVATI NEL LOCAL STORAGE!
+        handleSubmitOrder(undefined, parsedCart, parsedForm);
+      }
+    }
+  }, [user, speseConsegna]);
   
   // --- RENDER FUNCTIONS ---
 
