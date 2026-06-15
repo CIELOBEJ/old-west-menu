@@ -29,7 +29,6 @@ const uploadImageToSupabase = async (file: File): Promise<string | null> => {
   } catch (error) { console.error('Error:', error); return null; }
 };
 
-
 const CategoryIcon = ({ category, className }: { category: ProductCategory | 'Tutti'; className?: string }) => {
   switch (category) {
     case 'Tutti': return <LayoutGrid className={className} />;
@@ -94,6 +93,32 @@ const getDIYStepContent = (step: any, lang: LanguageCode) => {
 const getDIYOptionContent = (opt: any, lang: LanguageCode) => { 
   if (lang === 'it') return opt.name; 
   return opt.translations?.[lang]?.name || opt.name; 
+};
+
+// Funzione di traduzione degli ingredienti di base con il dizionario locale
+const translateIngredient = (ing: string, lang: LanguageCode): string => {
+  const dict: Record<string, Record<string, string>> = {
+    'mozzarella': { en: 'Mozzarella', fr: 'Mozzarella', de: 'Mozzarella' },
+    'pancetta': { en: 'Bacon', fr: 'Bacon', de: 'Speck' },
+    'grana in cottura': { en: 'Baked Grana Cheese', fr: 'Grana cuit', de: 'Gebackener Grana' },
+    'zucchine fritte': { en: 'Fried Zucchini', fr: 'Courgettes frites', de: 'Frittierte Zucchini' },
+    'rucola': { en: 'Arugula', fr: 'Roquette', de: 'Rucola' },
+    'gorgonzola': { en: 'Gorgonzola', fr: 'Gorgonzola', de: 'Gorgonzola' },
+    'bacon': { en: 'Bacon', fr: 'Bacon', de: 'Speck' },
+    'pomodorini secchi': { en: 'Dried Tomatoes', fr: 'Tomates séchées', de: 'Getrocknete Tomaten' },
+    'salsa burger': { en: 'Burger Sauce', fr: 'Sauce burger', de: 'Burgersauce' },
+    'cipolle': { en: 'Onions', fr: 'Oignons', de: 'Zwiebeln' },
+    'insalata di lattuga e radicchio': { en: 'Lettuce & Radicchio Salad', fr: 'Salade laitue & radicchio', de: 'Salat mit Lattich & Radicchio' },
+    'scamorza affumicata': { en: 'Smoked Scamorza', fr: 'Scamorza fumée', de: 'Geräucherter Scamorza' },
+    'acciughe': { en: 'Anchovies', fr: 'Anchois', de: 'Sardellen' },
+    'zucchine': { en: 'Zucchini', fr: 'Courgettes', de: 'Zucchini' },
+    'pomodoro': { en: 'Tomato', fr: 'Tomate', de: 'Tomate' }
+  };
+  const key = ing.toLowerCase().trim();
+  if (dict[key] && dict[key][lang]) {
+    return dict[key][lang];
+  }
+  return ing;
 };
 
 // --- COMPONENTE RENDERIZZAZIONE CASSA SICURA STRIPE (SINGLE-PAGE APP) ---
@@ -196,12 +221,66 @@ export default function App() {
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
   const [currentOrder, setCurrentOrder] = useState<any>(null);
   const [suggestionToast, setSuggestionToast] = useState<{show: boolean, text: string}>({ show: false, text: '' });
+  
   // --- STATI AGGIUNTI PER L'AUTENTICAZIONE CLIENTE ---
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
+  const [authForm, setAuthForm] = useState({
+    email: '',
+    password: '',
+    fullName: '',
+    phone: '',
+    address: '',
+    city: DELIVERY_ZONES[0]?.name || ''
+  });
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [isProcessingAuth, setIsProcessingAuth] = useState(false);
+
   // --- STATI AGGIUNTI PER IL CONTROLLO SOVRACCARICO E FASCE ORARIE ---
   const [blockedSlots, setBlockedSlots] = useState<string[]>([]);
   const [isCheckingSlots, setIsCheckingSlots] = useState(false);
+
+  // --- STATI AGGIUNTI PER I PAGAMENTI ONLINE STRIPE ---
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [isInitializingStripe, setIsInitializingStripe] = useState(false);
+
+  // --- STATI AGGIUNTI PER IL CALCOLO CHILOMETRICO DELLA CONSEGNA ---
+  const [speseConsegna, setSpeseConsegna] = useState<number>(2.00); 
+  const [distanzaRilevata, setDistanzaRilevata] = useState<number | null>(null);
+  const [erroreIndirizzo, setErroreIndirizzo] = useState<string | null>(null);
+  const [isCalcolandoDistanza, setIsCalcolandoDistanza] = useState<boolean>(false);
+  
+  // --- STATI AGGIUNTI PER PERSONALIZZAZIONE PRODOTTI E CONTORNI ---
+  const [isCustomizationModalOpen, setIsCustomizationModalOpen] = useState(false);
+  const [customizingItemIndex, setCustomizingItemIndex] = useState<number | null>(null);
+  const [tempIngredientsQty, setTempIngredientsQty] = useState<Record<string, number>>({});
+
+  const [isSideDishModalOpen, setIsSideDishModalOpen] = useState(false);
+  const [sideDishItemIndex, setSideDishItemIndex] = useState<number | null>(null);
+
+  // --- STATI AGGIUNTI PER LA GESTIONE BEVANDA OMAGGIO NELLE PIZZE ---
+  const [isFreeDrinkModalOpen, setIsFreeDrinkModalOpen] = useState(false);
+  const [freeDrinkItemIndex, setFreeDrinkItemIndex] = useState<number | null>(null);
+
+  const openFreeDrinkModal = (index: number) => {
+    setFreeDrinkItemIndex(index);
+    setIsFreeDrinkModalOpen(true);
+  };
+
+  const selectFreeDrink = (drinkName: string) => {
+    if (freeDrinkItemIndex === null) return;
+    const newCart = [...cart];
+    newCart[freeDrinkItemIndex] = {
+      ...newCart[freeDrinkItemIndex],
+      selectedFreeDrink: drinkName
+    };
+    setCart(newCart);
+    setIsFreeDrinkModalOpen(false);
+    setFreeDrinkItemIndex(null);
+  };
 
   // Genera dinamicamente tutti gli orari possibili ogni 15 minuti basandosi sulle aperture reali del locale
   const generateTimeSlots = (): string[] => {
@@ -306,20 +385,6 @@ export default function App() {
     }
   }, [view, orderDate]);
 
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
-  const [authForm, setAuthForm] = useState({
-    email: '',
-    password: '',
-    fullName: '',
-    phone: '',
-    address: '',
-    city: DELIVERY_ZONES[0]?.name || ''
-  });
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [isProcessingAuth, setIsProcessingAuth] = useState(false);
-
    // Effetto per caricare l'utente e il suo profilo all'avvio
   useEffect(() => {
     const loadSession = async () => {
@@ -331,25 +396,6 @@ export default function App() {
       }
     };
     loadSession();
-
-    // Recupera l'ordine in sospeso dopo il reindirizzamento riuscito di Stripe (Senza Duplicazione Codice)
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const isPaymentSuccess = urlParams.get('payment_success') === 'true';
-
-    if (isPaymentSuccess) {
-      const pendingCart = localStorage.getItem('pending_checkout_cart');
-      const pendingForm = localStorage.getItem('pending_checkout_form');
-
-      if (pendingCart && pendingForm) {
-        const parsedCart = JSON.parse(pendingCart);
-        const parsedForm = JSON.parse(pendingForm);
-
-        // CHIAMA LA FUNZIONE UNICA PASSANDO I DATI SALVATI NEL LOCAL STORAGE!
-        handleSubmitOrder(undefined, parsedCart, parsedForm);
-      }
-    }
-  }, [user, speseConsegna]);
 
     // Ascolta i cambiamenti di autenticazione (Login / Logout)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -367,6 +413,25 @@ export default function App() {
       subscription.unsubscribe();
     };
   }, []);
+
+  // Recupera l'ordine in sospeso dopo il reindirizzamento riuscito di Stripe (Senza Duplicazione Codice)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isPaymentSuccess = urlParams.get('payment_success') === 'true';
+
+    if (isPaymentSuccess) {
+      const pendingCart = localStorage.getItem('pending_checkout_cart');
+      const pendingForm = localStorage.getItem('pending_checkout_form');
+
+      if (pendingCart && pendingForm) {
+        const parsedCart = JSON.parse(pendingCart);
+        const parsedForm = JSON.parse(pendingForm);
+
+        // CHIAMA LA FUNZIONE UNICA PASSANDO I DATI SALVATI NEL LOCAL STORAGE!
+        handleSubmitOrder(undefined, parsedCart, parsedForm);
+      }
+    }
+  }, [user, speseConsegna]);
 
   // Precompila automaticamente il form di spedizione con i dati del profilo salvati
   useEffect(() => {
@@ -409,7 +474,7 @@ export default function App() {
   }, [isProfileOpen, user]);
 
   // Registrazione utente + Inserimento record nella tabella dei profili
-const handleRegister = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
     setIsProcessingAuth(true);
@@ -538,9 +603,7 @@ const handleRegister = async (e: React.FormEvent) => {
   });
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
 
-  // --- STATI AGGIUNTI PER I PAGAMENTI ONLINE STRIPE ---
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [isInitializingStripe, setIsInitializingStripe] = useState(false);
+
 
   // Contatta la tua API serverless su Vercel per generare l'intenzione di pagamento segreta
   const handleInitStripePayment = async () => {
@@ -581,39 +644,6 @@ const handleRegister = async (e: React.FormEvent) => {
     }
   }, [orderForm.deliveryCity, orderForm.orderType, orderForm.paymentMethod, view]);
   
-  // --- STATI AGGIUNTI PER IL CALCOLO CHILOMETRICO DELLA CONSEGNA ---
-  const [speseConsegna, setSpeseConsegna] = useState<number>(2.00); 
-  const [distanzaRilevata, setDistanzaRilevata] = useState<number | null>(null);
-  const [erroreIndirizzo, setErroreIndirizzo] = useState<string | null>(null);
-  const [isCalcolandoDistanza, setIsCalcolandoDistanza] = useState<boolean>(false);
-  // --- STATI AGGIUNTI PER PERSONALIZZAZIONE PRODOTTI E CONTORNI ---
-  const [isCustomizationModalOpen, setIsCustomizationModalOpen] = useState(false);
-  const [customizingItemIndex, setCustomizingItemIndex] = useState<number | null>(null);
-  const [tempIngredientsQty, setTempIngredientsQty] = useState<Record<string, number>>({});
-
-  const [isSideDishModalOpen, setIsSideDishModalOpen] = useState(false);
-  const [sideDishItemIndex, setSideDishItemIndex] = useState<number | null>(null);
-
-  // --- STATI AGGIUNTI PER LA GESTIONE BEVANDA OMAGGIO NELLE PIZZE ---
-  const [isFreeDrinkModalOpen, setIsFreeDrinkModalOpen] = useState(false);
-  const [freeDrinkItemIndex, setFreeDrinkItemIndex] = useState<number | null>(null);
-
-  const openFreeDrinkModal = (index: number) => {
-    setFreeDrinkItemIndex(index);
-    setIsFreeDrinkModalOpen(true);
-  };
-
-  const selectFreeDrink = (drinkName: string) => {
-    if (freeDrinkItemIndex === null) return;
-    const newCart = [...cart];
-    newCart[freeDrinkItemIndex] = {
-      ...newCart[freeDrinkItemIndex],
-      selectedFreeDrink: drinkName
-    };
-    setCart(newCart);
-    setIsFreeDrinkModalOpen(false);
-    setFreeDrinkItemIndex(null);
-  };
 
 // Apre la modale per personalizzare (Togliere/Aggiungere ingredienti base)
   const openCustomizationModal = (index: number) => {
@@ -658,10 +688,11 @@ const handleRegister = async (e: React.FormEvent) => {
     // 1. PULIZIA AUTOMATICA DOPPIONI: Rimuoviamo dagli addon gli extra degli ingredienti base 
     // per poterli ricalcolare, lasciando però intatti gli extra cercati da tastiera (es: Scamorza)
     const cleanedAddons = (item.selectedAddons || []).filter((add: any) => {
-      const isBaseExtra = baseIngredients.some(ing => 
-        add.name.toLowerCase().includes(ing.toLowerCase()) || 
-        ing.toLowerCase().includes(add.name.toLowerCase())
-      );
+      const isBaseExtra = baseIngredients.some(ing => {
+        const addonName = add.name.toLowerCase();
+        const baseName = ing.toLowerCase();
+        return addonName.includes(baseName) || baseName.includes(addonName);
+      });
       return !isBaseExtra; // Teniamo solo gli ingredienti indipendenti inseriti dalla ricerca
     });
     
