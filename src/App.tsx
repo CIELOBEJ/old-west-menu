@@ -1002,12 +1002,6 @@ export default function App() {
 
     try {
       let finalDeliveryFee = getDeliveryFee();
-      if (activeForm.orderType === 'delivery') {
-        const zone = DELIVERY_ZONES.find(z => z.name === activeForm.deliveryCity);
-        finalDeliveryFee = zone ? zone.cost : speseConsegna;
-      } else {
-        finalDeliveryFee = 0;
-      }
 
       // Se è a domicilio ed il calcolo chilometrico d'emergenza non è ancora stato eseguito (solo per ordine in tempo reale)
       if (!customForm && activeForm.orderType === 'delivery' && distanzaRilevata === null) {
