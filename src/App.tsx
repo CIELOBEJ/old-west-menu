@@ -1737,7 +1737,7 @@ export default function App() {
                           <span className="text-xs font-bold uppercase tracking-wider">Inizializzazione cassa sicura...</span>
                        </div>
                     ) : clientSecret ? (
-                       <Elements stripe={stripePromise} options={{ clientSecret, locale: lang }}>
+                       <Elements key={clientSecret} stripe={stripePromise} options={{ clientSecret, locale: lang }}>
                           <StripeCheckoutForm 
                              clientSecret={clientSecret}
                              cart={cart}
