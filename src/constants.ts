@@ -175,7 +175,7 @@ export const UI_TRANSLATIONS: Record<string, Record<LanguageCode, string>> = {
   'asap': { it: 'Il prima possibile', en: 'As soon as possible', fr: 'Dès que possible', de: 'So schnell wie möglich' },
   'payment': { it: 'Metodo di Pagamento', en: 'Payment Method', fr: 'Mode de paiement', de: 'Zahlungsmethode' },
   'cash': { it: 'Contanti (alla consegna/ritiro)', en: 'Cash', fr: 'Espèces', de: 'Bargeld' },
-  'pos': { it: 'Bancomat / Carta (alla consegna/ritiro)', en: 'Card / POS', fr: 'Carte bancaire', de: 'Kartenzahlung' },
+  'pos': { it: 'Bancomat / Carta (ritiro)', en: 'Card / POS', fr: 'Carte bancaire', de: 'Kartenzahlung' },
   'notes': { it: 'Note per la cucina o fattorino (es. Suonare Rossi, resto di 50€)', en: 'Notes (e.g. Ring Rossi, change for €50)', fr: 'Notes', de: 'Notizen' },
   'send_order': { it: 'Invia Ordine', en: 'Send Order', fr: 'Envoyer la commande', de: 'Bestellung senden' },
   'order_success_title': { it: 'Ordine Inviato!', en: 'Order Sent!', fr: 'Commande envoyée!', de: 'Bestellung gesendet!' },

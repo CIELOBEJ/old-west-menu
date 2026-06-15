@@ -1262,7 +1262,7 @@ export default function App() {
         <div className={`fixed bottom-0 left-0 right-0 bg-white rounded-t-[2rem] shadow-2xl transform transition-transform duration-300 z-50 max-h-[90vh] flex flex-col ${isCartOpen ? 'translate-y-0' : 'translate-y-full'}`}>
            <div className="p-6 flex-1 overflow-y-auto">
               <div className="flex items-center justify-between mb-6">
-                 <h3 className="text-2xl font-western text-wood-900 flex items-center gap-2"><ShoppingBag size={24} /> {t('my_order', lang)}</h3>
+                 <h3 className="text-2xl font-western text-wood-900 flex items-center gap-2"><ShoppingCart size={24} /> {t('my_order', lang)}</h3>
                  <button onClick={() => setIsCartOpen(false)} className="p-2 bg-wood-100 rounded-full hover:bg-wood-200 transition-colors"><X size={20}/></button>
               </div>
               
@@ -1404,7 +1404,7 @@ export default function App() {
                          : 'bg-[#45856c] text-white hover:bg-opacity-90'
                       }`}
                     >
-                       <ShoppingBag size={24} /> {isButtonDisabled ? labelScegliContorniOmaggi : t('show_staff', lang)}
+                       <ShoppingCart size={24} /> {isButtonDisabled ? labelScegliContorniOmaggi : t('show_staff', lang)}
                     </button>
                  );
               })()}
