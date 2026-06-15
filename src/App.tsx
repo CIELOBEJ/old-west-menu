@@ -332,7 +332,7 @@ export default function App() {
     };
     loadSession();
 
-   // Recupera l'ordine in sospeso dopo il reindirizzamento riuscito di Stripe
+    // Recupera l'ordine in sospeso dopo il reindirizzamento riuscito di Stripe (Senza Duplicazione Codice)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const isPaymentSuccess = urlParams.get('payment_success') === 'true';
@@ -345,93 +345,11 @@ export default function App() {
         const parsedCart = JSON.parse(pendingCart);
         const parsedForm = JSON.parse(pendingForm);
 
-        const submitPaidOrderAfterRedirect = async () => {
-          const finalCustomerName = parsedForm.orderType === 'table' ? `TAVOLO ${parsedForm.tableNumber}` : parsedForm.customerName;
-          const finalPhone = parsedForm.orderType === 'table' ? 'N/D' : parsedForm.customerPhone;
-
-          // Ricalcola i totali in modo sicuro
-          const cartTotal = parsedCart.reduce((sum: number, item: any) => { 
-              const itemPrice = item.selectedVariant ? item.selectedVariant.price : item.price; 
-              const addonsPrice = item.selectedAddons?.reduce((aSum: number, addon: any) => aSum + Number(addon.price), 0) || 0; 
-              return sum + (itemPrice + addonsPrice) * item.quantity; 
-          }, 0);
-          const coverCharge = parsedForm.orderType === 'table' ? (parsedCart.some((item: any) => item.category !== 'Bevande') ? 2.00 : 0) : 0;
-          
-          // Costo consegna fisso o dinamico
-          const deliveryFee = parsedForm.orderType === 'delivery' ? speseConsegna : 0;
-
-          // Preparazione modificatori virtuali per la stampa
-          const preparedCartItems = parsedCart.map((item: any) => {
-            const virtualAddons = [...(item.selectedAddons || [])];
-            if (item.removedIngredients && item.removedIngredients.length > 0) {
-              item.removedIngredients.forEach((ing: string) => {
-                virtualAddons.push({
-                  id: `virtual-removed-${ing}-${Date.now()}`,
-                  name: `SENZA ${ing.toUpperCase()}`,
-                  description: '',
-                  price: 0,
-                  category: 'Ingredienti Extra',
-                  isAvailable: true
-                });
-              });
-            }
-            if (parsedForm.orderType === 'delivery' && item.category === 'Pizza' && item.selectedFreeDrink) {
-              virtualAddons.push({
-                id: `virtual-drink-${item.selectedFreeDrink}-${Date.now()}`,
-                name: `OMAGGIO: ${item.selectedFreeDrink.toUpperCase()}`,
-                description: '',
-                price: 0,
-                category: 'Ingredienti Extra',
-                isAvailable: true
-              });
-            }
-            return { ...item, selectedAddons: virtualAddons };
-          });
-
-          const newOrder = {
-            customer_name: finalCustomerName,
-            customer_phone: finalPhone,
-            customer_email: parsedForm.customerEmail,
-            order_type: parsedForm.orderType,
-            delivery_address: parsedForm.orderType === 'delivery' ? parsedForm.deliveryAddress : null,
-            delivery_city: parsedForm.orderType === 'delivery' ? parsedForm.deliveryCity : null,
-            delivery_time: parsedForm.orderType === 'table' ? 'Immediato' : parsedForm.deliveryTime,
-            payment_method: 'stripe',
-            total_amount: cartTotal + coverCharge + deliveryFee,
-            cart_items: preparedCartItems,
-            status: 'pending',
-            notes: parsedForm.notes,
-            user_id: user ? user.id : null
-          };
-
-          try {
-            const { data: dbData, error } = await supabase.from('orders').insert([newOrder]).select();
-            if (error) throw error;
-            
-            if (dbData && dbData[0]) {
-              setActiveOrderId(dbData[0].id);
-              localStorage.setItem('activeOrderId', dbData[0].id);
-              setCurrentOrder(dbData[0]);
-              
-              // Svuota carrello e pulisci la memoria temporanea
-              setCart([]);
-              localStorage.removeItem('pending_checkout_cart');
-              localStorage.removeItem('pending_checkout_form');
-              
-              // Pulisce l'indirizzo del browser eliminando i parametri "?payment_success=true"
-              window.history.replaceState({}, document.title, window.location.pathname);
-              
-              setView('TRACKING');
-              window.scrollTo(0,0);
-            }
-          } catch (e) {
-            console.error("Errore salvataggio post-redirect:", e);
-          }
-        };
-        submitPaidOrderAfterRedirect();
+        // CHIAMA LA FUNZIONE UNICA PASSANDO I DATI SALVATI NEL LOCAL STORAGE!
+        handleSubmitOrder(undefined, parsedCart, parsedForm);
       }
     }
-  }, [user, speseConsegna]); // Si attiva quando l'utente o il costo consegna sono caricati 
+  }, [user, speseConsegna]);
 
     // Ascolta i cambiamenti di autenticazione (Login / Logout)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -1050,41 +968,34 @@ const handleRegister = async (e: React.FormEvent) => {
   const handleImportData = () => alert("Import locale disabilitato. Usa sync cloud.");
   const handleFactoryReset = () => alert("Reset locale disabilitato. Gestisci da DB.");
 
-const handleSubmitOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
+// FUNZIONE UNIFICATA PER L'INVIO DELL'ORDINE (SUPPORTA ANCHE IL RECUPERO POST-PAGAMENTO STRIPE)
+  const handleSubmitOrder = async (
+    e?: React.FormEvent, 
+    customCart?: any[], 
+    customForm?: any
+  ) => {
+    if (e) e.preventDefault();
     setIsSubmittingOrder(true);
     
-    const finalCustomerName = orderForm.orderType === 'table' ? `TAVOLO ${orderForm.tableNumber}` : orderForm.customerName;
-    const finalPhone = orderForm.orderType === 'table' ? 'N/D' : orderForm.customerPhone;
+    // Se passati (dopo il pagamento), usa i dati recuperati dal localStorage, altrimenti usa lo stato corrente
+    const activeCart = customCart || cart;
+    const activeForm = customForm || orderForm;
 
-    const isDeliveryOrTakeaway = orderForm.orderType === 'delivery' || orderForm.orderType === 'takeaway';
-    
-    // Controllo di sicurezza: impedisci l'invio se ci sono bibite omaggio non scelte
-    const hasMissingFreeDrinks = cart.some(item => 
-      isDeliveryOrTakeaway && item.category === ProductCategory.PIZZA && !item.selectedFreeDrink
-    );
-    if (hasMissingFreeDrinks) {
-      alert("Seleziona la bevanda omaggio per tutte le pizze prima di inviare l'ordine!");
-      setIsSubmittingOrder(false);
-      return;
-    }
-
-    // Controllo di sicurezza: impedisci l'invio se ci sono contorni non scelti
-    const hasMissingSideDishes = cart.some(item => 
-      item.brand === "Contorno compreso" && !item.selectedSideDish
-    );
-    if (hasMissingSideDishes) {
-      alert("Seleziona il contorno per tutti i piatti contrassegnati prima di inviare l'ordine!");
-      setIsSubmittingOrder(false);
-      return;
-    }
+    const finalCustomerName = activeForm.orderType === 'table' ? `TAVOLO ${activeForm.tableNumber}` : activeForm.customerName;
+    const finalPhone = activeForm.orderType === 'table' ? 'N/D' : activeForm.customerPhone;
 
     try {
       let finalDeliveryFee = getDeliveryFee();
+      if (activeForm.orderType === 'delivery') {
+        const zone = DELIVERY_ZONES.find(z => z.name === activeForm.deliveryCity);
+        finalDeliveryFee = zone ? zone.cost : speseConsegna;
+      } else {
+        finalDeliveryFee = 0;
+      }
 
-      // Controllo chilometrico d'emergenza
-      if (orderForm.orderType === 'delivery' && distanzaRilevata === null) {
-        const query = `${orderForm.deliveryAddress}, ${orderForm.deliveryCity}, Italy`;
+      // Se è a domicilio ed il calcolo chilometrico d'emergenza non è ancora stato eseguito (solo per ordine in tempo reale)
+      if (!customForm && activeForm.orderType === 'delivery' && distanzaRilevata === null) {
+        const query = `${activeForm.deliveryAddress}, ${activeForm.deliveryCity}, Italy`;
         const response = await fetch(
           `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
           { headers: { 'User-Agent': 'OldWestOnlineApp/1.0 (info@oldwest.click)' } }
@@ -1097,7 +1008,7 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
           const km = calcolaDistanzaInKm(45.49955, 8.67277, destLat, destLon);
           
           if (km > 15) {
-            alert(`La tua posizione (~${km.toFixed(1)} km) supera il nostro limite di 15km.`);
+            alert(`La tua posizione (~${km.toFixed(1)} km) supera il nostro limite massimo di consegna (15km). L'ordine non può essere completato.`);
             setIsSubmittingOrder(false);
             return;
           }
@@ -1111,81 +1022,70 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
           setDistanzaRilevata(km);
           setErroreIndirizzo(null);
         } else {
-          alert("Indirizzo non riconosciuto. Controlla via e civico.");
+          alert("Indirizzo di consegna non riconosciuto. Verifica via e civico prima di procedere.");
           setIsSubmittingOrder(false);
           return;
         }
       }
-      // Se c'è un blocco di errore attivo legato alla distanza o all'indirizzo, interrompiamo l'invio
-      if (orderForm.orderType === 'delivery' && erroreIndirizzo) {
+
+      // Se c'è un blocco di errore attivo legato alla distanza, fermiamo l'invio
+      if (orderForm.orderType === 'delivery' && erroreIndirizzo && !customForm) {
         alert(erroreIndirizzo);
         setIsSubmittingOrder(false);
         return;
       }
 
-// TRASFORMAZIONE VIRTUALE PER LO SCONTRINO DELLO STAFF
-      const preparedCartItems = cart.map(item => {
+      // Preparazione modificatori virtuali per lo staff
+      const preparedCartItems = activeCart.map((item: any) => {
         const virtualAddons = [...(item.selectedAddons || [])];
-        
-        // Se ci sono ingredienti rimossi, li aggiungiamo come "+ SENZA [NOME]"
         if (item.removedIngredients && item.removedIngredients.length > 0) {
-          item.removedIngredients.forEach((ing: string) => { // <--- AGGIUNTO TIPO STRINGA
+          item.removedIngredients.forEach((ing: string) => {
             virtualAddons.push({
               id: `virtual-removed-${ing}-${Date.now()}`,
               name: `SENZA ${ing.toUpperCase()}`,
-              description: '', // <--- AGGIUNTO PER RISOLVERE L'ERRORE TS
+              description: '',
               price: 0,
-              category: ProductCategory.AGGIUNTE,
+              category: 'Ingredienti Extra',
               isAvailable: true
             });
           });
         }
-
-        // Se c'è una bevanda omaggio scelta per la pizza, la iniettiamo come "+ OMAGGIO: [NOME]"
-        if (isDeliveryOrTakeaway && item.category === ProductCategory.PIZZA && item.selectedFreeDrink) {
+        if (activeForm.orderType === 'delivery' && item.category === 'Pizza' && item.selectedFreeDrink) {
           virtualAddons.push({
             id: `virtual-drink-${item.selectedFreeDrink}-${Date.now()}`,
             name: `OMAGGIO: ${item.selectedFreeDrink.toUpperCase()}`,
             description: '',
             price: 0,
-            category: ProductCategory.AGGIUNTE,
+            category: 'Ingredienti Extra',
             isAvailable: true
           });
         }
-        
-        // Se c'è un contorno scelto, lo iniettiamo come "+ CONTORNO: [NOME]"
-        if (item.brand === "Contorno compreso" && item.selectedSideDish) {
-          virtualAddons.push({
-            id: `virtual-side-${item.selectedSideDish}-${Date.now()}`,
-            name: `CONTORNO: ${item.selectedSideDish.toUpperCase()}`,
-            description: '', // <--- AGGIUNTO PER RISOLVERE L'ERRORE TS
-            price: 0,
-            category: ProductCategory.AGGIUNTE,
-            isAvailable: true
-          });
-        }
-
-        return {
-          ...item,
-          selectedAddons: virtualAddons
-        };
+        return { ...item, selectedAddons: virtualAddons };
       });
 
-      const finalTotalAmount = getCartItemsTotal() + getCoverCharge() + finalDeliveryFee;
+      // Calcola i totali in modo sicuro
+      const cartTotal = activeCart.reduce((sum: number, item: any) => { 
+          const itemPrice = item.selectedVariant ? item.selectedVariant.price : item.price; 
+          const addonsPrice = item.selectedAddons?.reduce((aSum: number, addon: any) => aSum + Number(addon.price), 0) || 0; 
+          return sum + (itemPrice + addonsPrice) * item.quantity; 
+      }, 0);
+      const coverCharge = activeForm.orderType === 'table' ? (activeCart.some((item: any) => item.category !== 'Bevande') ? 2.00 : 0) : 0;
+
+      const finalTotalAmount = cartTotal + coverCharge + finalDeliveryFee;
 
       const newOrder = {
         customer_name: finalCustomerName,
         customer_phone: finalPhone,
-        customer_email: orderForm.customerEmail,
-        order_type: orderForm.orderType,
-        delivery_address: orderForm.orderType === 'delivery' ? orderForm.deliveryAddress : null,
-        delivery_city: orderForm.orderType === 'delivery' ? orderForm.deliveryCity : null,
-        delivery_time: orderForm.orderType === 'table' ? 'Immediato' : orderForm.deliveryTime,
-        payment_method: orderForm.paymentMethod,
+        customer_email: activeForm.customerEmail,
+        order_type: activeForm.orderType,
+        delivery_address: activeForm.orderType === 'delivery' ? activeForm.deliveryAddress : null,
+        delivery_city: activeForm.orderType === 'delivery' ? activeForm.deliveryCity : null,
+        delivery_time: activeForm.orderType === 'table' ? 'Immediato' : activeForm.deliveryTime,
+        payment_method: activeForm.paymentMethod,
         total_amount: finalTotalAmount,
-        cart_items: preparedCartItems, // Inviamo il carrello preparato con le voci virtuali
+        cart_items: preparedCartItems,
         status: 'pending',
-        notes: orderForm.notes,
+        notes: activeForm.notes,
         user_id: user ? user.id : null
       };
 
@@ -1198,6 +1098,14 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
         localStorage.setItem('activeOrderId', dbData[0].id);
         setCurrentOrder(dbData[0]);
         setCart([]);
+        
+        if (customForm) {
+          // Se è un recupero post-pagamento Stripe, puliamo la memoria temporanea ed eliminiamo i parametri dall'URL
+          localStorage.removeItem('pending_checkout_cart');
+          localStorage.removeItem('pending_checkout_form');
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
         setView('TRACKING');
         window.scrollTo(0,0);
       }
@@ -1208,6 +1116,7 @@ const handleSubmitOrder = async (e: React.FormEvent) => {
       setIsSubmittingOrder(false);
     }
   };
+  
   // --- RENDER FUNCTIONS ---
 
   const renderHeader = () => (
