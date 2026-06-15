@@ -121,15 +121,17 @@ const translateIngredient = (ing: string, lang: LanguageCode): string => {
   return ing;
 };
 
-// --- COMPONENTE RENDERIZZAZIONE CASSA SICURA STRIPE (SINGLE-PAGE APP) ---
+// --- COMPONENTE RENDERIZZAZIONE CASSA SICURA STRIPE (SINGLE-PAGE APP - SENZA CONFLITTI DI FORM) ---
 const StripeCheckoutForm = ({ clientSecret, onPaymentSuccess, cart, orderForm }: { clientSecret: string; onPaymentSuccess: () => void; cart: any[]; orderForm: any }) => {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handlePayClick = async (e: React.MouseEvent) => {
+    e.preventDefault();  // Blocca comportamenti di default
+    e.stopPropagation(); // Impedisce al click di salire verso il modulo esterno
+
     if (!stripe || !elements) return;
 
     setIsProcessing(true);
@@ -168,7 +170,8 @@ const StripeCheckoutForm = ({ clientSecret, onPaymentSuccess, cart, orderForm }:
   };
 
   return (
-    <form id="stripe-payment-form" onSubmit={handleSubmit} className="space-y-4 mt-6 p-4 bg-white rounded-2xl text-black animate-in fade-in zoom-in-95 duration-300">
+    // Sostituito <form> con <div> per eliminare l'annidamento illegale in HTML
+    <div id="stripe-payment-form" className="space-y-4 mt-6 p-4 bg-white rounded-2xl text-black animate-in fade-in zoom-in-95 duration-300">
       <PaymentElement />
       {errorMessage && (
          <div className="text-red-600 text-xs font-bold bg-red-50 p-3 rounded-xl border border-red-200">
@@ -176,13 +179,14 @@ const StripeCheckoutForm = ({ clientSecret, onPaymentSuccess, cart, orderForm }:
          </div>
       )}
       <button 
-        type="submit" 
+        type="button" // <--- IMPORTANTISSIMO: tipo "button", non "submit" per non attivare il modulo esterno!
+        onClick={handlePayClick} 
         disabled={isProcessing || !stripe} 
         className="w-full bg-[#45856c] text-white py-4 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-3 hover:bg-opacity-90 transition-all disabled:opacity-50"
       >
          {isProcessing ? <Loader2 className="animate-spin" size={24} /> : "PAGA E INVIA ORDINE"}
       </button>
-    </form>
+    </div>
   );
 };
 
