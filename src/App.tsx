@@ -1060,7 +1060,9 @@ export default function App() {
             });
           });
         }
-        if (activeForm.orderType === 'delivery' && item.category === 'Pizza' && item.selectedFreeDrink) {
+        const isPizzaOrBimbi = item.category === 'Pizza' || item.category === ProductCategory.PIZZA || item.category === ProductCategory.BIMBI || item.category === 'Menu Bimbi';
+        const isDeliveryOrTakeaway = activeForm.orderType === 'delivery' || activeForm.orderType === 'takeaway';
+        if (isDeliveryOrTakeaway && isPizzaOrBimbi && item.selectedFreeDrink) {
           virtualAddons.push({
             id: `virtual-drink-${item.selectedFreeDrink}-${Date.now()}`,
             name: `OMAGGIO: ${item.selectedFreeDrink.toUpperCase()}`,
@@ -1337,7 +1339,7 @@ export default function App() {
                            )}
 
                               {/* SEZIONE BEVANDA OMAGGIO TRADOTTA */}
-                           {isDeliveryOrTakeaway && item.category === ProductCategory.PIZZA && (
+                           {isDeliveryOrTakeaway && (item.category === ProductCategory.PIZZA || item.category === ProductCategory.BIMBI ) && (
                               <div className="mt-2">
                                  {item.selectedFreeDrink ? (
                                     <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 text-xs font-bold px-3 py-1.5 rounded-xl w-fit">
@@ -1381,7 +1383,7 @@ export default function App() {
               {(() => {
                  const isDeliveryOrTakeaway = orderForm.orderType === 'delivery' || orderForm.orderType === 'takeaway';
                  const hasMissingSideDishes = cart.some(item => item.brand === "Contorno compreso" && !item.selectedSideDish);
-                 const hasMissingFreeDrinks = cart.some(item => isDeliveryOrTakeaway && item.category === ProductCategory.PIZZA && !item.selectedFreeDrink);
+                 const hasMissingFreeDrinks = cart.some(item => isDeliveryOrTakeaway && (item.category === ProductCategory.PIZZA || item.category === ProductCategory.BIMBI ) && !item.selectedFreeDrink);
                  const isButtonDisabled = hasMissingSideDishes || hasMissingFreeDrinks;
 
                  return (
