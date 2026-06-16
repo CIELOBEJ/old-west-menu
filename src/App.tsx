@@ -190,20 +190,20 @@ const StripeCheckoutForm = ({ clientSecret, onPaymentSuccess, cart, orderForm }:
   );
 };
 
-// --- COMPONENTE RENDERIZZAZIONE PAGINA DI BENVENUTO (LANDING - MODELLO FOTO 2) ---
+// --- COMPONENTE RENDERIZZAZIONE PAGINA DI BENVENUTO (LANDING - MODELLO ELEGANTE) ---
 const LandingPage = ({ setView, setIsPreOrder, setTempReservationInfo, setReservationForm, profile, user, lang, t }: any) => {
   return (
     <div className="min-h-screen bg-dark-texture flex flex-col justify-between pt-24 pb-6">
       <div className="flex-1 flex flex-col items-center justify-center max-w-md mx-auto px-4 py-12 text-center animate-in fade-in duration-500">
          
-         {/* BENVENUTO E SOTTOTITOLO (STILE FOTO 2) */}
-         <div className="mb-12 select-none">
+         {/* BENVENUTO E SOTTOTITOLO (STILE ELEGANTE) */}
+         <div className="mb-14 select-none">
             <h1 className="text-5xl md:text-6xl font-western text-white tracking-wide mb-4 drop-shadow-lg">Benvenuto!</h1>
-            <p className="text-wood-200 text-lg md:text-xl font-medium tracking-wide">Cosa possiamo fare per te oggi?</p>
+            <p className="text-wood-200 text-base md:text-lg font-medium tracking-wide">Cosa possiamo fare per te oggi?</p>
          </div>
 
-         {/* I TRE PULSANTI ARROTONDATI (STILE FOTO 2) */}
-         <div className="flex flex-col gap-5 w-full">
+         {/* I TRE PULSANTI SNELLI E ARROTONDATI (STILE CHIC) */}
+         <div className="flex flex-col gap-4 w-full items-center">
             
             {/* PULSANTE 1: ORDINA ONLINE */}
             <button 
@@ -214,10 +214,10 @@ const LandingPage = ({ setView, setIsPreOrder, setTempReservationInfo, setReserv
                   setView('MENU');
                   window.scrollTo(0,0);
                }}
-               className="w-full bg-[#45856c] hover:bg-[#366a55] text-white py-5 px-6 rounded-[2rem] shadow-[0_6px_20px_rgba(0,0,0,0.4)] transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center gap-1 border border-white/5"
+               className="w-full max-w-xs bg-[#45856c] hover:bg-[#366a55] text-white py-3.5 px-6 rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center gap-0.5 border border-white/5"
             >
-               <span className="font-western text-2xl tracking-wide uppercase leading-tight">Ordina Online</span>
-               <span className="text-[10px] md:text-xs text-wood-100 font-bold uppercase tracking-widest">A domicilio o asporto</span>
+               <span className="font-western text-xl tracking-wide uppercase leading-tight">Ordina Online</span>
+               <span className="text-[10px] text-wood-100 font-bold uppercase tracking-widest">A domicilio o asporto</span>
             </button>
 
             {/* PULSANTE 2: PRENOTA TAVOLO */}
@@ -238,10 +238,10 @@ const LandingPage = ({ setView, setIsPreOrder, setTempReservationInfo, setReserv
                   setView('BOOKING');
                   window.scrollTo(0,0);
                }}
-               className="w-full bg-[#45856c] hover:bg-[#366a55] text-white py-5 px-6 rounded-[2rem] shadow-[0_6px_20px_rgba(0,0,0,0.4)] transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center gap-1 border border-white/5"
+               className="w-full max-w-xs bg-[#45856c] hover:bg-[#366a55] text-white py-3.5 px-6 rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center gap-0.5 border border-white/5"
             >
-               <span className="font-western text-2xl tracking-wide uppercase leading-tight">Prenota Tavolo</span>
-               <span className="text-[10px] md:text-xs text-wood-100 font-bold uppercase tracking-widest">Riserva un tavolo nel locale</span>
+               <span className="font-western text-xl tracking-wide uppercase leading-tight">Prenota Tavolo</span>
+               <span className="text-[10px] text-wood-100 font-bold uppercase tracking-widest">Riserva un tavolo nel locale</span>
             </button>
 
             {/* PULSANTE 3: PRE-ORDINE CIBO */}
@@ -262,18 +262,18 @@ const LandingPage = ({ setView, setIsPreOrder, setTempReservationInfo, setReserv
                   setView('BOOKING');
                   window.scrollTo(0,0);
                }}
-               className="w-full bg-[#45856c] hover:bg-[#366a55] text-white py-5 px-6 rounded-[2rem] shadow-[0_6px_20px_rgba(0,0,0,0.4)] transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center gap-1 border border-white/5"
+               className="w-full max-w-xs bg-[#45856c] hover:bg-[#366a55] text-white py-3.5 px-6 rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center gap-0.5 border border-white/5"
             >
-               <span className="font-western text-2xl tracking-wide uppercase leading-tight">Pre-ordine cibo</span>
-               <span className="text-[10px] md:text-xs text-wood-100 font-bold uppercase tracking-widest">Scegli i piatti in anticipo</span>
+               <span className="font-western text-xl tracking-wide uppercase leading-tight">Pre-ordine cibo</span>
+               <span className="text-[10px] text-wood-100 font-bold uppercase tracking-widest">Scegli i piatti in anticipo</span>
             </button>
 
          </div>
       </div>
 
-      {/* FOOTER TRASPARENTE MINIMALE */}
+      {/* FOOTER MINIMALE */}
       <div className="bg-transparent text-wood-400 py-4 text-center shrink-0">
-         <p className="text-[9px] opacity-30 font-bold uppercase tracking-wider">&copy; {new Date().getFullYear()} Old West. {t('rights_reserved', lang)}</p>
+         <p className="text-[9px] opacity-25 font-bold uppercase tracking-wider">&copy; {new Date().getFullYear()} Old West. {t('rights_reserved', lang)}</p>
       </div>
     </div>
   );
