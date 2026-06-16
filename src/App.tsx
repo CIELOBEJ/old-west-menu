@@ -4,7 +4,7 @@ import {
   ChevronLeft, ChevronRight, Lock, Utensils, Star, MapPin, Clock, Instagram, Facebook, Phone, LayoutGrid, 
   ArrowRight, Upload, Image as ImageIcon, Download, RotateCcw, Save, ChevronDown, ChevronUp, X, Loader2, 
   Pencil, RefreshCw, Wheat, CircleDot, Globe, Languages, Check, Leaf, Flame, Award, QrCode, Database, Sprout, ShoppingBag, 
-  Milk, Egg, Nut, Bean, AlertCircle, Wine, Shell, Info, Search, Sandwich, Sparkles, Bike, Store, CheckCircle2, Copy, User, Mail, ShoppingCart 
+  Milk, Egg, Nut, Bean, AlertCircle, Wine, Shell, Info, Search, Sandwich, Sparkles, Bike, Store, CheckCircle2, Copy, User, Mail, ShoppingCart, Undo 
 } from 'lucide-react';
 import { MenuItem, ProductCategory, ViewState, LanguageCode, ActiveFilters, CartItem, AllergenType, ProductVariant, OrderType, PaymentMethod } from './types';
 import { INITIAL_MENU_ITEMS, CATEGORIES_LIST, HAMBURGER_SUBCATEGORIES, DRINK_SUBCATEGORIES, DIY_OPTIONS, UI_TRANSLATIONS, CATEGORY_TRANSLATIONS, SUBCATEGORY_TRANSLATIONS, DATA_VERSION, ALLERGENS_CONFIG, EXTRA_INGREDIENTS_ITEMS, DELIVERY_ZONES, LUNCH_HOURS, DINNER_HOURS, ADDON_SUBCATEGORIES } from './constants';
@@ -190,20 +190,39 @@ const StripeCheckoutForm = ({ clientSecret, onPaymentSuccess, cart, orderForm }:
   );
 };
 
-// --- COMPONENTE RENDERIZZAZIONE PAGINA DI BENVENUTO (LANDING - MODELLO ELEGANTE) ---
+// --- COMPONENTE RENDERIZZAZIONE PAGINA DI BENVENUTO (LANDING - MULTILINGUA) ---
 const LandingPage = ({ setView, setIsPreOrder, setTempReservationInfo, setReservationForm, profile, user, lang, t }: any) => {
+  // Dizionario locale traduzioni della Landing Page
+  const translations: Record<string, Record<string, string>> = {
+    welcome: { it: 'Benvenuto!', en: 'Welcome!', fr: 'Bienvenue!', de: 'Willkommen!' },
+    subtitle: { 
+      it: 'Cosa possiamo fare per te oggi?', 
+      en: 'What can we do for you today?', 
+      fr: 'Que pouvons-nous faire pour vous aujourd\'hui?', 
+      de: 'Was können wir heute für Sie tun?' 
+    },
+    ordina_title: { it: 'Ordina Online', en: 'Order Online', fr: 'Commander en ligne', de: 'Online bestellen' },
+    ordina_sub: { it: 'A domicilio o asporto', en: 'Delivery or Takeaway', fr: 'À domicilio ou à emporter', de: 'Lieferung o. Abholung' },
+    prenota_title: { it: 'Prenota Tavolo', en: 'Book a Table', fr: 'Réserver une table', de: 'Tisch reservieren' },
+    prenota_sub: { it: 'Riserva un tavolo nel locale', en: 'Reserve a table in the restaurant', fr: 'Réservez une table', de: 'Tisch im Restaurant reservieren' },
+    preordine_title: { it: 'Pre-ordine cibo', en: 'Pre-order food', fr: 'Précommande de repas', de: 'Essen vorbestellen' },
+    preordine_sub: { it: 'Scegli i piatti in anticipo', en: 'Choose your dishes in advance', fr: 'Choisissez vos plats à l\'avance', de: 'Gerichte im Voraus wählen' }
+  };
+
+  const getTxt = (key: string) => translations[key]?.[lang] || translations[key]?.['it'] || key;
+
   return (
     <div className="min-h-screen bg-dark-texture flex flex-col justify-between pt-24 pb-6">
       <div className="flex-1 flex flex-col items-center justify-center max-w-md mx-auto px-4 py-12 text-center animate-in fade-in duration-500">
          
-         {/* BENVENUTO E SOTTOTITOLO (STILE ELEGANTE) */}
-         <div className="mb-14 select-none">
-            <h1 className="text-5xl md:text-6xl font-western text-white tracking-wide mb-4 drop-shadow-lg">Benvenuto!</h1>
-            <p className="text-wood-200 text-base md:text-lg font-medium tracking-wide">Cosa possiamo fare per te oggi?</p>
+         {/* BENVENUTO E SOTTOTITOLO TRADOTTI */}
+         <div className="mb-12 select-none">
+            <h1 className="text-5xl md:text-6xl font-western text-white tracking-wide mb-4 drop-shadow-lg">{getTxt('welcome')}</h1>
+            <p className="text-wood-200 text-base md:text-lg font-medium tracking-wide">{getTxt('subtitle')}</p>
          </div>
 
-         {/* I TRE PULSANTI SNELLI E ARROTONDATI (STILE CHIC) */}
-         <div className="flex flex-col gap-4 w-full items-center">
+         {/* I TRE PULSANTI ARROTONDATI TRADOTTI */}
+         <div className="flex flex-col gap-6 w-full items-center">
             
             {/* PULSANTE 1: ORDINA ONLINE */}
             <button 
@@ -214,10 +233,10 @@ const LandingPage = ({ setView, setIsPreOrder, setTempReservationInfo, setReserv
                   setView('MENU');
                   window.scrollTo(0,0);
                }}
-               className="w-full max-w-xs bg-[#45856c] hover:bg-[#366a55] text-white py-3.5 px-6 rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center gap-0.5 border border-white/5"
+               className="w-72 bg-[#45856c] hover:bg-[#366a55] text-white py-3.5 px-6 rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center gap-0.5 border border-white/5"
             >
-               <span className="font-western text-xl tracking-wide uppercase leading-tight">Ordina Online</span>
-               <span className="text-[10px] text-wood-100 font-bold uppercase tracking-widest">A domicilio o asporto</span>
+               <span className="font-western text-xl tracking-wide uppercase leading-tight">{getTxt('ordina_title')}</span>
+               <span className="text-[10px] text-wood-100 font-bold uppercase tracking-widest">{getTxt('ordina_sub')}</span>
             </button>
 
             {/* PULSANTE 2: PRENOTA TAVOLO */}
@@ -238,10 +257,10 @@ const LandingPage = ({ setView, setIsPreOrder, setTempReservationInfo, setReserv
                   setView('BOOKING');
                   window.scrollTo(0,0);
                }}
-               className="w-full max-w-xs bg-[#45856c] hover:bg-[#366a55] text-white py-3.5 px-6 rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center gap-0.5 border border-white/5"
+               className="w-72 bg-[#45856c] hover:bg-[#366a55] text-white py-3.5 px-6 rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center gap-0.5 border border-white/5"
             >
-               <span className="font-western text-xl tracking-wide uppercase leading-tight">Prenota Tavolo</span>
-               <span className="text-[10px] text-wood-100 font-bold uppercase tracking-widest">Riserva un tavolo nel locale</span>
+               <span className="font-western text-xl tracking-wide uppercase leading-tight">{getTxt('prenota_title')}</span>
+               <span className="text-[10px] text-wood-100 font-bold uppercase tracking-widest">{getTxt('prenota_sub')}</span>
             </button>
 
             {/* PULSANTE 3: PRE-ORDINE CIBO */}
@@ -262,10 +281,10 @@ const LandingPage = ({ setView, setIsPreOrder, setTempReservationInfo, setReserv
                   setView('BOOKING');
                   window.scrollTo(0,0);
                }}
-               className="w-full max-w-xs bg-[#45856c] hover:bg-[#366a55] text-white py-3.5 px-6 rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center gap-0.5 border border-white/5"
+               className="w-72 bg-[#45856c] hover:bg-[#366a55] text-white py-3.5 px-6 rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center gap-0.5 border border-white/5"
             >
-               <span className="font-western text-xl tracking-wide uppercase leading-tight">Pre-ordine cibo</span>
-               <span className="text-[10px] text-wood-100 font-bold uppercase tracking-widest">Scegli i piatti in anticipo</span>
+               <span className="font-western text-xl tracking-wide uppercase leading-tight">{getTxt('preordine_title')}</span>
+               <span className="text-[10px] text-wood-100 font-bold uppercase tracking-widest">{getTxt('preordine_sub')}</span>
             </button>
 
          </div>
@@ -279,28 +298,52 @@ const LandingPage = ({ setView, setIsPreOrder, setTempReservationInfo, setReserv
   );
 };
 
-// --- COMPONENTE RENDERIZZAZIONE PRENOTAZIONE TAVOLO ---
+// --- COMPONENTE RENDERIZZAZIONE PRENOTAZIONE TAVOLO (MULTILINGUA) ---
 const BookingPage = ({ reservationForm, setReservationForm, isSubmittingReservation, handleSubmitReservation, generateTimeSlots, setView, isPreOrder, lang, t }: any) => {
   const timeSlots = generateTimeSlots();
+
+  // Dizionario locale traduzioni della pagina di prenotazione
+  const translations: Record<string, Record<string, string>> = {
+    title: { it: 'PRENOTA UN TAVOLO', en: 'BOOK A TABLE', fr: 'RÉSERVER UNE TABLE', de: 'TISCH RESERVIEREN' },
+    subtitle_standard: { it: 'Riserva un tavolo nel locale', en: 'Reserve a table in the restaurant', fr: 'Réservez une table', de: 'Tisch im Restaurant reservieren' },
+    subtitle_preorder: { 
+      it: '* Passo 1: Riserva il tavolo prima di scegliere il cibo', 
+      en: '* Step 1: Reserve your table before choosing your food', 
+      fr: '* Étape 1 : Réservez votre table avant de choisir vos plats', 
+      de: '* Schritt 1: Tisch reservieren, bevor Sie das Essen wählen' 
+    },
+    label_people: { it: 'Quante persone? *', en: 'How many people? *', fr: 'Combien de personnes ? *', de: 'Wie viele Personen? *' },
+    label_name: { it: 'Nome e Cognome *', en: 'First & Last Name *', fr: 'Nom & Prénom *', de: 'Vor- & Nachname *' },
+    label_phone: { it: 'Telefono per conferma *', en: 'Phone number for confirmation *', fr: 'Téléphone de confirmation *', de: 'Telefonnummer zur Bestätigung *' },
+    label_date: { it: 'Data *', en: 'Date *', fr: 'Date *', de: 'Datum *' },
+    label_time: { it: 'Ora *', en: 'Time *', fr: 'Heure *', de: 'Uhrzeit *' },
+    label_notes: { it: 'Preferenze o note (Opzionale)', en: 'Preferences or notes (Optional)', fr: 'Préférences ou notes (Optionnel)', de: 'Wünsche oder Notizen (Optional)' },
+    placeholder_notes: { it: 'Es. Seggiolone per bimbo, all\'aperto, ecc.', en: 'E.g. High chair, outdoors, etc.', fr: 'Ex. Chaise haute, en plein air, etc.', de: 'Z.B. Kinderhochstuhl, im Freien, etc.' },
+    btn_cancel: { it: 'Annulla', en: 'Cancel', fr: 'Annuler', de: 'Abbrechen' },
+    btn_confirm_preorder: { it: 'CONFERMA E PRE-ORDINA CIBO', en: 'CONFIRM AND PRE-ORDER FOOD', fr: 'CONFIRMER ET PRÉCOMMANDER LE REPAS', de: 'BESTÄTIGEN UND ESSEN VORBESTELLEN' },
+    btn_confirm_standard: { it: 'CONFERMA PRENOTAZIONE TAVOLO', en: 'CONFIRM TABLE RESERVATION', fr: 'CONFIRMER LA RÉSERVATION DE LA TABLE', de: 'TISCHRESERVIERUNG BESTÄTIGEN' }
+  };
+
+  const getTxt = (key: string) => translations[key]?.[lang] || translations[key]?.['it'] || key;
 
   return (
     <div className="min-h-screen bg-wood-50 pt-20 pb-32">
       <div className="container mx-auto px-4 max-w-lg mt-8">
          <button type="button" onClick={() => setView('LANDING')} className="flex items-center gap-2 text-wood-500 hover:text-wood-900 font-bold mb-6 transition-colors">
-            <ChevronLeft size={20} /> Annulla
+            <ChevronLeft size={20} /> {getTxt('btn_cancel')}
          </button>
 
-         <h2 className="text-3xl font-western text-wood-900 mb-2">PRENOTA UN TAVOLO</h2>
+         <h2 className="text-3xl font-western text-wood-900 mb-2">{getTxt('title')}</h2>
          <p className="text-sm text-wood-500 mb-8 uppercase font-bold tracking-wider">
-            {isPreOrder ? '* Passo 1: Riserva il tavolo prima di scegliere il cibo' : 'Riserva un tavolo nel locale'}
+            {isPreOrder ? getTxt('subtitle_preorder') : getTxt('subtitle_standard')}
          </p>
 
          <form onSubmit={handleSubmitReservation} className="space-y-6">
             <div className="bg-white p-6 rounded-3xl border border-wood-100 shadow-sm space-y-4">
                
-               {/* Numero persone (- 2 +) */}
+               {/* Numero persone */}
                <div>
-                  <label className="block text-xs font-bold text-wood-500 uppercase mb-2">Quante persone? *</label>
+                  <label className="block text-xs font-bold text-wood-500 uppercase mb-2">{getTxt('label_people')}</label>
                   <div className="flex items-center gap-4 bg-wood-50 p-2 rounded-2xl w-fit border border-wood-100">
                      <button 
                         type="button" 
@@ -323,11 +366,11 @@ const BookingPage = ({ reservationForm, setReservationForm, isSubmittingReservat
                {/* Anagrafica Cliente */}
                <div className="grid grid-cols-1 gap-4 pt-2">
                   <div>
-                     <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Nome e Cognome *</label>
+                     <label className="block text-xs font-bold text-wood-500 uppercase mb-1">{getTxt('label_name')}</label>
                      <input required type="text" value={reservationForm.customerName} onChange={e => setReservationForm({...reservationForm, customerName: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3" placeholder="Es. Rossi Mario" />
                   </div>
                   <div>
-                     <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Telefono per conferma *</label>
+                     <label className="block text-xs font-bold text-wood-500 uppercase mb-1">{getTxt('label_phone')}</label>
                      <input required type="tel" value={reservationForm.customerPhone} onChange={e => setReservationForm({...reservationForm, customerPhone: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3" placeholder="Es. 3331234567" />
                   </div>
                </div>
@@ -335,11 +378,11 @@ const BookingPage = ({ reservationForm, setReservationForm, isSubmittingReservat
                {/* Giorno e Ora della Prenotazione */}
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                   <div>
-                     <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Data *</label>
+                     <label className="block text-xs font-bold text-wood-500 uppercase mb-1">{getTxt('label_date')}</label>
                      <input required type="date" min={new Date().toISOString().split('T')[0]} value={reservationForm.date} onChange={e => setReservationForm({...reservationForm, date: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 font-bold text-wood-800" />
                   </div>
                   <div>
-                     <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Ora *</label>
+                     <label className="block text-xs font-bold text-wood-500 uppercase mb-1">{getTxt('label_time')}</label>
                      <div className="relative">
                         <select value={reservationForm.time} onChange={e => setReservationForm({...reservationForm, time: e.target.value})} className="w-full appearance-none bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 pr-8 font-bold text-wood-800 focus:outline-none">
                            {timeSlots.map((time: string) => (
@@ -353,14 +396,14 @@ const BookingPage = ({ reservationForm, setReservationForm, isSubmittingReservat
 
                {/* Note */}
                <div className="pt-2">
-                  <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Preferenze o note (Opzionale)</label>
-                  <textarea rows={2} value={reservationForm.notes} onChange={e => setReservationForm({...reservationForm, notes: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl p-3 focus:outline-none focus:border-[#45856c] resize-none" placeholder="Es. Seggiolone per bimbo, all'aperto, ecc."></textarea>
+                  <label className="block text-xs font-bold text-wood-500 uppercase mb-1">{getTxt('label_notes')}</label>
+                  <textarea rows={2} value={reservationForm.notes} onChange={e => setReservationForm({...reservationForm, notes: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl p-3 focus:outline-none focus:border-[#45856c] resize-none" placeholder={getTxt('placeholder_notes')}></textarea>
                </div>
 
             </div>
 
             <button type="submit" disabled={isSubmittingReservation} className="w-full bg-[#45856c] text-white py-4 rounded-2xl font-bold text-xl shadow-lg flex items-center justify-center gap-3 hover:bg-opacity-90 transition-all disabled:opacity-50">
-               {isSubmittingReservation ? <Loader2 className="animate-spin" size={24} /> : isPreOrder ? "CONFERMA E PRE-ORDINA CIBO" : "CONFERMA PRENOTAZIONE TAVOLO"}
+               {isSubmittingReservation ? <Loader2 className="animate-spin" size={24} /> : isPreOrder ? getTxt('btn_confirm_preorder') : getTxt('btn_confirm_standard')}
             </button>
          </form>
       </div>
@@ -1412,62 +1455,91 @@ export default function App() {
   
   // --- RENDER FUNCTIONS ---
 
-  const renderHeader = () => (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${view === 'MENU' || view === 'CHECKOUT' ? 'bg-wood-900/95 backdrop-blur-md border-b border-wood-800' : 'bg-wood-900 shadow-md'}`}>
-      <div className="container mx-auto px-4 h-16 md:h-20 flex justify-between items-center">
-        <div className="flex items-center gap-3 group cursor-pointer" onClick={() => { setView('LANDING'); window.scrollTo(0,0); }}>
-           <div className="transform group-hover:rotate-12 transition-transform duration-300"><WesternLogo size="md" url={customLogo} /></div>
-           <div className="flex flex-col"><span className="font-western text-xl text-white tracking-wide leading-none">OLD WEST</span><span className="text-[10px] uppercase tracking-[0.2em] text-accent-500 font-bold">Cameri</span></div>
-        </div>
-        {view === 'MENU' || view === 'CHECKOUT' ? (
-          <div className="flex items-center gap-4">
-             <div className="relative">
-                {isLangMenuOpen && <div className="fixed inset-0 z-40" onClick={() => setIsLangMenuOpen(false)}></div>}
-                <button onClick={() => setIsLangMenuOpen(!isLangMenuOpen)} className="flex items-center gap-2 bg-wood-800 hover:bg-wood-700 transition-colors pl-3 pr-2 py-1.5 rounded-xl border border-wood-700 text-white"><span className="text-xl leading-none">{LANGUAGES_CONFIG.find(l => l.code === lang)?.flag}</span><ChevronDown size={14} className={`text-wood-400 transition-transform ${isLangMenuOpen ? 'rotate-180' : ''}`} /></button>
-                {isLangMenuOpen && (<div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-wood-100 overflow-hidden py-1 z-50 animate-in fade-in zoom-in-95 duration-200">{LANGUAGES_CONFIG.map((l) => (<button key={l.code} onClick={() => { setLang(l.code as LanguageCode); setIsLangMenuOpen(false); }} className={`w-full flex items-center justify-between px-4 py-3 hover:bg-wood-50 transition-colors text-left ${lang === l.code ? 'bg-accent-50 text-accent-700' : 'text-wood-700'}`}><div className="flex items-center gap-3"><span className="text-2xl leading-none shadow-sm rounded-sm">{l.flag}</span><span className="text-sm font-bold">{l.label}</span></div>{lang === l.code && <Check size={16} />}</button>))}</div>)}
-             </div>
-             <button 
-                type="button"
-                onClick={() => setIsCartOpen(true)} 
-                className="w-10 h-10 rounded-full flex items-center justify-center text-wood-400 hover:text-white hover:bg-wood-800 transition-all relative"
-                title="Carrello"
-             >
-                <ShoppingCart size={20} />
-                {cart.length > 0 && (
-                   <span className="absolute -top-1 -right-1 bg-[#45856c] text-white w-5 h-5 rounded-full flex items-center justify-center font-bold text-[9px] animate-bounce shadow-sm border border-wood-950">
-                      {cart.reduce((sum, item) => sum + item.quantity, 0)}
-                   </span>
-                )}
-             </button>
-             <button 
-                type="button"
-                onClick={() => {
-                   if (user) {
-                      // Carichiamo i dati del profilo correnti nel form prima di aprire il pannello di modifica
-                      setAuthForm({
-                         email: user.email || '',
-                         password: '',
-                         fullName: profile?.full_name || '',
-                         phone: profile?.phone || '',
-                         address: profile?.address || '',
-                         city: profile?.city || DELIVERY_ZONES[0] || ''
-                      });
-                      setIsProfileOpen(true);
-                   } else {
-                      setAuthMode('LOGIN');
-                      setAuthForm({ email: '', password: '', fullName: '', phone: '', address: '', city: DELIVERY_ZONES[0] || '' });
-                      setIsAuthModalOpen(true);
-                   }
-                }} 
-                className="w-10 h-10 rounded-full flex items-center justify-center text-wood-400 hover:text-white hover:bg-wood-800 transition-all"
-             >
-                <User size={22} className={user ? 'text-[#45856c]' : ''} />
-             </button>
+  const renderHeader = () => {
+    const isDeliveryOrTakeaway = orderForm.orderType === 'delivery' || orderForm.orderType === 'takeaway';
+    
+    return (
+      <nav className="print:hidden fixed top-0 left-0 right-0 z-50 bg-wood-900 shadow-md">
+        <div className="container mx-auto px-4 h-16 md:h-20 flex justify-between items-center">
+          
+          {/* LOGO E TITOLO (STABILE E DIRITTO) */}
+          <div className="flex items-center gap-3 group cursor-pointer" onClick={() => { setView('LANDING'); window.scrollTo(0,0); }}>
+             <WesternLogo size="md" url={customLogo} />
+             <div className="flex flex-col"><span className="font-western text-xl text-white tracking-wide leading-none">OLD WEST</span><span className="text-[10px] uppercase tracking-[0.2em] text-accent-500 font-bold">Cameri</span></div>
           </div>
-        ) : (<button onClick={() => { setView('MENU'); setActiveCategory('Tutti'); window.scrollTo(0,0); }} className="flex items-center gap-2 bg-wood-800 text-white px-5 py-2 rounded-full hover:bg-accent-600 transition-colors text-sm font-medium"><LogOut size={16} /> <span className="hidden md:inline">{t('back_to_menu', lang)}</span></button>)}
-      </div>
-    </nav>
-  );
+
+          <div className="flex items-center gap-3">
+             
+             {/* 1. FRECCIA CURVA DI RITORNO ALLA HOME (Invisibile sulla Landing, compatta su tutte le altre pagine!) */}
+             {view !== 'LANDING' && (
+                <button 
+                   type="button"
+                   onClick={() => { setView('LANDING'); window.scrollTo(0,0); }} 
+                   className="w-10 h-10 rounded-full flex items-center justify-center text-wood-400 hover:text-white hover:bg-wood-800 transition-all"
+                   title="Torna alla schermata iniziale"
+                >
+                   <Undo size={20} />
+                </button>
+             )}
+
+             {/* 2. MENU LINGUE (Mostrato solo nelle visualizzazioni principali) */}
+             {(view === 'LANDING' || view === 'MENU' || view === 'CHECKOUT') && (
+                <div className="relative">
+                   {isLangMenuOpen && <div className="fixed inset-0 z-40" onClick={() => setIsLangMenuOpen(false)}></div>}
+                   <button onClick={() => setIsLangMenuOpen(!isLangMenuOpen)} className="flex items-center gap-2 bg-wood-800 hover:bg-wood-700 transition-colors pl-3 pr-2 py-1.5 rounded-xl border border-wood-700 text-white"><span className="text-xl leading-none">{LANGUAGES_CONFIG.find(l => l.code === lang)?.flag}</span><ChevronDown size={14} className={`text-wood-400 transition-transform ${isLangMenuOpen ? 'rotate-180' : ''}`} /></button>
+                   {isLangMenuOpen && (<div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-wood-100 overflow-hidden py-1 z-50 animate-in fade-in zoom-in-95 duration-200">{LANGUAGES_CONFIG.map((l) => (<button key={l.code} onClick={() => { setLang(l.code as LanguageCode); setIsLangMenuOpen(false); }} className={`w-full flex items-center justify-between px-4 py-3 hover:bg-wood-50 transition-colors text-left ${lang === l.code ? 'bg-accent-50 text-accent-700' : 'text-wood-700'}`}><div className="flex items-center gap-3"><span className="text-2xl leading-none shadow-sm rounded-sm">{l.flag}</span><span className="text-sm font-bold">{l.label}</span></div>{lang === l.code && <Check size={16} />}</button>))}</div>)}
+                </div>
+             )}
+
+             {/* 3. TASTO CARRELLO (Mostrato solo nel MENU) */}
+             {view === 'MENU' && (
+                <button 
+                   type="button"
+                   onClick={() => setIsCartOpen(true)} 
+                   className="w-10 h-10 rounded-full flex items-center justify-center text-wood-400 hover:text-white hover:bg-wood-800 transition-all relative"
+                   title="Apri Carrello"
+                >
+                   <ShoppingCart size={20} />
+                   {cart.length > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-[#45856c] text-white w-5 h-5 rounded-full flex items-center justify-center font-bold text-[9px] animate-bounce shadow-sm border border-wood-950">
+                         {cart.reduce((sum, item) => sum + item.quantity, 0)}
+                      </span>
+                   )}
+                </button>
+             )}
+
+             {/* 4. OMINO PROFILO UTENTE (Mostrato nelle visualizzazioni principali) */}
+             {(view === 'LANDING' || view === 'MENU' || view === 'CHECKOUT') && (
+                <button 
+                   type="button"
+                   onClick={() => {
+                      if (user) {
+                         setAuthForm({
+                            email: user.email || '',
+                            password: '',
+                            fullName: profile?.full_name || '',
+                            phone: profile?.phone || '',
+                            address: profile?.address || '',
+                            city: profile?.city || DELIVERY_ZONES[0] || ''
+                         });
+                         setIsProfileOpen(true);
+                      } else {
+                         setAuthMode('LOGIN');
+                         setAuthForm({ email: '', password: '', fullName: '', phone: '', address: '', city: DELIVERY_ZONES[0] || '' });
+                         setIsAuthModalOpen(true);
+                      }
+                   }} 
+                   className="w-10 h-10 rounded-full flex items-center justify-center text-wood-400 hover:text-white hover:bg-wood-800 transition-all"
+                   title="Area Personale / Accedi"
+                >
+                   <User size={22} className={user ? 'text-[#45856c]' : ''} />
+                </button>
+             )}
+          </div>
+        </div>
+      </nav>
+    );
+  };
 
   const renderFloatingCartBar = () => {
      if (cart.length === 0 || isCartOpen || view !== 'MENU') return null;
