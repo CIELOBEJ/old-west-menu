@@ -190,12 +190,208 @@ const StripeCheckoutForm = ({ clientSecret, onPaymentSuccess, cart, orderForm }:
   );
 };
 
+// --- COMPONENTE RENDERIZZAZIONE PAGINA DI BENVENUTO (LANDING) ---
+const LandingPage = ({ customLogo, setView, setIsPreOrder, setTempReservationInfo, setReservationForm, profile, user, lang, t, DELIVERY_ZONES }: any) => {
+  return (
+    <div className="min-h-screen bg-texture flex flex-col justify-between pt-16 md:pt-20">
+      <div className="flex-1 flex flex-col items-center justify-center max-w-4xl mx-auto px-4 py-12 text-center animate-in fade-in duration-500">
+         
+         {/* LOGO E INTESTAZIONE */}
+         <div className="mb-10">
+            <WesternLogo size="lg" url={customLogo} className="mx-auto mb-6 hover:rotate-12 transition-transform duration-300" />
+            <h1 className="text-4xl md:text-6xl font-western text-wood-900 tracking-wide mb-3">OLD WEST CAMERI</h1>
+            <p className="text-wood-400 font-bold uppercase tracking-widest text-xs md:text-sm">Seleziona un servizio per iniziare:</p>
+         </div>
+
+         {/* GRID DELLE CARD FOTOGRAFICHE DELLE ATTIVITÀ (PROPORZIONE PREMIUM) */}
+         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-3xl">
+            
+            {/* CARD 1: ORDINA ONLINE (DELIVERY / TAKEAWAY) */}
+            <button 
+               type="button"
+               onClick={() => {
+                  setIsPreOrder(false);
+                  setTempReservationInfo(null);
+                  setView('MENU');
+                  window.scrollTo(0,0);
+               }}
+               className="group relative h-72 md:h-80 rounded-[2rem] border border-wood-100 overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.02] flex flex-col justify-end text-left"
+            >
+               <img src="https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=800" alt="Ordina Online" className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />
+               <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent"></div>
+               <div className="relative z-10 p-6 text-white">
+                  <Bike className="text-accent-500 mb-2" size={32} />
+                  <h3 className="font-western text-xl tracking-wide uppercase leading-tight">Ordina Online</h3>
+                  <p className="text-xs text-wood-300 font-bold mt-1 uppercase">A domicilio o asporto</p>
+               </div>
+            </button>
+
+            {/* CARD 2: PRENOTA UN TAVOLO */}
+            <button 
+               type="button"
+               onClick={() => {
+                  setIsPreOrder(false);
+                  setTempReservationInfo(null);
+                  setReservationForm({
+                     customerName: profile?.full_name || '',
+                     customerPhone: profile?.phone || '',
+                     customerEmail: user?.email || '',
+                     numPeople: 2,
+                     date: '',
+                     time: '19:30',
+                     notes: ''
+                  });
+                  setView('BOOKING');
+                  window.scrollTo(0,0);
+               }}
+               className="group relative h-72 md:h-80 rounded-[2rem] border border-wood-100 overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.02] flex flex-col justify-end text-left"
+            >
+               <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=800" alt="Prenota un Tavolo" className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />
+               <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent"></div>
+               <div className="relative z-10 p-6 text-white">
+                  <Store className="text-accent-500 mb-2" size={32} />
+                  <h3 className="font-western text-xl tracking-wide uppercase leading-tight">Prenota Tavolo</h3>
+                  <p className="text-xs text-wood-300 font-bold mt-1 uppercase">Riserva un tavolo nel locale</p>
+               </div>
+            </button>
+
+            {/* CARD 3: TAVOLO + PRE-ORDINE CIBO */}
+            <button 
+               type="button"
+               onClick={() => {
+                  setIsPreOrder(true);
+                  setTempReservationInfo(null);
+                  setReservationForm({
+                     customerName: profile?.full_name || '',
+                     customerPhone: profile?.phone || '',
+                     customerEmail: user?.email || '',
+                     numPeople: 2,
+                     date: '',
+                     time: '19:30',
+                     notes: ''
+                  });
+                  setView('BOOKING');
+                  window.scrollTo(0,0);
+               }}
+               className="group relative h-72 md:h-80 rounded-[2rem] border border-wood-100 overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.02] flex flex-col justify-end text-left"
+            >
+               <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=800" alt="Pre-ordine cibo" className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />
+               <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent"></div>
+               <div className="relative z-10 p-6 text-white">
+                  <Sparkles className="text-accent-500 mb-2" size={32} />
+                  <h3 className="font-western text-xl tracking-wide uppercase leading-tight">Pre-ordine cibo</h3>
+                  <p className="text-xs text-wood-300 font-bold mt-1 uppercase">Scegli i piatti in anticipo</p>
+               </div>
+            </button>
+
+         </div>
+      </div>
+
+      {/* FOOTER */}
+      <div className="bg-wood-900 text-wood-300 py-8 border-t border-wood-800 shrink-0">
+         <div className="container mx-auto px-4 text-center">
+            <p className="text-xs opacity-40">&copy; {new Date().getFullYear()} Old West. {t('rights_reserved', lang)}</p>
+         </div>
+      </div>
+    </div>
+  );
+};
+
+// --- COMPONENTE RENDERIZZAZIONE PRENOTAZIONE TAVOLO ---
+const BookingPage = ({ reservationForm, setReservationForm, isSubmittingReservation, handleSubmitReservation, generateTimeSlots, setView, isPreOrder, lang, t }: any) => {
+  const timeSlots = generateTimeSlots();
+
+  return (
+    <div className="min-h-screen bg-wood-50 pt-20 pb-32">
+      <div className="container mx-auto px-4 max-w-lg mt-8">
+         <button type="button" onClick={() => setView('LANDING')} className="flex items-center gap-2 text-wood-500 hover:text-wood-900 font-bold mb-6 transition-colors">
+            <ChevronLeft size={20} /> Annulla
+         </button>
+
+         <h2 className="text-3xl font-western text-wood-900 mb-2">PRENOTA UN TAVOLO</h2>
+         <p className="text-sm text-wood-500 mb-8 uppercase font-bold tracking-wider">
+            {isPreOrder ? '* Passo 1: Riserva il tavolo prima di scegliere il cibo' : 'Riserva un tavolo nel locale'}
+         </p>
+
+         <form onSubmit={handleSubmitReservation} className="space-y-6">
+            <div className="bg-white p-6 rounded-3xl border border-wood-100 shadow-sm space-y-4">
+               
+               {/* Numero persone (- 2 +) */}
+               <div>
+                  <label className="block text-xs font-bold text-wood-500 uppercase mb-2">Quante persone? *</label>
+                  <div className="flex items-center gap-4 bg-wood-50 p-2 rounded-2xl w-fit border border-wood-100">
+                     <button 
+                        type="button" 
+                        onClick={() => setReservationForm({ ...reservationForm, numPeople: Math.max(1, reservationForm.numPeople - 1) })}
+                        className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center font-bold text-lg text-wood-700 hover:bg-wood-100"
+                     >
+                        -
+                     </button>
+                     <span className="text-xl font-bold w-12 text-center text-wood-900">{reservationForm.numPeople}</span>
+                     <button 
+                        type="button" 
+                        onClick={() => setReservationForm({ ...reservationForm, numPeople: reservationForm.numPeople + 1 })}
+                        className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center font-bold text-lg text-wood-700 hover:bg-wood-100"
+                     >
+                        +
+                     </button>
+                  </div>
+               </div>
+
+               {/* Anagrafica Cliente */}
+               <div className="grid grid-cols-1 gap-4 pt-2">
+                  <div>
+                     <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Nome e Cognome *</label>
+                     <input required type="text" value={reservationForm.customerName} onChange={e => setReservationForm({...reservationForm, customerName: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3" placeholder="Es. Rossi Mario" />
+                  </div>
+                  <div>
+                     <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Telefono per conferma *</label>
+                     <input required type="tel" value={reservationForm.customerPhone} onChange={e => setReservationForm({...reservationForm, customerPhone: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3" placeholder="Es. 3331234567" />
+                  </div>
+               </div>
+
+               {/* Giorno e Ora della Prenotazione */}
+               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                  <div>
+                     <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Data *</label>
+                     <input required type="date" min={new Date().toISOString().split('T')[0]} value={reservationForm.date} onChange={e => setReservationForm({...reservationForm, date: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 font-bold text-wood-800" />
+                  </div>
+                  <div>
+                     <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Ora *</label>
+                     <div className="relative">
+                        <select value={reservationForm.time} onChange={e => setReservationForm({...reservationForm, time: e.target.value})} className="w-full appearance-none bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 pr-8 font-bold text-wood-800 focus:outline-none">
+                           {timeSlots.map((time: string) => (
+                              <option key={time} value={time}>{time}</option>
+                           ))}
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-wood-400 pointer-events-none" size={16} />
+                     </div>
+                  </div>
+               </div>
+
+               {/* Note */}
+               <div className="pt-2">
+                  <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Preferenze o note (Opzionale)</label>
+                  <textarea rows={2} value={reservationForm.notes} onChange={e => setReservationForm({...reservationForm, notes: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl p-3 focus:outline-none focus:border-[#45856c] resize-none" placeholder="Es. Seggiolone per bimbo, all'aperto, ecc."></textarea>
+               </div>
+
+            </div>
+
+            <button type="submit" disabled={isSubmittingReservation} className="w-full bg-[#45856c] text-white py-4 rounded-2xl font-bold text-xl shadow-lg flex items-center justify-center gap-3 hover:bg-opacity-90 transition-all disabled:opacity-50">
+               {isSubmittingReservation ? <Loader2 className="animate-spin" size={24} /> : isPreOrder ? "CONFERMA E PRE-ORDINA CIBO" : "CONFERMA PRENOTAZIONE TAVOLO"}
+            </button>
+         </form>
+      </div>
+    </div>
+  );
+};
+
 // --- MAIN COMPONENT ---
 
 export default function App() {
   const [orderDate, setOrderFormDate] = useState('Oggi');
   const [items, setItems] = useState<MenuItem[]>([]);
-  const [view, setView] = useState<ViewState>('MENU');
+  const [view, setView] = useState<ViewState>('LANDING'); // <--- IMPOSTATA LA SCHERMATA INIZIALE SU LANDING
   const [activeCategory, setActiveCategory] = useState<string>('Tutti');
   const [activeSubCategoryView, setActiveSubCategoryView] = useState<string | null>(null);
   const [categories, setCategories] = useState<{ id: string; image_url: string | null }[]>([]);
@@ -250,6 +446,67 @@ export default function App() {
   // --- STATI AGGIUNTI PER I PAGAMENTI ONLINE STRIPE ---
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isInitializingStripe, setIsInitializingStripe] = useState(false);
+
+  // --- STATI AGGIUNTI PER LA PRENOTAZIONE TAVOLO & PRE-ORDINE ---
+  const [isPreOrder, setIsPreOrder] = useState(false);
+  const [tempReservationInfo, setTempReservationInfo] = useState<any>(null);
+  const [isSubmittingReservation, setIsSubmittingReservation] = useState(false);
+  const [reservationForm, setReservationForm] = useState({
+    customerName: '',
+    customerPhone: '',
+    customerEmail: '',
+    numPeople: 2,
+    date: '',
+    time: '19:30',
+    notes: ''
+  });
+
+  // Gestisce la convalida ed il salvataggio della prenotazione del tavolo
+  const handleSubmitReservation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmittingReservation(true);
+
+    try {
+      if (isPreOrder) {
+        // SCENARIO B (TAVOLO + PRE-ORDINE): Non salviamo ancora nel database!
+        // Memorizziamo temporaneamente i dati del tavolo e guidiamo l'utente sul menu per scegliere i cibi
+        setTempReservationInfo(reservationForm);
+        setView('MENU');
+        
+        setSuggestionToast({ 
+           show: true, 
+           text: "🤠 Tavolo riservato! Ora aggiungi i tuoi piatti al carrello." 
+        });
+        setTimeout(() => setSuggestionToast({ show: false, text: '' }), 5000);
+        window.scrollTo(0,0);
+      } else {
+        // SCENARIO A (PRENOTAZIONE CLASSICA): Salviamo direttamente nella tabella "reservations" di Supabase
+        const newReservation = {
+          customer_name: reservationForm.customerName,
+          customer_phone: reservationForm.customerPhone,
+          customer_email: reservationForm.customerEmail || null,
+          reservation_date: reservationForm.date,
+          reservation_time: reservationForm.time,
+          num_people: reservationForm.numPeople,
+          notes: reservationForm.notes,
+          status: 'pending',
+          user_id: user ? user.id : null
+        };
+
+        const { error } = await supabase.from('reservations').insert([newReservation]);
+        if (error) throw error;
+
+        // Mostriamo la schermata di successo generica
+        setView('ORDER_SUCCESS');
+        window.scrollTo(0,0);
+      }
+    } catch (error) {
+      console.error("Errore salvataggio prenotazione:", error);
+      alert("Errore durante la prenotazione del tavolo. Riprova per favore.");
+    } finally {
+      setIsSubmittingReservation(false);
+    }
+  };
 
   // --- STATI AGGIUNTI PER IL CALCOLO CHILOMETRICO DELLA CONSEGNA ---
   const [speseConsegna, setSpeseConsegna] = useState<number>(2.00); 
@@ -1102,6 +1359,25 @@ export default function App() {
         user_id: user ? user.id : null
       };
 
+      // Se c'è una prenotazione tavolo in sospeso (Scenario Pre-ordine), la salviamo nel database di Supabase
+      if (tempReservationInfo) {
+        const newReservation = {
+          customer_name: tempReservationInfo.customerName,
+          customer_phone: tempReservationInfo.customerPhone,
+          customer_email: tempReservationInfo.customerEmail || null,
+          reservation_date: tempReservationInfo.date,
+          reservation_time: tempReservationInfo.time,
+          num_people: tempReservationInfo.numPeople,
+          notes: `PRE-ORDINE ASSOCIATO. Nota cliente: ${tempReservationInfo.notes}`,
+          status: 'pending',
+          pre_order_cart_items: preparedCartItems, // Salviamo il pre-ordine di cibo anche dentro alla prenotazione!
+          user_id: user ? user.id : null
+        };
+        
+        // Salva la prenotazione tavolo in parallelo
+        await supabase.from('reservations').insert([newReservation]);
+      }
+
       const { data: dbData, error } = await supabase.from('orders').insert([newOrder]).select();
 
       if (error) throw error;
@@ -1111,6 +1387,9 @@ export default function App() {
         localStorage.setItem('activeOrderId', dbData[0].id);
         setCurrentOrder(dbData[0]);
         setCart([]);
+        // AGGIUNTO: Pulisce la memoria del tavolo se l'ordine ha successo
+        setTempReservationInfo(null);
+        setIsPreOrder(false);
         
         if (customForm) {
           // Se è un recupero post-pagamento Stripe, puliamo la memoria temporanea ed eliminiamo i parametri dall'URL
@@ -1154,7 +1433,7 @@ export default function App() {
   const renderHeader = () => (
     <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${view === 'MENU' || view === 'CHECKOUT' ? 'bg-wood-900/95 backdrop-blur-md border-b border-wood-800' : 'bg-wood-900 shadow-md'}`}>
       <div className="container mx-auto px-4 h-16 md:h-20 flex justify-between items-center">
-        <div className="flex items-center gap-3 group cursor-pointer" onClick={() => { setView('MENU'); window.scrollTo(0,0); }}>
+        <div className="flex items-center gap-3 group cursor-pointer" onClick={() => { setView('LANDING'); window.scrollTo(0,0); }}>
            <div className="transform group-hover:rotate-12 transition-transform duration-300"><WesternLogo size="md" url={customLogo} /></div>
            <div className="flex flex-col"><span className="font-western text-xl text-white tracking-wide leading-none">OLD WEST</span><span className="text-[10px] uppercase tracking-[0.2em] text-accent-500 font-bold">Cameri</span></div>
         </div>
@@ -2346,6 +2625,34 @@ const renderMenu = () => {
   return (
     <>
       {renderHeader()}
+      {view === 'LANDING' && (
+         <LandingPage 
+            customLogo={customLogo} 
+            setView={setView} 
+            setIsPreOrder={setIsPreOrder} 
+            setTempReservationInfo={setTempReservationInfo} 
+            setReservationForm={setReservationForm} 
+            profile={profile} 
+            user={user} 
+            lang={lang} 
+            t={t} 
+            DELIVERY_ZONES={DELIVERY_ZONES} 
+         />
+      )}
+      
+      {view === 'BOOKING' && (
+         <BookingPage 
+            reservationForm={reservationForm} 
+            setReservationForm={setReservationForm} 
+            isSubmittingReservation={isSubmittingReservation} 
+            handleSubmitReservation={handleSubmitReservation} 
+            generateTimeSlots={generateTimeSlots} 
+            setView={setView} 
+            isPreOrder={isPreOrder} 
+            lang={lang} 
+            t={t} 
+         />
+      )}
       {view === 'MENU' && renderMenu()}
       {view === 'CHECKOUT' && renderCheckout()}
       {view === 'ORDER_SUCCESS' && renderOrderSuccess()}

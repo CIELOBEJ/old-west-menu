@@ -64,7 +64,7 @@ export interface CartItem extends MenuItem {
 }
 
 // --- NUOVI TIPI PER IL DELIVERY ---
-export type ViewState = 'MENU' | 'LOGIN' | 'ADMIN' | 'CHECKOUT' | 'ORDER_SUCCESS' | 'TRACKING';
+export type ViewState = 'MENU' | 'CHECKOUT' | 'ORDER_SUCCESS' | 'LOGIN' | 'ADMIN' | 'TRACKING' | 'LANDING' | 'BOOKING';
 
 export type OrderType = 'delivery' | 'takeaway' | 'table';
 export type PaymentMethod = 'cash' | 'pos' | 'stripe';
