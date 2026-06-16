@@ -1700,7 +1700,7 @@ export default function App() {
                           className="w-5 h-5 accent-[#45856c]" 
                        />
                        <div className="flex flex-col">
-                          <span className="font-bold text-wood-900">Carta di Credito / Google Pay / Apple Pay</span>
+                          <span className="font-bold text-wood-900">Carta di Debito o Credito / Apple Pay / Google Pay</span>
                           <span className="text-xs text-wood-400 font-medium">Pagamento online protetto e crittografato</span>
                        </div>
                     </label>
