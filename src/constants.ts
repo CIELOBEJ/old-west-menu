@@ -1,4 +1,4 @@
-import { MenuItem, ProductCategory, LanguageCode, AllergenType, DeliveryZone } from './types';
+import { MenuItem, ProductCategory, LanguageCode, AllergenType } from './types';
 
 export const DATA_VERSION = '3.0'; // Versione Delivery
 
@@ -114,11 +114,14 @@ export const DIY_OPTIONS = {
 };
 
 // --- NUOVO: ZONE DI CONSEGNA ---
-export const DELIVERY_ZONES: DeliveryZone[] = [
-  { name: "Cameri", cost: 0.00, minOrder: 10.00 },
-  { name: "Galliate", cost: 2.50, minOrder: 15.00 },
-  { name: "Novara", cost: 5.00, minOrder: 25.00 },
-  { name: "Bellinzago Novarese", cost: 3.00, minOrder: 20.00 }
+export const DELIVERY_ZONES: string[] = [
+  "Cameri",
+  "Galliate",
+  "Bellinzago Novarese",
+  "Oleggio",
+  "Caltignaga",
+  "Veveri",
+  "Cavagliano"
 ];
 
 export const UI_TRANSLATIONS: Record<string, Record<LanguageCode, string>> = {

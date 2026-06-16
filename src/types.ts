@@ -69,11 +69,7 @@ export type ViewState = 'MENU' | 'LOGIN' | 'ADMIN' | 'CHECKOUT' | 'ORDER_SUCCESS
 export type OrderType = 'delivery' | 'takeaway' | 'table';
 export type PaymentMethod = 'cash' | 'pos' | 'stripe';
 
-export interface DeliveryZone {
-  name: string;
-  cost: number;
-  minOrder: number;
-}
+export type DeliveryZone = string;
 
 export interface OrderDetails {
   customerName: string;

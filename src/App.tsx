@@ -238,7 +238,7 @@ export default function App() {
     fullName: '',
     phone: '',
     address: '',
-    city: DELIVERY_ZONES[0]?.name || ''
+    city: DELIVERY_ZONES[0] || ''
   });
   const [authError, setAuthError] = useState<string | null>(null);
   const [isProcessingAuth, setIsProcessingAuth] = useState(false);
@@ -442,7 +442,8 @@ export default function App() {
         .from('orders')
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(10); // <--- LIMITA A 10 ORDINI MASSIMO!
       
       if (error) throw error;
       if (data) setUserOrders(data);
@@ -496,7 +497,7 @@ export default function App() {
         setTimeout(() => setSuggestionToast({ show: false, text: '' }), 4000);
 
         setIsAuthModalOpen(false);
-        setAuthForm({ email: '', password: '', fullName: '', phone: '', address: '', city: DELIVERY_ZONES[0]?.name || '' });
+        setAuthForm({ email: '', password: '', fullName: '', phone: '', address: '', city: DELIVERY_ZONES[0] || '' });
       }
     } catch (err: any) {
       console.error(err);
@@ -521,7 +522,7 @@ export default function App() {
       if (error) throw error;
 
       setIsAuthModalOpen(false);
-      setAuthForm({ email: '', password: '', fullName: '', phone: '', address: '', city: DELIVERY_ZONES[0]?.name || '' });
+      setAuthForm({ email: '', password: '', fullName: '', phone: '', address: '', city: DELIVERY_ZONES[0] || '' });
     } catch (err: any) {
       console.error(err);
       setAuthError("Email o password errati.");
@@ -580,7 +581,7 @@ export default function App() {
     customerPhone: '',
     orderType: 'delivery' as OrderType,
     deliveryAddress: '',
-    deliveryCity: DELIVERY_ZONES[0]?.name || '',
+    deliveryCity: DELIVERY_ZONES[0] || '',
     deliveryTime: 'Il prima possibile',
     paymentMethod: 'cash' as PaymentMethod,
     notes: '',
@@ -1188,12 +1189,12 @@ export default function App() {
                          fullName: profile?.full_name || '',
                          phone: profile?.phone || '',
                          address: profile?.address || '',
-                         city: profile?.city || DELIVERY_ZONES[0]?.name || ''
+                         city: profile?.city || DELIVERY_ZONES[0] || ''
                       });
                       setIsProfileOpen(true);
                    } else {
                       setAuthMode('LOGIN');
-                      setAuthForm({ email: '', password: '', fullName: '', phone: '', address: '', city: DELIVERY_ZONES[0]?.name || '' });
+                      setAuthForm({ email: '', password: '', fullName: '', phone: '', address: '', city: DELIVERY_ZONES[0] || '' });
                       setIsAuthModalOpen(true);
                    }
                 }} 
@@ -1543,39 +1544,33 @@ export default function App() {
                               <label className="block text-xs font-bold text-wood-500 uppercase tracking-wider mb-2">
                                  {t('city', lang)} *
                               </label>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                 {DELIVERY_ZONES.map((zone) => {
-                                    const isSelected = orderForm.deliveryCity === zone.name;
-                                    return (
-                                    <button
-                                       key={zone.name}
-                                       type="button"
-                                       onClick={() => {
-                                          setOrderForm({ ...orderForm, deliveryCity: zone.name });
-                                          // Se cambia comune, resettiamo la convalida per calcolare i km corretti sulla nuova destinazione
-                                          setDistanzaRilevata(null);
-                                          setErroreIndirizzo(null);
-                                       }}
-                                       className={`relative p-4 rounded-2xl border-2 text-left transition-all duration-300 flex justify-between items-center ${
-                                          isSelected
-                                          ? 'border-[#45856c] bg-[#45856c]/5 shadow-md'
-                                          : 'border-wood-100 bg-white hover:border-wood-200'
-                                       }`}
-                                    >
-                                       <div className="flex flex-col">
-                                          <span className={`font-bold text-base ${isSelected ? 'text-[#45856c]' : 'text-wood-900'}`}>
-                                          {zone.name}
-                                          </span>
-                                       </div>
-                                       
-                                       <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                                          isSelected ? 'bg-[#45856c] border-[#45856c]' : 'border-wood-200'
-                                       }`}>
-                                          {isSelected && <Check size={14} className="text-white" />}
-                                       </div>
-                                    </button>
-                                    );
-                                 })}
+                              {/* SELEZIONE COMUNE IN CAROSELLO ORIZZONTALE FLUIDO */}
+                              <div className="relative group/zone mt-2">
+                                 <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-3 pt-1 px-1 cursor-grab active:cursor-grabbing select-none">
+                                    {DELIVERY_ZONES.map((cityName) => {
+                                       const isSelected = orderForm.deliveryCity === cityName;
+                                       return (
+                                          <button
+                                             key={cityName}
+                                             type="button"
+                                             onClick={() => {
+                                                setOrderForm({ ...orderForm, deliveryCity: cityName });
+                                                // Resetta la convalida della distanza al cambio del comune
+                                                setDistanzaRilevata(null);
+                                                setErroreIndirizzo(null);
+                                             }}
+                                             className={`px-5 py-3 rounded-full border-2 text-sm font-bold whitespace-nowrap transition-all duration-300 shrink-0 shadow-sm flex items-center gap-2 select-none ${
+                                                isSelected
+                                                ? 'border-[#45856c] bg-[#45856c] text-white shadow-md scale-105'
+                                                : 'border-wood-100 bg-white text-wood-700 hover:border-[#45856c]/30 hover:text-[#45856c]'
+                                             }`}
+                                          >
+                                             <span>{cityName}</span>
+                                             {isSelected && <Check size={14} className="text-white" />}
+                                          </button>
+                                       );
+                                    })}
+                                 </div>
                               </div>
                            </div>
 
@@ -2711,8 +2706,8 @@ const renderMenu = () => {
                               <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Comune *</label>
                               <div className="relative">
                                  <select value={authForm.city} onChange={e => setAuthForm({...authForm, city: e.target.value})} className="w-full appearance-none bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-sm pr-8">
-                                    {DELIVERY_ZONES.map(zone => (
-                                       <option key={zone.name} value={zone.name}>{zone.name}</option>
+                                    {DELIVERY_ZONES.map((cityName) => (
+                                       <option key={cityName} value={cityName}>{cityName}</option>
                                     ))}
                                  </select>
                                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-wood-400 pointer-events-none" size={14} />
@@ -2782,8 +2777,8 @@ const renderMenu = () => {
                            <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Comune *</label>
                            <div className="relative">
                               <select value={authForm.city} onChange={e => setAuthForm({...authForm, city: e.target.value})} className="w-full appearance-none bg-wood-50 border border-wood-200 rounded-xl px-4 py-2 text-sm font-bold text-wood-800 pr-8">
-                                 {DELIVERY_ZONES.map(zone => (
-                                    <option key={zone.name} value={zone.name}>{zone.name}</option>
+                                 {DELIVERY_ZONES.map((cityName) => (
+                                    <option key={cityName} value={cityName}>{cityName}</option>
                                  ))}
                               </select>
                               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-wood-400 pointer-events-none" size={14} />
