@@ -190,23 +190,22 @@ const StripeCheckoutForm = ({ clientSecret, onPaymentSuccess, cart, orderForm }:
   );
 };
 
-// --- COMPONENTE RENDERIZZAZIONE PAGINA DI BENVENUTO (LANDING) ---
-const LandingPage = ({ customLogo, setView, setIsPreOrder, setTempReservationInfo, setReservationForm, profile, user, lang, t, DELIVERY_ZONES }: any) => {
+// --- COMPONENTE RENDERIZZAZIONE PAGINA DI BENVENUTO (LANDING - MODELLO FOTO 2) ---
+const LandingPage = ({ setView, setIsPreOrder, setTempReservationInfo, setReservationForm, profile, user, lang, t }: any) => {
   return (
-    <div className="min-h-screen bg-texture flex flex-col justify-between pt-16 md:pt-20">
-      <div className="flex-1 flex flex-col items-center justify-center max-w-4xl mx-auto px-4 py-12 text-center animate-in fade-in duration-500">
+    <div className="min-h-screen bg-dark-texture flex flex-col justify-between pt-24 pb-6">
+      <div className="flex-1 flex flex-col items-center justify-center max-w-md mx-auto px-4 py-12 text-center animate-in fade-in duration-500">
          
-         {/* LOGO E INTESTAZIONE */}
-         <div className="mb-10">
-            <WesternLogo size="lg" url={customLogo} className="mx-auto mb-6 hover:rotate-12 transition-transform duration-300" />
-            <h1 className="text-4xl md:text-6xl font-western text-wood-900 tracking-wide mb-3">OLD WEST CAMERI</h1>
-            <p className="text-wood-400 font-bold uppercase tracking-widest text-xs md:text-sm">Seleziona un servizio per iniziare:</p>
+         {/* BENVENUTO E SOTTOTITOLO (STILE FOTO 2) */}
+         <div className="mb-12 select-none">
+            <h1 className="text-5xl md:text-6xl font-western text-white tracking-wide mb-4 drop-shadow-lg">Benvenuto!</h1>
+            <p className="text-wood-200 text-lg md:text-xl font-medium tracking-wide">Cosa possiamo fare per te oggi?</p>
          </div>
 
-         {/* GRID DELLE CARD FOTOGRAFICHE DELLE ATTIVITÀ (PROPORZIONE PREMIUM) */}
-         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-3xl">
+         {/* I TRE PULSANTI ARROTONDATI (STILE FOTO 2) */}
+         <div className="flex flex-col gap-5 w-full">
             
-            {/* CARD 1: ORDINA ONLINE (DELIVERY / TAKEAWAY) */}
+            {/* PULSANTE 1: ORDINA ONLINE */}
             <button 
                type="button"
                onClick={() => {
@@ -215,18 +214,13 @@ const LandingPage = ({ customLogo, setView, setIsPreOrder, setTempReservationInf
                   setView('MENU');
                   window.scrollTo(0,0);
                }}
-               className="group relative h-72 md:h-80 rounded-[2rem] border border-wood-100 overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.02] flex flex-col justify-end text-left"
+               className="w-full bg-[#45856c] hover:bg-[#366a55] text-white py-5 px-6 rounded-[2rem] shadow-[0_6px_20px_rgba(0,0,0,0.4)] transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center gap-1 border border-white/5"
             >
-               <img src="https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=800" alt="Ordina Online" className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />
-               <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent"></div>
-               <div className="relative z-10 p-6 text-white">
-                  <Bike className="text-accent-500 mb-2" size={32} />
-                  <h3 className="font-western text-xl tracking-wide uppercase leading-tight">Ordina Online</h3>
-                  <p className="text-xs text-wood-300 font-bold mt-1 uppercase">A domicilio o asporto</p>
-               </div>
+               <span className="font-western text-2xl tracking-wide uppercase leading-tight">Ordina Online</span>
+               <span className="text-[10px] md:text-xs text-wood-100 font-bold uppercase tracking-widest">A domicilio o asporto</span>
             </button>
 
-            {/* CARD 2: PRENOTA UN TAVOLO */}
+            {/* PULSANTE 2: PRENOTA TAVOLO */}
             <button 
                type="button"
                onClick={() => {
@@ -244,18 +238,13 @@ const LandingPage = ({ customLogo, setView, setIsPreOrder, setTempReservationInf
                   setView('BOOKING');
                   window.scrollTo(0,0);
                }}
-               className="group relative h-72 md:h-80 rounded-[2rem] border border-wood-100 overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.02] flex flex-col justify-end text-left"
+               className="w-full bg-[#45856c] hover:bg-[#366a55] text-white py-5 px-6 rounded-[2rem] shadow-[0_6px_20px_rgba(0,0,0,0.4)] transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center gap-1 border border-white/5"
             >
-               <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?q=80&w=800" alt="Prenota un Tavolo" className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />
-               <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent"></div>
-               <div className="relative z-10 p-6 text-white">
-                  <Store className="text-accent-500 mb-2" size={32} />
-                  <h3 className="font-western text-xl tracking-wide uppercase leading-tight">Prenota Tavolo</h3>
-                  <p className="text-xs text-wood-300 font-bold mt-1 uppercase">Riserva un tavolo nel locale</p>
-               </div>
+               <span className="font-western text-2xl tracking-wide uppercase leading-tight">Prenota Tavolo</span>
+               <span className="text-[10px] md:text-xs text-wood-100 font-bold uppercase tracking-widest">Riserva un tavolo nel locale</span>
             </button>
 
-            {/* CARD 3: TAVOLO + PRE-ORDINE CIBO */}
+            {/* PULSANTE 3: PRE-ORDINE CIBO */}
             <button 
                type="button"
                onClick={() => {
@@ -273,25 +262,18 @@ const LandingPage = ({ customLogo, setView, setIsPreOrder, setTempReservationInf
                   setView('BOOKING');
                   window.scrollTo(0,0);
                }}
-               className="group relative h-72 md:h-80 rounded-[2rem] border border-wood-100 overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 hover:scale-[1.02] flex flex-col justify-end text-left"
+               className="w-full bg-[#45856c] hover:bg-[#366a55] text-white py-5 px-6 rounded-[2rem] shadow-[0_6px_20px_rgba(0,0,0,0.4)] transition-all hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center gap-1 border border-white/5"
             >
-               <img src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=800" alt="Pre-ordine cibo" className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" />
-               <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent"></div>
-               <div className="relative z-10 p-6 text-white">
-                  <Sparkles className="text-accent-500 mb-2" size={32} />
-                  <h3 className="font-western text-xl tracking-wide uppercase leading-tight">Pre-ordine cibo</h3>
-                  <p className="text-xs text-wood-300 font-bold mt-1 uppercase">Scegli i piatti in anticipo</p>
-               </div>
+               <span className="font-western text-2xl tracking-wide uppercase leading-tight">Pre-ordine cibo</span>
+               <span className="text-[10px] md:text-xs text-wood-100 font-bold uppercase tracking-widest">Scegli i piatti in anticipo</span>
             </button>
 
          </div>
       </div>
 
-      {/* FOOTER */}
-      <div className="bg-wood-900 text-wood-300 py-8 border-t border-wood-800 shrink-0">
-         <div className="container mx-auto px-4 text-center">
-            <p className="text-xs opacity-40">&copy; {new Date().getFullYear()} Old West. {t('rights_reserved', lang)}</p>
-         </div>
+      {/* FOOTER TRASPARENTE MINIMALE */}
+      <div className="bg-transparent text-wood-400 py-4 text-center shrink-0">
+         <p className="text-[9px] opacity-30 font-bold uppercase tracking-wider">&copy; {new Date().getFullYear()} Old West. {t('rights_reserved', lang)}</p>
       </div>
     </div>
   );
