@@ -2040,7 +2040,7 @@ const renderMenu = () => {
 
         
         {/* FOOTER SCURO COMPLETO CON EMAIL, SOCIAL E PAGINE LEGALI */}
-        <div className="bg-wood-900 text-wood-300 py-12 border-t border-wood-800 shrink-0">
+        <div className="bg-wood-900 text-wood-300 pt-12 pb-32 border-t border-wood-800 shrink-0">
           <div className="container mx-auto px-4 text-center">
             
             <WesternLogo size="md" className="mx-auto mb-6 opacity-80" />
