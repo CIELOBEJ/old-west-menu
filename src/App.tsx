@@ -1335,10 +1335,39 @@ export default function App() {
     try {
       let finalDeliveryFee = getDeliveryFee();
 
+         // Calcola i totali in modo sicuro
+      const cartTotal = activeCart.reduce((sum: number, item: any) => { 
+          const itemPrice = item.selectedVariant ? item.selectedVariant.price : item.price; 
+          const addonsPrice = item.selectedAddons?.reduce((aSum: number, addon: any) => aSum + Number(addon.price), 0) || 0; 
+          return sum + (itemPrice + addonsPrice) * item.quantity; 
+      }, 0);
+      const coverCharge = activeForm.orderType === 'table' ? (activeCart.some((item: any) => item.category !== 'Bevande') ? 2.00 : 0) : 0;
+      // Se è un pre-ordine, il coperto si moltiplica per le persone prenotate
+      const finalCoverCharge = activeForm.orderType === 'table' && tempReservationInfo 
+        ? tempReservationInfo.numPeople * 2.00 
+        : coverCharge;
+
+      const finalTotalAmount = cartTotal + coverCharge + finalDeliveryFee;
+
          // =========================================================================
-      // SE È UN PRE-ORDINE (TAVOLO + CIBO), SALVA SOLO IN RESERVATIONS ED ESCI!
-      // =========================================================================
       if (isPreOrder && tempReservationInfo) {
+        const preparedCartItems = activeCart.map((item: any) => {
+          const virtualAddons = [...(item.selectedAddons || [])];
+          if (item.removedIngredients && item.removedIngredients.length > 0) {
+            item.removedIngredients.forEach((ing: string) => {
+              virtualAddons.push({
+                id: `virtual-removed-${ing}-${Date.now()}`,
+                name: `SENZA ${ing.toUpperCase()}`,
+                description: '',
+                price: 0,
+                category: 'Ingredienti Extra',
+                isAvailable: true
+              });
+            });
+          }
+          return { ...item, selectedAddons: virtualAddons };
+        });
+
         const newReservation = {
           customer_name: tempReservationInfo.customerName,
           customer_phone: tempReservationInfo.customerPhone,
@@ -1443,16 +1472,6 @@ export default function App() {
         }
         return { ...item, selectedAddons: virtualAddons };
       });
-
-      // Calcola i totali in modo sicuro
-      const cartTotal = activeCart.reduce((sum: number, item: any) => { 
-          const itemPrice = item.selectedVariant ? item.selectedVariant.price : item.price; 
-          const addonsPrice = item.selectedAddons?.reduce((aSum: number, addon: any) => aSum + Number(addon.price), 0) || 0; 
-          return sum + (itemPrice + addonsPrice) * item.quantity; 
-      }, 0);
-      const coverCharge = activeForm.orderType === 'table' ? (activeCart.some((item: any) => item.category !== 'Bevande') ? 2.00 : 0) : 0;
-
-      const finalTotalAmount = cartTotal + coverCharge + finalDeliveryFee;
 
       const newOrder = {
         customer_name: finalCustomerName,
