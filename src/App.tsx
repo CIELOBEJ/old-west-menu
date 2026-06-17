@@ -417,6 +417,7 @@ export default function App() {
   const [orderDate, setOrderFormDate] = useState('Oggi');
   const [items, setItems] = useState<MenuItem[]>([]);
   const [view, setView] = useState<ViewState>('LANDING'); // <--- IMPOSTATA LA SCHERMATA INIZIALE SU LANDING
+  const [successType, setSuccessType] = useState<'ORDER' | 'BOOKING'>('ORDER');
   const [activeCategory, setActiveCategory] = useState<string>('Tutti');
   const [activeSubCategoryView, setActiveSubCategoryView] = useState<string | null>(null);
   const [categories, setCategories] = useState<{ id: string; image_url: string | null }[]>([]);
@@ -518,12 +519,16 @@ export default function App() {
           user_id: user ? user.id : null
         };
 
-        const { error } = await supabase.from('reservations').insert([newReservation]);
-        if (error) throw error;
+        // Se è una prenotazione tavolo classica, salviamo direttamente nel DB
+              const { error } = await supabase.from('reservations').insert([newReservation]);
+              if (error) throw error;
 
-        // Mostriamo la schermata di successo generica
-        setView('ORDER_SUCCESS');
-        window.scrollTo(0,0);
+              // AGGIUNTO: Specifichiamo che è una prenotazione del tavolo
+              setSuccessType('BOOKING'); 
+
+              // Mostriamo la schermata di successo
+              setView('ORDER_SUCCESS');
+              window.scrollTo(0,0);
       }
     } catch (error) {
       console.error("Errore salvataggio prenotazione:", error);
@@ -2090,14 +2095,39 @@ export default function App() {
     );
   };
 
-  const renderOrderSuccess = () => (
-    <div className="min-h-screen bg-[#45856c] flex flex-col items-center justify-center p-4 text-white text-center">
-       <div className="bg-white/10 p-8 rounded-full mb-8 animate-in zoom-in duration-500"><CheckCircle2 size={80} className="text-white" /></div>
-       <h1 className="text-5xl font-western mb-4">{t('order_success_title', lang)}</h1>
-       <p className="text-xl opacity-90 max-w-md mx-auto mb-12">{t('order_success_msg', lang)}</p>
-       <button onClick={() => { setView('MENU'); window.scrollTo(0,0); }} className="bg-white text-[#45856c] px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:scale-105 transition-transform">{t('back_home', lang)}</button>
-    </div>
-  );
+  const renderOrderSuccess = () => {
+    const isBooking = successType === 'BOOKING';
+
+    return (
+      <div className="min-h-screen bg-[#45856c] flex flex-col items-center justify-center p-4 text-white text-center">
+         <div className="bg-white/10 p-8 rounded-full mb-8 animate-in zoom-in duration-500">
+            <CheckCircle2 size={80} className="text-white" />
+         </div>
+         
+         {/* TITOLO DINAMICO */}
+         <h1 className="text-5xl font-western mb-4">
+            {isBooking ? 'Richiesta Inviata!' : 'Ordine Inviato!'}
+         </h1>
+         
+         {/* SOTTOTITOLO DINAMICO */}
+         <p className="text-xl opacity-90 max-w-md mx-auto mb-12">
+            {isBooking 
+               ? 'La tua richiesta di prenotazione del tavolo è stata ricevuta con successo dallo staff. Riceverai un aggiornamento a breve!' 
+               : 'Il tuo ordine è stato ricevuto con successo dalla cucina.'
+            }
+         </p>
+         
+         {/* PULSANTE CHE RITORNA ALLA SCHERMATA DI BENVENUTO (LANDING) */}
+         <button 
+            type="button"
+            onClick={() => { setView('LANDING'); window.scrollTo(0,0); }} 
+            className="bg-white text-[#45856c] px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:scale-105 transition-transform"
+         >
+            Torna alla Home
+         </button>
+      </div>
+    );
+  };
   const renderDIY = () => {
     const currentStepConfig = DIY_OPTIONS.steps[diyStep];
     const { title, description } = getDIYStepContent(currentStepConfig, lang);
