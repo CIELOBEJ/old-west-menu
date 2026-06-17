@@ -363,15 +363,21 @@ const BookingPage = ({ reservationForm, setReservationForm, isSubmittingReservat
                   </div>
                </div>
 
-               {/* Anagrafica Cliente */}
+               {/* Anagrafica Cliente con Email per Conferma Opzionale */}
                <div className="grid grid-cols-1 gap-4 pt-2">
                   <div>
                      <label className="block text-xs font-bold text-wood-500 uppercase mb-1">{getTxt('label_name')}</label>
                      <input required type="text" value={reservationForm.customerName} onChange={e => setReservationForm({...reservationForm, customerName: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3" placeholder="Es. Rossi Mario" />
                   </div>
-                  <div>
-                     <label className="block text-xs font-bold text-wood-500 uppercase mb-1">{getTxt('label_phone')}</label>
-                     <input required type="tel" value={reservationForm.customerPhone} onChange={e => setReservationForm({...reservationForm, customerPhone: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3" placeholder="Es. 3331234567" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                     <div>
+                        <label className="block text-xs font-bold text-wood-500 uppercase mb-1">{getTxt('label_phone')}</label>
+                        <input required type="tel" value={reservationForm.customerPhone} onChange={e => setReservationForm({...reservationForm, customerPhone: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3" placeholder="Es. 3331234567" />
+                     </div>
+                     <div>
+                        <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Email (Opzionale, per ricevere la conferma)</label>
+                        <input type="email" value={reservationForm.customerEmail || ''} onChange={e => setReservationForm({...reservationForm, customerEmail: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3" placeholder="esempio@mail.com" />
+                     </div>
                   </div>
                </div>
 
@@ -720,22 +726,31 @@ export default function App() {
   }, [profile, user]);
 
   const [userOrders, setUserOrders] = useState<any[]>([]); // Memorizza lo storico ordini dell'utente
+  const [userReservations, setUserReservations] = useState<any[]>([]); // Memorizza le prenotazioni dell'utente
    
-  // Scarica la lista degli ordini associati al profilo dell'utente loggato
+  // Scarica la lista degli ordini e delle prenotazioni associati al profilo dell'utente loggato
   const fetchUserOrders = async () => {
     if (!user) return;
     try {
-      const { data, error } = await supabase
+      // Scarica gli ordini
+      const { data: ordersData } = await supabase
         .from('orders')
         .select('*')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(10); // <--- LIMITA A 10 ORDINI MASSIMO!
-      
-      if (error) throw error;
-      if (data) setUserOrders(data);
+        .order('created_at', { ascending: false });
+      if (ordersData) setUserOrders(ordersData);
+
+      // Scarica le prenotazioni dei tavoli
+      const { data: resData } = await supabase
+        .from('reservations')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('reservation_date', { ascending: false })
+        .limit(10); // Limita a 10 per motivi di marketing!
+      if (resData) setUserReservations(resData);
+
     } catch (error) {
-      console.error("Errore nel caricamento ordini:", error);
+      console.error("Errore nel caricamento dei dati utente:", error);
     }
   };
 
@@ -1214,7 +1229,14 @@ export default function App() {
   const getCoverCharge = () => {
      if (orderForm.orderType === 'table') {
         const hasFood = cart.some(item => item.category !== ProductCategory.BEVANDE);
-        return hasFood && cart.length > 0 ? 2.00 : 0;
+        if (hasFood && cart.length > 0) {
+           // Se è un pre-ordine, moltiplica il coperto per il numero effettivo di persone prenotate!
+           if (tempReservationInfo) {
+              return tempReservationInfo.numPeople * 2.00;
+           }
+           // Altrimenti, per ora lascia il coperto fisso a 2.00 (Scenario B da fare dopo)
+           return 2.00;
+        }
      }
      return 0;
   };
@@ -1804,6 +1826,26 @@ export default function App() {
 
            <form onSubmit={handleSubmitOrder} className="space-y-8">
               
+              {/* SE È UN PRE-ORDINE (TAVOLO + CIBO), MOSTRA IL RIEPILOGO COMPATTO E L'AVVISO DI CANCELLAZIONE */}
+            {isPreOrder && tempReservationInfo ? (
+               <div className="bg-white p-6 rounded-3xl border border-wood-100 shadow-sm space-y-4 animate-in fade-in duration-300">
+                  <h3 className="font-bold text-lg text-[#45856c] uppercase tracking-wide border-b border-wood-100 pb-2">Riepilogo Tavolo Riservato</h3>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-wood-800">
+                     <div><span className="block text-xs font-bold text-wood-400 uppercase">Nome</span><span className="font-bold text-base uppercase text-wood-900">{tempReservationInfo.customerName}</span></div>
+                     <div><span className="block text-xs font-bold text-wood-400 uppercase">Telefono</span><span className="font-bold text-base text-wood-900">{tempReservationInfo.customerPhone}</span></div>
+                     <div><span className="block text-xs font-bold text-wood-400 uppercase">Ospiti al Tavolo</span><span className="font-bold text-base text-[#45856c]">{tempReservationInfo.numPeople} Persone</span></div>
+                     <div><span className="block text-xs font-bold text-wood-400 uppercase">Giorno e Ora</span><span className="font-bold text-base text-orange-600">{new Date(tempReservationInfo.date).toLocaleDateString('it-IT')} - alle ore {tempReservationInfo.time}</span></div>
+                  </div>
+
+                  <div className="mt-4 p-4 bg-orange-50/50 border border-orange-200/50 rounded-2xl text-xs text-orange-800 font-bold leading-relaxed flex items-start gap-2">
+                     <AlertCircle size={18} className="shrink-0 mt-0.5" />
+                     <p>⚠️ In caso di imprevisti o cancellazione della prenotazione, vi preghiamo gentilmente di avvisare il locale il prima possibile telefonando al numero 0321 510220.</p>
+                  </div>
+               </div>
+            ) : (
+               <>
+
               {/* TIPO DI ORDINE E TAVOLO */}
               <div className="bg-white p-6 rounded-3xl border border-wood-100 shadow-sm">
                  <h3 className="font-bold text-lg text-wood-900 mb-4">{t('order_type', lang)}</h3>
@@ -2010,10 +2052,12 @@ export default function App() {
                            })()}
                         </div>
                      </div>
+                     
                   </div>
                )
                })()}
-
+              </>
+              )}
               {/* METODO DI PAGAMENTO E NOTE */}
               <div className="bg-white p-6 rounded-3xl border border-wood-100 shadow-sm">
                  <h3 className="font-bold text-lg text-wood-900 mb-4">{t('payment', lang)}</h3>
@@ -3188,48 +3232,79 @@ const renderMenu = () => {
                      </div>
                   </form>
 
-                  {/* STORICO ORDINI E TRACCIAMENTO LIVE */}
+                  {/* SEZIONE 1: I MIEI ORDINI */}
                   <div className="space-y-3 pt-4 border-t border-wood-100">
-                     <span className="text-[10px] font-bold text-wood-400 uppercase tracking-widest block">I MIEI ORDINI:</span>
-                     
+                     <span className="text-[10px] font-bold text-wood-400 uppercase tracking-widest block border-b border-wood-50 pb-1">I Miei Ordini:</span>
                      {userOrders.length === 0 ? (
-                        <p className="text-sm text-wood-400 italic text-center py-4">Non hai ancora effettuato ordini con questo account.</p>
+                        <p className="text-xs text-wood-400 italic text-center py-2">Non hai ancora effettuato ordini online.</p>
                      ) : (
-                        <div className="space-y-3">
+                        <div className="space-y-2">
                            {userOrders.map((order) => {
                               const isActive = order.status !== 'completed' && order.status !== 'cancelled';
                               return (
-                                 <div key={order.id} className="p-4 bg-wood-50 rounded-2xl border border-wood-100 flex justify-between items-center gap-3">
+                                 <div key={order.id} className="p-3 bg-wood-50 rounded-2xl border border-wood-100 flex justify-between items-center gap-2">
                                     <div className="min-w-0">
                                        <span className="text-[10px] text-wood-400 font-bold block">
-                                          {new Date(order.created_at).toLocaleDateString('it-IT')} - {order.delivery_time}
+                                          {new Date(order.created_at).toLocaleDateString('it-IT')}
                                        </span>
-                                       <span className="font-bold text-wood-800 text-sm block truncate mt-0.5">
-                                          €{Number(order.total_amount).toFixed(2)} ({order.order_type === 'delivery' ? 'Consegna' : order.order_type === 'takeaway' ? 'Ritiro' : 'Tavolo'})
+                                       <span className="font-bold text-wood-800 text-xs block truncate mt-0.5">
+                                          €{Number(order.total_amount).toFixed(2)} ({order.order_type === 'delivery' ? 'Consegna' : 'Ritiro'})
                                        </span>
                                     </div>
-                                    <div className="shrink-0">
-                                       {isActive ? (
-                                          <button 
-                                             type="button"
-                                             onClick={() => {
-                                                // RIPRENDI TRACCIAMENTO LIVE
-                                                setActiveOrderId(order.id);
-                                                localStorage.setItem('activeOrderId', order.id);
-                                                setCurrentOrder(order);
-                                                setIsProfileOpen(false); // Chiude la modale del profilo
-                                                setView('TRACKING');     // Mostra il tracking
-                                             }}
-                                             className="bg-[#45856c] text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-md hover:bg-opacity-90 flex items-center gap-1 animate-pulse"
-                                          >
-                                             <Clock size={12} /> Segui ordine
-                                          </button>
-                                       ) : (
-                                          <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase ${order.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                             {order.status === 'completed' ? 'Finito' : 'Annullato'}
-                                          </span>
-                                       )}
+                                    {isActive ? (
+                                       <button 
+                                          type="button" 
+                                          onClick={() => {
+                                             setActiveOrderId(order.id);
+                                             localStorage.setItem('activeOrderId', order.id);
+                                             setCurrentOrder(order);
+                                             setIsProfileOpen(false);
+                                             setView('TRACKING');
+                                          }}
+                                          className="bg-[#45856c] text-white px-2.5 py-1.5 rounded-lg text-[10px] font-bold shadow-md hover:bg-opacity-90 flex items-center gap-1 animate-pulse shrink-0"
+                                       >
+                                          <Clock size={12} /> Segui
+                                       </button>
+                                    ) : (
+                                       <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase shrink-0 ${order.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                          {order.status === 'completed' ? 'Finito' : 'Annullato'}
+                                       </span>
+                                    )}
+                                 </div>
+                              );
+                           })}
+                        </div>
+                     )}
+                  </div>
+
+                  {/* SEZIONE 2: LE MIE PRENOTAZIONI TAVOLI (FOTO 1) */}
+                  <div className="space-y-3 pt-4 border-t border-wood-100">
+                     <span className="text-[10px] font-bold text-wood-400 uppercase tracking-widest block border-b border-wood-50 pb-1">Le Mie Prenotazioni:</span>
+                     {userReservations.length === 0 ? (
+                        <p className="text-xs text-wood-400 italic text-center py-2">Nessuna prenotazione passata registrata.</p>
+                     ) : (
+                        <div className="space-y-2">
+                           {userReservations.map((res) => {
+                              const isPending = res.status === 'pending';
+                              const isConfirmed = res.status === 'confirmed';
+
+                              return (
+                                 <div key={res.id} className="p-3 bg-wood-50 rounded-2xl border border-wood-100 flex justify-between items-center gap-2">
+                                    <div className="min-w-0">
+                                       <span className="text-[10px] text-wood-400 font-bold block">
+                                          {new Date(res.reservation_date).toLocaleDateString('it-IT')} - {res.reservation_time}
+                                       </span>
+                                       <span className="font-bold text-wood-800 text-xs block truncate mt-0.5">
+                                          Tavolo per {res.num_people} persone
+                                       </span>
                                     </div>
+                                    <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded uppercase shrink-0 ${
+                                       isConfirmed ? 'bg-green-100 text-green-700' : 
+                                       isPending ? 'bg-orange-100 text-orange-700 animate-pulse' : 
+                                       'bg-red-100 text-red-700'
+                                    }`}>
+                                       {isConfirmed ? 'Confermata' : isPending ? 'In Attesa' : 'Annullata'}
+                                    </span>
                                  </div>
                               );
                            })}
