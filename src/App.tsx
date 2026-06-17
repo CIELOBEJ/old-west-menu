@@ -1335,6 +1335,40 @@ export default function App() {
     try {
       let finalDeliveryFee = getDeliveryFee();
 
+         // =========================================================================
+      // SE È UN PRE-ORDINE (TAVOLO + CIBO), SALVA SOLO IN RESERVATIONS ED ESCI!
+      // =========================================================================
+      if (isPreOrder && tempReservationInfo) {
+        const newReservation = {
+          customer_name: tempReservationInfo.customerName,
+          customer_phone: tempReservationInfo.customerPhone,
+          customer_email: tempReservationInfo.customerEmail || null,
+          reservation_date: tempReservationInfo.date,
+          reservation_time: tempReservationInfo.time,
+          num_people: tempReservationInfo.numPeople,
+          notes: tempReservationInfo.notes,
+          status: 'pending',
+          pre_order_cart_items: preparedCartItems, // Salva il cibo qui dentro!
+          total_amount: finalTotalAmount,          // Salva il totale corretto con i coperti compresi!
+          user_id: user ? user.id : null
+        };
+
+        const { error: resError } = await supabase.from('reservations').insert([newReservation]);
+        if (resError) throw resError;
+
+        // Pulizia memoria temporanea e reindirizzamento al successo
+        localStorage.removeItem('pending_checkout_cart');
+        localStorage.removeItem('pending_checkout_form');
+        setCart([]);
+        setTempReservationInfo(null);
+        setIsPreOrder(false);
+        setSuccessType('BOOKING'); // Mostra la schermata di successo prenotazione
+        setView('ORDER_SUCCESS');
+        window.scrollTo(0,0);
+        setIsSubmittingOrder(false);
+        return; // <--- ESCI IMMEDIATAMENTE SENZA INSERIRE IN "ORDERS"!
+      }
+
       // Se è a domicilio ed il calcolo chilometrico d'emergenza non è ancora stato eseguito (solo per ordine in tempo reale)
       if (!customForm && activeForm.orderType === 'delivery' && distanzaRilevata === null) {
         const query = `${activeForm.deliveryAddress}, ${activeForm.deliveryCity}, Italy`;
@@ -2110,7 +2144,7 @@ export default function App() {
                })()}
               </>
               )}
-              
+
               {/* METODO DI PAGAMENTO E NOTE (2 OPZIONI SE TAVOLO/PRE-ORDINE, 3 SE ASPORTO/CONSEGNA) */}
               <div className="bg-white p-6 rounded-3xl border border-wood-100 shadow-sm">
                  <h3 className="font-bold text-lg text-wood-900 mb-4">{t('payment', lang)}</h3>
@@ -2225,20 +2259,25 @@ export default function App() {
             <CheckCircle2 size={80} className="text-white" />
          </div>
          
-         {/* TITOLO DINAMICO */}
          <h1 className="text-5xl font-western mb-4">
-            {isBooking ? 'Richiesta Inviata!' : 'Ordine Inviato!'}
+            {isBooking ? 'Tavolo Riservato!' : 'Ordine Inviato!'}
          </h1>
          
-         {/* SOTTOTITOLO DINAMICO */}
-         <p className="text-xl opacity-90 max-w-md mx-auto mb-12">
-            {isBooking 
-               ? 'La tua richiesta di prenotazione del tavolo è stata ricevuta con successo dallo staff. Riceverai un aggiornamento a breve!' 
-               : 'Il tuo ordine è stato ricevuto con successo dalla cucina.'
-            }
-         </p>
+         <div className="text-xl opacity-90 max-w-md mx-auto mb-12 space-y-2">
+            {isBooking ? (
+               <>
+                  <p>Grazie, la tua richiesta di prenotazione con pre-ordine di cibo è stata ricevuta dallo staff [5].</p>
+                  {tempReservationInfo && (
+                     <p className="font-bold text-orange-200 mt-2">
+                        Ti aspettiamo il {new Date(tempReservationInfo.date).toLocaleDateString('it-IT')} alle ore {tempReservationInfo.time}! [5]
+                     </p>
+                  )}
+               </>
+            ) : (
+               <p>Il tuo ordine è stato ricevuto con successo dalla cucina.</p>
+            )}
+         </div>
          
-         {/* PULSANTE CHE RITORNA ALLA SCHERMATA DI BENVENUTO (LANDING) */}
          <button 
             type="button"
             onClick={() => { setView('LANDING'); window.scrollTo(0,0); }} 
