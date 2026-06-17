@@ -1337,19 +1337,15 @@ export default function App() {
     try {
       let finalDeliveryFee = getDeliveryFee();
 
-         // Calcola i totali in modo sicuro
+         // 1. CALCOLIAMO I TOTALI IN MODO UNIFICATO ED ESATTO
       const cartTotal = activeCart.reduce((sum: number, item: any) => { 
           const itemPrice = item.selectedVariant ? item.selectedVariant.price : item.price; 
           const addonsPrice = item.selectedAddons?.reduce((aSum: number, addon: any) => aSum + Number(addon.price), 0) || 0; 
           return sum + (itemPrice + addonsPrice) * item.quantity; 
       }, 0);
-      const coverCharge = activeForm.orderType === 'table' ? (activeCart.some((item: any) => item.category !== 'Bevande') ? 2.00 : 0) : 0;
-      // Se è un pre-ordine, il coperto si moltiplica per le persone prenotate
-      const finalCoverCharge = activeForm.orderType === 'table' && tempReservationInfo 
-        ? tempReservationInfo.numPeople * 2.00 
-        : coverCharge;
 
-      const finalTotalAmount = cartTotal + coverCharge + finalDeliveryFee;
+      const coverCharge = getCoverCharge(); // <--- USA DIRETTAMENTE LA FUNZIONE UNIFICATA (Sarà 6,00 €!)
+      const finalTotalAmount = cartTotal + coverCharge + finalDeliveryFee; // <--- RISOLTO!
 
          // =========================================================================
       if (isPreOrder && tempReservationInfo) {
