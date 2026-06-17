@@ -122,7 +122,7 @@ const translateIngredient = (ing: string, lang: LanguageCode): string => {
 };
 
 // --- COMPONENTE RENDERIZZAZIONE CASSA SICURA STRIPE (SINGLE-PAGE APP - SENZA CONFLITTI DI FORM) ---
-const StripeCheckoutForm = ({ clientSecret, onPaymentSuccess, cart, orderForm }: { clientSecret: string; onPaymentSuccess: () => void; cart: any[]; orderForm: any }) => {
+const StripeCheckoutForm = ({ clientSecret, onPaymentSuccess, cart, orderForm, tempReservationInfo }: { clientSecret: string; onPaymentSuccess: () => void; cart: any[]; orderForm: any; tempReservationInfo: any }) => {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -140,6 +140,7 @@ const StripeCheckoutForm = ({ clientSecret, onPaymentSuccess, cart, orderForm }:
     // SALVA IL CARRELLO E IL FORM IN LOCAL STORAGE UN ISTANTE PRIMA DI PAGARE
     localStorage.setItem('pending_checkout_cart', JSON.stringify(cart));
     localStorage.setItem('pending_checkout_form', JSON.stringify(orderForm));
+    localStorage.setItem('pending_checkout_reservation', JSON.stringify(tempReservationInfo));
 
     // Conferma il pagamento su Stripe
     const { error, paymentIntent } = await stripe.confirmPayment({
@@ -154,6 +155,7 @@ const StripeCheckoutForm = ({ clientSecret, onPaymentSuccess, cart, orderForm }:
       // In caso di errore di pagamento, cancella il salvataggio in sospeso
       localStorage.removeItem('pending_checkout_cart');
       localStorage.removeItem('pending_checkout_form');
+      localStorage.removeItem('pending_checkout_reservation');
 
       if (error.type === "card_error" || error.type === "validation_error") {
         setErrorMessage(error.message || "Errore durante l'elaborazione del pagamento.");
@@ -1547,11 +1549,17 @@ export default function App() {
     if (isPaymentSuccess) {
       const pendingCart = localStorage.getItem('pending_checkout_cart');
       const pendingForm = localStorage.getItem('pending_checkout_form');
+      const pendingRes = localStorage.getItem('pending_checkout_reservation');
 
       if (pendingCart && pendingForm) {
         const parsedCart = JSON.parse(pendingCart);
         const parsedForm = JSON.parse(pendingForm);
 
+        // RIPRISTINA LA PRENOTAZIONE IN MEMORIA PRIMA DI INVIARE!
+        if (pendingRes) {
+          setTempReservationInfo(JSON.parse(pendingRes));
+        }
+        
         // CHIAMA LA FUNZIONE UNICA PASSANDO I DATI SALVATI NEL LOCAL STORAGE!
         handleSubmitOrder(undefined, parsedCart, parsedForm);
       }
@@ -2245,6 +2253,7 @@ export default function App() {
                              clientSecret={clientSecret}
                              cart={cart}
                              orderForm={orderForm}
+                             tempReservationInfo={tempReservationInfo}
                              onPaymentSuccess={() => {
                                 // Quando la transazione di Stripe ha successo, simula il submit del form e salva l'ordine su Supabase!
                                 const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
