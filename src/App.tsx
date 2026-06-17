@@ -500,9 +500,19 @@ export default function App() {
 
     try {
       if (isPreOrder) {
-        // SCENARIO B (TAVOLO + PRE-ORDINE): Non salviamo ancora nel database!
-        // Memorizziamo temporaneamente i dati del tavolo e guidiamo l'utente sul menu per scegliere i cibi
+        // SCENARIO B (TAVOLO + PRE-ORDINE)
         setTempReservationInfo(reservationForm);
+        
+        // FORZIAMO I DATI DI CONSEGNA E IL TIPO ORDINE SU "TABLE"
+        setOrderForm(prev => ({
+           ...prev,
+           orderType: 'table',    // <--- Forza a TAVOLO per azzerare consegna e calcolare il coperto x persone!
+           paymentMethod: 'cash', // <--- Imposta il default a contanti al tavolo
+           customerName: reservationForm.customerName,
+           customerPhone: reservationForm.customerPhone,
+           customerEmail: reservationForm.customerEmail
+        }));
+
         setView('MENU');
         
         setSuggestionToast({ 
@@ -511,6 +521,7 @@ export default function App() {
         });
         setTimeout(() => setSuggestionToast({ show: false, text: '' }), 5000);
         window.scrollTo(0,0);
+      
       } else {
         // SCENARIO A (PRENOTAZIONE CLASSICA): Salviamo direttamente nella tabella "reservations" di Supabase
         const newReservation = {
@@ -1309,6 +1320,17 @@ export default function App() {
 
     const finalCustomerName = activeForm.orderType === 'table' ? `TAVOLO ${activeForm.tableNumber}` : activeForm.customerName;
     const finalPhone = activeForm.orderType === 'table' ? 'N/D' : activeForm.customerPhone;
+    const isDeliveryOrTakeaway = activeForm.orderType === 'delivery' || activeForm.orderType === 'takeaway';
+    const hasMissingFreeDrinks = activeCart.some(item => {
+      const isBimbi = item.category === ProductCategory.BIMBI;
+      return (isBimbi && !item.selectedFreeDrink) || (isDeliveryOrTakeaway && item.category === ProductCategory.PIZZA && !item.selectedFreeDrink);
+    });
+    
+    if (hasMissingFreeDrinks) {
+      alert("Seleziona la bevanda omaggio per tutti i piatti che la richiedono prima di procedere!");
+      setIsSubmittingOrder(false);
+      return;
+    }
 
     try {
       let finalDeliveryFee = getDeliveryFee();
@@ -1370,9 +1392,12 @@ export default function App() {
             });
           });
         }
-        const isPizzaOrBimbi = item.category === 'Pizza' || item.category === ProductCategory.PIZZA || item.category === ProductCategory.BIMBI || item.category === 'Menu Bimbi';
+       const isPizza = item.category === ProductCategory.PIZZA;
+        const isBimbi = item.category === ProductCategory.BIMBI;
         const isDeliveryOrTakeaway = activeForm.orderType === 'delivery' || activeForm.orderType === 'takeaway';
-        if (isDeliveryOrTakeaway && isPizzaOrBimbi && item.selectedFreeDrink) {
+        
+        // Genera la comanda virtuale per la bibita omaggio (per i bimbi sempre, per le pizze solo a domicilio/asporto)
+        if (((isDeliveryOrTakeaway && isPizza) || isBimbi) && item.selectedFreeDrink) {
           virtualAddons.push({
             id: `virtual-drink-${item.selectedFreeDrink}-${Date.now()}`,
             name: `OMAGGIO: ${item.selectedFreeDrink.toUpperCase()}`,
@@ -1700,24 +1725,34 @@ export default function App() {
                            )}
 
                               {/* SEZIONE BEVANDA OMAGGIO TRADOTTA */}
-                           {isDeliveryOrTakeaway && (item.category === ProductCategory.PIZZA || item.category === ProductCategory.BIMBI ) && (
-                              <div className="mt-2">
-                                 {item.selectedFreeDrink ? (
-                                    <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 text-xs font-bold px-3 py-1.5 rounded-xl w-fit">
-                                       <Check size={14} className="text-green-600" />
-                                       <span>{labelOmaggio}: {item.selectedFreeDrink.toUpperCase()}</span>
-                                       <button onClick={() => openFreeDrinkModal(index)} className="text-wood-400 hover:text-[#45856c] ml-2 font-bold underline">{labelModifica}</button>
+                           {/* SEZIONE BEVANDA OMAGGIO (Dinamica: per le pizze solo a casa/asporto, per il menu bimbi sempre!) */}
+                              {(() => {
+                                 const isPizza = item.category === ProductCategory.PIZZA;
+                                 const isBimbi = item.category === ProductCategory.BIMBI;
+                                 
+                                 // Mostra il pulsante se è un menu bimbi, OPPURE se è una pizza ma l'ordine è a casa/asporto
+                                 const showDrinkButton = isBimbi || (isDeliveryOrTakeaway && isPizza);
+
+                                 return showDrinkButton && (
+                                    <div className="mt-2 animate-in fade-in duration-300">
+                                       {item.selectedFreeDrink ? (
+                                          <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 text-xs font-bold px-3 py-1.5 rounded-xl w-fit">
+                                             <Check size={14} className="text-green-600" />
+                                             <span>{labelOmaggio}: {item.selectedFreeDrink.toUpperCase()}</span>
+                                             <button type="button" onClick={() => openFreeDrinkModal(index)} className="text-wood-400 hover:text-[#45856c] ml-2 font-bold underline">{labelModifica}</button>
+                                          </div>
+                                       ) : (
+                                          <button 
+                                             type="button"
+                                             onClick={() => openFreeDrinkModal(index)} 
+                                             className="text-xs font-bold bg-orange-50 border border-orange-200 text-orange-600 rounded-xl px-3 py-2 flex items-center gap-1.5 hover:bg-orange-100 transition-colors animate-pulse"
+                                          >
+                                             <AlertCircle size={14} /> * {labelScegliOmaggio} ({labelObbligatorio})
+                                          </button>
+                                       )}
                                     </div>
-                                 ) : (
-                                    <button 
-                                       onClick={() => openFreeDrinkModal(index)} 
-                                       className="text-xs font-bold bg-orange-50 border border-orange-200 text-orange-600 rounded-xl px-3 py-2 flex items-center gap-1.5 hover:bg-orange-100 transition-colors animate-pulse"
-                                    >
-                                       <AlertCircle size={14} /> * {labelScegliOmaggio} ({labelObbligatorio})
-                                    </button>
-                                 )}
-                              </div>
-                           )}
+                                 );
+                              })()}
 
                               {/* TASTO PERSONALIZZA PRODOTTO (Sostituisce Tasto Aggiungi e traduce) */}
                               {isPizzaOrBurger && (
@@ -1744,7 +1779,11 @@ export default function App() {
               {(() => {
                  const isDeliveryOrTakeaway = orderForm.orderType === 'delivery' || orderForm.orderType === 'takeaway';
                  const hasMissingSideDishes = cart.some(item => item.brand === "Contorno compreso" && !item.selectedSideDish);
-                 const hasMissingFreeDrinks = cart.some(item => isDeliveryOrTakeaway && (item.category === ProductCategory.PIZZA || item.category === ProductCategory.BIMBI ) && !item.selectedFreeDrink);
+                 const hasMissingFreeDrinks = cart.some(item => {
+                     const isPizza = item.category === ProductCategory.PIZZA;
+                     const isBimbi = item.category === ProductCategory.BIMBI;
+                     return (isBimbi && !item.selectedFreeDrink) || (isDeliveryOrTakeaway && isPizza && !item.selectedFreeDrink);
+                     });
                  const isButtonDisabled = hasMissingSideDishes || hasMissingFreeDrinks;
 
                  return (
@@ -1826,24 +1865,37 @@ export default function App() {
 
            <form onSubmit={handleSubmitOrder} className="space-y-8">
               
-              {/* SE È UN PRE-ORDINE (TAVOLO + CIBO), MOSTRA IL RIEPILOGO COMPATTO E L'AVVISO DI CANCELLAZIONE */}
-            {isPreOrder && tempReservationInfo ? (
-               <div className="bg-white p-6 rounded-3xl border border-wood-100 shadow-sm space-y-4 animate-in fade-in duration-300">
-                  <h3 className="font-bold text-lg text-[#45856c] uppercase tracking-wide border-b border-wood-100 pb-2">Riepilogo Tavolo Riservato</h3>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-wood-800">
-                     <div><span className="block text-xs font-bold text-wood-400 uppercase">Nome</span><span className="font-bold text-base uppercase text-wood-900">{tempReservationInfo.customerName}</span></div>
-                     <div><span className="block text-xs font-bold text-wood-400 uppercase">Telefono</span><span className="font-bold text-base text-wood-900">{tempReservationInfo.customerPhone}</span></div>
-                     <div><span className="block text-xs font-bold text-wood-400 uppercase">Ospiti al Tavolo</span><span className="font-bold text-base text-[#45856c]">{tempReservationInfo.numPeople} Persone</span></div>
-                     <div><span className="block text-xs font-bold text-wood-400 uppercase">Giorno e Ora</span><span className="font-bold text-base text-orange-600">{new Date(tempReservationInfo.date).toLocaleDateString('it-IT')} - alle ore {tempReservationInfo.time}</span></div>
-                  </div>
+              {/* SE È UN PRE-ORDINE (TAVOLO + CIBO), MOSTRA IL RIEPILOGO COMPATTO CON LISTA PRODOTTI E L'AVVISO DI CANCELLAZIONE */}
+              {isPreOrder && tempReservationInfo ? (
+                 <div className="bg-white p-6 rounded-3xl border border-wood-100 shadow-sm space-y-4 animate-in fade-in duration-300">
+                    <h3 className="font-bold text-lg text-[#45856c] uppercase tracking-wide border-b border-wood-100 pb-2">Riepilogo Tavolo Riservato</h3>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-wood-800">
+                       <div><span className="block text-xs font-bold text-wood-400 uppercase">Nome</span><span className="font-bold text-base uppercase text-wood-900">{tempReservationInfo.customerName}</span></div>
+                       <div><span className="block text-xs font-bold text-wood-400 uppercase">Telefono</span><span className="font-bold text-base text-wood-900">{tempReservationInfo.customerPhone}</span></div>
+                       <div><span className="block text-xs font-bold text-wood-400 uppercase">Ospiti al Tavolo</span><span className="font-bold text-base text-[#45856c]">{tempReservationInfo.numPeople} Persone</span></div>
+                       <div><span className="block text-xs font-bold text-wood-400 uppercase">Giorno e Ora</span><span className="font-bold text-base text-orange-600">{new Date(tempReservationInfo.date).toLocaleDateString('it-IT')} - alle ore {tempReservationInfo.time}</span></div>
+                    </div>
 
-                  <div className="mt-4 p-4 bg-orange-50/50 border border-orange-200/50 rounded-2xl text-xs text-orange-800 font-bold leading-relaxed flex items-start gap-2">
-                     <AlertCircle size={18} className="shrink-0 mt-0.5" />
-                     <p>⚠️ In caso di imprevisti o cancellazione della prenotazione, vi preghiamo gentilmente di avvisare il locale il prima possibile telefonando al numero 0321 510220.</p>
-                  </div>
-               </div>
-            ) : (
+                    {/* LISTA DEI PRODOTTI IN PRE-ORDINE (FOTO 2) */}
+                    <div className="mt-4 pt-4 border-t border-wood-100">
+                       <span className="block text-xs font-bold text-wood-400 uppercase mb-2">Piatti in Pre-ordine:</span>
+                       <div className="space-y-1 bg-wood-50 p-3 rounded-2xl border border-wood-100 font-bold text-sm text-wood-800">
+                          {cart.map((item, idx) => (
+                             <div key={idx} className="flex justify-between">
+                                <span>{item.quantity}x {getProductContent(item).name}</span>
+                                <span className="font-mono text-xs text-wood-500">€{((item.selectedVariant ? item.selectedVariant.price : item.price) * item.quantity).toFixed(2)}</span>
+                             </div>
+                          ))}
+                       </div>
+                    </div>
+
+                    <div className="mt-4 p-4 bg-orange-50/50 border border-orange-200/50 rounded-2xl text-xs text-orange-800 font-bold leading-relaxed flex items-start gap-2">
+                       <AlertCircle size={18} className="shrink-0 mt-0.5" />
+                       <p>⚠️ In caso di imprevisti o cancellazione della prenotazione, vi preghiamo gentilmente di avvisare il locale il prima possibile telefonando al numero 0321 510220.</p>
+                    </div>
+                 </div>
+              ) : (
                <>
 
               {/* TIPO DI ORDINE E TAVOLO */}
@@ -2058,27 +2110,50 @@ export default function App() {
                })()}
               </>
               )}
-              {/* METODO DI PAGAMENTO E NOTE */}
+              
+              {/* METODO DI PAGAMENTO E NOTE (2 OPZIONI SE TAVOLO/PRE-ORDINE, 3 SE ASPORTO/CONSEGNA) */}
               <div className="bg-white p-6 rounded-3xl border border-wood-100 shadow-sm">
                  <h3 className="font-bold text-lg text-wood-900 mb-4">{t('payment', lang)}</h3>
                  <div className="flex flex-col gap-3">
-                    <label className="flex items-center gap-3 p-4 border border-wood-200 rounded-xl cursor-pointer hover:bg-wood-50">
-                       <input type="radio" name="payment" value="cash" checked={orderForm.paymentMethod === 'cash'} onChange={() => setOrderForm({...orderForm, paymentMethod: 'cash'})} className="w-5 h-5 accent-[#45856c]" />
-                       <span className="font-medium text-wood-900">{t('cash', lang)}</span>
-                    </label>
-                    <label className="flex items-center gap-3 p-4 border border-wood-200 rounded-xl cursor-pointer hover:bg-wood-50">
-                       <input type="radio" name="payment" value="pos" checked={orderForm.paymentMethod === 'pos'} onChange={() => setOrderForm({...orderForm, paymentMethod: 'pos'})} className="w-5 h-5 accent-[#45856c]" />
-                       <span className="font-medium text-wood-900">{t('pos', lang)}</span>
-                    </label>
                     
-                    {/* NUOVA OPZIONE: PAGAMENTO ONLINE STRIPE */}
+                    {isPreOrder || orderForm.orderType === 'table' ? (
+                       // SE È TAVOLO (O PRE-ORDINE): SOLO "PAGA AL TAVOLO" (CASH/POS INSIEME)
+                       <label className="flex items-center gap-3 p-4 border border-wood-200 rounded-xl cursor-pointer hover:bg-wood-50">
+                          <input 
+                             type="radio" 
+                             name="payment" 
+                             value="cash" 
+                             checked={orderForm.paymentMethod === 'cash'} 
+                             onChange={() => setOrderForm({...orderForm, paymentMethod: 'cash'})} 
+                             className="w-5 h-5 accent-[#45856c]" 
+                          />
+                          <div className="flex flex-col">
+                             <span className="font-bold text-wood-900">Paga al tavolo (Contanti / Bancomat)</span>
+                             <span className="text-xs text-wood-400 font-medium">Pagherai comodamente in cassa o al tavolo a fine pasto</span>
+                          </div>
+                       </label>
+                    ) : (
+                       // SE È CONSEGNA O ASPORTO: LE 2 OPZIONI CLASSICHE FISICHE DI PRIMA
+                       <>
+                          <label className="flex items-center gap-3 p-4 border border-wood-200 rounded-xl cursor-pointer hover:bg-wood-50">
+                             <input type="radio" name="payment" value="cash" checked={orderForm.paymentMethod === 'cash'} onChange={() => setOrderForm({...orderForm, paymentMethod: 'cash'})} className="w-5 h-5 accent-[#45856c]" />
+                             <span className="font-medium text-wood-900">{t('cash', lang)}</span>
+                          </label>
+                          <label className="flex items-center gap-3 p-4 border border-wood-200 rounded-xl cursor-pointer hover:bg-wood-50">
+                             <input type="radio" name="payment" value="pos" checked={orderForm.paymentMethod === 'pos'} onChange={() => setOrderForm({...orderForm, paymentMethod: 'pos'})} className="w-5 h-5 accent-[#45856c]" />
+                             <span className="font-medium text-wood-900">Bancomat / Carta (al ritiro)</span>
+                          </label>
+                       </>
+                    )}
+                    
+                    {/* OPZIONE STRIPE ONLINE (COMUNE A TUTTI I FLUSSI) */}
                     <label className="flex items-center gap-3 p-4 border border-[#45856c]/30 rounded-xl cursor-pointer hover:bg-green-50/30 transition-colors">
                        <input 
                           type="radio" 
                           name="payment" 
                           value="stripe" 
                           checked={orderForm.paymentMethod === 'stripe'} 
-                          onChange={handleInitStripePayment} // Inizializza Stripe al click!
+                          onChange={handleInitStripePayment}
                           className="w-5 h-5 accent-[#45856c]" 
                        />
                        <div className="flex flex-col">
@@ -2087,7 +2162,9 @@ export default function App() {
                        </div>
                     </label>
                  </div>
-               </div>
+                 
+                 <div className="mt-4"><label className="block text-xs font-bold text-wood-500 uppercase mb-1">{t('notes', lang)}</label><textarea rows={2} value={orderForm.notes} onChange={e => setOrderForm({...orderForm, notes: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl p-3 focus:outline-none focus:border-[#45856c] focus:ring-1 focus:ring-[#45856c] resize-none" placeholder={t('notes', lang)}></textarea></div>
+              </div>
 
               {/* RIEPILOGO TOTALE */}
               {/* RIEPILOGO TOTALE */}
