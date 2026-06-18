@@ -164,6 +164,8 @@ export const UI_TRANSLATIONS: Record<string, Record<LanguageCode, string>> = {
   'type_delivery': { it: 'Consegna', en: 'Delivery', fr: 'Livraison', de: 'Lieferung' },
 
   // --- TRADUZIONI CHECKOUT ---
+  'table_details': { it: 'Dettagli Tavolo', en: 'Table Details', fr: 'Détails de la table', de: 'Tischdetails' },
+  'checkout_title_booking': { it: 'Dettagli Prenotazione', en: 'Booking Details', fr: 'Détails de la réservation', de: 'Buchungsdetails' },
   'checkout_title': { it: 'Dettagli Ordine', en: 'Order Details', fr: 'Détails de la commande', de: 'Bestelldetails' },
   'order_type': { it: 'Come vuoi ricevere l\'ordine?', en: 'How do you want your order?', fr: 'Comment voulez-vous recevoir votre commande?', de: 'Wie möchten Sie Ihre Bestellung?' },
   'takeaway': { it: 'Ritiro al Locale', en: 'Takeaway', fr: 'À emporter', de: 'Abholung' },

@@ -1951,7 +1951,7 @@ export default function App() {
               <ChevronLeft size={20} /> {t('back', lang)}
            </button>
 
-           <h2 className="text-3xl font-western text-wood-900 mb-8">{t('checkout_title', lang)}</h2>
+           <h2 className="text-3xl font-western text-wood-900 mb-8"> {t(isPreOrder ? 'checkout_title_booking' : 'checkout_title', lang)}</h2>
 
            <form onSubmit={handleSubmitOrder} className="space-y-8">
               
@@ -1990,7 +1990,7 @@ export default function App() {
 
               {/* TIPO DI ORDINE E TAVOLO (DINAMICO SE SCANSIONATO DA QR CODE) */}
               <div className="bg-white p-6 rounded-3xl border border-wood-100 shadow-sm space-y-4">
-                 <h3 className="font-bold text-lg text-wood-900 mb-4">{t('order_type', lang)}</h3>
+                 <h3 className="font-bold text-lg text-wood-900 mb-4">{t(orderForm.orderType === 'table' ? 'table_details' : 'order_type', lang)}</h3>
                  
                  {/* Se NON c'è un tavolo pre-compilato da URL, mostra i 3 pulsanti di scelta classica */}
                  {!orderForm.tableNumber ? (
