@@ -1988,38 +1988,62 @@ export default function App() {
               ) : (
                <>
 
-              {/* TIPO DI ORDINE E TAVOLO */}
-              <div className="bg-white p-6 rounded-3xl border border-wood-100 shadow-sm">
+              {/* TIPO DI ORDINE E TAVOLO (DINAMICO SE SCANSIONATO DA QR CODE) */}
+              <div className="bg-white p-6 rounded-3xl border border-wood-100 shadow-sm space-y-4">
                  <h3 className="font-bold text-lg text-wood-900 mb-4">{t('order_type', lang)}</h3>
                  
-                 {/* Pulsanti più compatti per il mobile */}
-                 <div className="grid grid-cols-3 gap-2 md:gap-4">
-                  <button type="button" onClick={() => setOrderForm({...orderForm, orderType: 'table'})} className={`p-2 md:p-4 rounded-xl border-2 flex flex-col items-center gap-1 md:gap-2 transition-all ${orderForm.orderType === 'table' ? 'border-[#45856c] bg-[#45856c]/10 text-[#45856c]' : 'border-wood-200 text-wood-500 hover:border-wood-300'}`}>
-                     <Utensils size={24} />
-                     <span className="text-[11px] md:text-sm font-bold text-center">
-                        {t('type_table', lang)}
-                     </span>
-                  </button>
-                  <button type="button" onClick={() => setOrderForm({...orderForm, orderType: 'takeaway'})} className={`p-2 md:p-4 rounded-xl border-2 flex flex-col items-center gap-1 md:gap-2 transition-all ${orderForm.orderType === 'takeaway' ? 'border-[#45856c] bg-[#45856c]/10 text-[#45856c]' : 'border-wood-200 text-wood-500 hover:border-wood-300'}`}>
-                     <Store size={24} />
-                     <span className="text-[11px] md:text-sm font-bold text-center">
-                        {t('type_takeaway', lang)}
-                     </span>
-                  </button>
-                  <button type="button" onClick={() => setOrderForm({...orderForm, orderType: 'delivery'})} className={`p-2 md:p-4 rounded-xl border-2 flex flex-col items-center gap-1 md:gap-2 transition-all ${orderForm.orderType === 'delivery' ? 'border-[#45856c] bg-[#45856c]/10 text-[#45856c]' : 'border-wood-200 text-wood-500 hover:border-wood-300'}`}>
-                     <Bike size={24} />
-                     <span className="text-[11px] md:text-sm font-bold text-center">
-                        {t('type_delivery', lang)}
-                     </span>
-                  </button>
-               </div>
+                 {/* Se NON c'è un tavolo pre-compilato da URL, mostra i 3 pulsanti di scelta classica */}
+                 {!orderForm.tableNumber ? (
+                    <div className="grid grid-cols-2 gap-2 md:gap-4">
+                       <button type="button" onClick={() => setOrderForm({...orderForm, orderType: 'takeaway'})} className={`p-2 md:p-4 rounded-xl border-2 flex flex-col items-center gap-1 md:gap-2 transition-all ${orderForm.orderType === 'takeaway' ? 'border-[#45856c] bg-[#45856c]/10 text-[#45856c]' : 'border-wood-200 text-wood-500 hover:border-wood-300'}`}>
+                          <Store size={24} />
+                          <span className="text-[11px] md:text-sm font-bold text-center">{t('type_takeaway', lang)}</span>
+                       </button>
+                       <button type="button" onClick={() => setOrderForm({...orderForm, orderType: 'delivery'})} className={`p-2 md:p-4 rounded-xl border-2 flex flex-col items-center gap-1 md:gap-2 transition-all ${orderForm.orderType === 'delivery' ? 'border-[#45856c] bg-[#45856c]/10 text-[#45856c]' : 'border-wood-200 text-wood-500 hover:border-wood-300'}`}>
+                          <Bike size={24} />
+                          <span className="text-[11px] md:text-sm font-bold text-center">{t('type_delivery', lang)}</span>
+                       </button>
+                    </div>
+                 ) : (
+                    // Se c'è un tavolo rilevato da QR, mostra un badge fisso ed elegante
+                    <div className="bg-[#45856c]/5 border border-[#45856c]/20 p-4 rounded-2xl flex items-center gap-3 text-[#45856c] font-black text-sm uppercase select-none animate-in fade-in">
+                       <Utensils size={20} />
+                       <span>Ordinazione al Tavolo {orderForm.tableNumber}</span>
+                    </div>
+                 )}
 
-                 {/* IL NUMERO DEL TAVOLO APPARE DENTRO QUESTO RIQUADRO */}
+                 {/* Se l'ordine è al tavolo (tramite QR o scelta manuale) */}
                  {orderForm.orderType === 'table' && (
-                   <div className="mt-6 pt-6 border-t border-wood-100 animate-in fade-in slide-in-from-top-2">
-                     <label className="block text-xs font-bold text-wood-500 uppercase mb-2">Numero del Tavolo *</label>
-                     <input required type="number" placeholder="Es: 5" value={orderForm.tableNumber} onChange={e => setOrderForm({...orderForm, tableNumber: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#45856c] focus:ring-2 focus:ring-[#45856c]/50 font-bold text-lg text-center" />
-                   </div>
+                    <div className="mt-4 pt-4 border-t border-wood-100 space-y-4 animate-in fade-in slide-in-from-top-2">
+                       {/* Campo Nome obbligatorio al tavolo */}
+                       <div>
+                          <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Nome di riferimento *</label>
+                          <input 
+                             required 
+                             type="text" 
+                             placeholder="Es. Mario" 
+                             value={orderForm.customerName} 
+                             onChange={e => setOrderForm({...orderForm, customerName: e.target.value})} 
+                             className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#45856c] font-medium" 
+                          />
+                       </div>
+
+                       {/* Campo Numero del Tavolo (bloccato e disabilitato se letto da QR) */}
+                       <div>
+                          <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Numero del Tavolo *</label>
+                          <input 
+                             required 
+                             disabled={!!orderForm.tableNumber} // Blinda l'input se il numero viene dal QR code! [8]
+                             type="number" 
+                             placeholder="Es. 5" 
+                             value={orderForm.tableNumber} 
+                             onChange={e => setOrderForm({...orderForm, tableNumber: e.target.value})} 
+                             className={`w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#45856c] font-black text-lg text-center ${
+                                orderForm.tableNumber ? 'opacity-60 cursor-not-allowed' : ''
+                             }`} 
+                          />
+                       </div>
+                    </div>
                  )}
               </div>
 
