@@ -2060,17 +2060,41 @@ export default function App() {
                      });
                  const isButtonDisabled = hasMissingSideDishes || hasMissingFreeDrinks;
 
+                 // CAPOLAVORO UX: Se l'utente è al tavolo con consumazioni già in corso, sblocca la cassa rapida in 1-Click! [1, 5]
+                 const isFastTableAddon = tableSessionId !== null && hasPriorOrders;
+
+                 const handleButtonClick = async () => {
+                    if (isButtonDisabled) {
+                       alert("Seleziona i contorni e le bibite omaggio per procedere!");
+                       return;
+                    }
+                    setIsCartOpen(false); // Chiude il carrello
+                    
+                    if (isFastTableAddon) {
+                       // Invia direttamente l'aggiunta al database di Supabase senza passare dalla cassa! [1, 5]
+                       const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
+                       await handleSubmitOrder(fakeEvent);
+                       
+                       // Trigger della notifica fluttuante di successo
+                       setSuggestionToast({ show: true, text: "🚀 Aggiunta inviata con successo in cucina!" });
+                       setTimeout(() => setSuggestionToast({ show: false, text: '' }), 4000);
+                    } else {
+                       // Se è il primo ordine o un ordine a casa, va alla cassa classica
+                       setView('CHECKOUT');
+                       window.scrollTo(0,0);
+                    }
+                 };
+
+                 const buttonLabel = isButtonDisabled 
+                    ? "Scegli contorni/omaggi per procedere" 
+                    : isFastTableAddon 
+                      ? "Invia Aggiunta alla Cucina (1-Click)" // <--- Testo chiaro e immediato [5]
+                      : t('show_staff', lang);
+
                  return (
                     <button 
-                      onClick={() => { 
-                         if (isButtonDisabled) {
-                            alert("Seleziona i contorni e le bibite omaggio per procedere!");
-                            return;
-                         }
-                         setIsCartOpen(false); 
-                         setView('CHECKOUT'); 
-                         window.scrollTo(0,0); 
-                      }} 
+                      type="button"
+                      onClick={handleButtonClick} 
                       disabled={isButtonDisabled}
                       className={`w-full py-4 rounded-2xl font-bold text-xl shadow-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] ${
                          isButtonDisabled 
@@ -2078,7 +2102,7 @@ export default function App() {
                          : 'bg-[#45856c] text-white hover:bg-opacity-90'
                       }`}
                     >
-                       <ShoppingCart size={24} /> {isButtonDisabled ? labelScegliContorniOmaggi : t('show_staff', lang)}
+                       <ShoppingCart size={24} /> {buttonLabel}
                     </button>
                  );
               })()}
@@ -3071,8 +3095,11 @@ const renderMenu = () => {
       </div>
     </div>
   )};
+
   const renderTracking = () => {
     if (!currentOrder) return null;
+
+    const isTableOrder = currentOrder.order_type === 'table';
 
     const statusSteps = [
       { id: 'pending', label: 'Inviato', icon: Check },
@@ -3085,57 +3112,81 @@ const renderMenu = () => {
 
     return (
       <div className="min-h-screen bg-wood-50 pt-24 pb-20 px-4">
-        <div className="max-w-md mx-auto bg-white rounded-3xl shadow-xl overflow-hidden border border-wood-100">
+        <div className="max-w-md mx-auto bg-white rounded-3xl shadow-xl overflow-hidden border border-wood-100 animate-in fade-in duration-300">
+          
+          {/* HEADER */}
           <div className="bg-[#45856c] p-8 text-white text-center">
             <CheckCircle2 size={48} className="mx-auto mb-4 animate-bounce" />
-            <h2 className="text-2xl font-western uppercase tracking-wider">Ordine Ricevuto!</h2>
-            <p className="opacity-90 text-sm mt-2">Grazie {currentOrder.customer_name}, stiamo lavorando per te.</p>
+            <h2 className="text-2xl font-western uppercase tracking-wider">
+               {isTableOrder ? 'Ordine in Preparazione!' : 'Ordine Ricevuto!'}
+            </h2>
+            <p className="opacity-90 text-sm mt-2">
+               {isTableOrder 
+                  ? `Grazie ${currentOrder.customer_name.replace("AGGIUNTE - ", "").replace(/TAVOLO\s+\d+/i, "").trim() || 'Ospite'}, mettiti comodo!`
+                  : `Grazie ${currentOrder.customer_name}, stiamo lavorando per te.`
+               }
+            </p>
           </div>
 
           <div className="p-6 md:p-8">
-            {/* TEMPO ESTIMATO */}
-            {currentOrder.estimated_time && currentOrder.status === 'preparing' && (
-              <div className="bg-orange-50 border-2 border-orange-100 p-4 rounded-2xl text-center mb-8">
-                <span className="block text-xs font-bold text-orange-400 uppercase tracking-widest">Tempo stimato</span>
-                <span className="text-4xl font-western text-orange-600">~ {currentOrder.estimated_time}</span>
-              </div>
-            )}
-
-            {/* BARRA DI AVANZAMENTO */}
-            <div className="relative space-y-8">
-              {statusSteps.map((step, idx) => {
-                const isDone = idx <= currentStepIndex;
-                const isCurrent = idx === currentStepIndex;
-                return (
-                  <div key={step.id} className="flex items-center gap-4">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${isDone ? 'bg-[#45856c] text-white' : 'bg-wood-100 text-wood-300'}`}>
-                      <step.icon size={20} />
-                    </div>
-                    <div className="flex-1">
-                      <p className={`font-bold ${isDone ? 'text-wood-900' : 'text-wood-300'} ${isCurrent ? 'text-lg text-[#45856c]' : ''}`}>
-                        {step.label}
-                      </p>
-                      {isCurrent && step.id !== 'completed' && (
-                        <span className="text-xs text-wood-400 animate-pulse">In corso...</span>
-                        )}
-                        {isCurrent && step.id === 'completed' && (
-                        <span className="text-xs text-[#45856c] font-bold">Ordine concluso. Grazie!</span>
-                        )}
-                    </div>
+            
+            {isTableOrder ? (
+               // SCENARIO AL TAVOLO: NESSUNA LINEA STRADALE COINVOLTA! (FOTO 3 RIVISITATA) [5]
+               <div className="space-y-6 text-center py-4">
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-2xl">
+                     <span className="block text-xs font-bold text-green-600 uppercase tracking-widest mb-1">Stato Ordinazione</span>
+                     <span className="text-2xl font-western text-green-800 animate-pulse">IN PREPARAZIONE 🍳</span>
                   </div>
-                );
-              })}
-              {/* Linea verticale di collegamento */}
-              <div className="absolute left-5 top-5 bottom-5 w-0.5 bg-wood-100 -z-10"></div>
-              <div className="absolute left-5 top-5 w-0.5 bg-[#45856c] -z-10 transition-all duration-1000" style={{ height: `${(currentStepIndex / 3) * 100}%` }}></div>
-            </div>
+                  
+                  <p className="text-sm text-wood-600 leading-relaxed font-medium">
+                     La cucina ha ricevuto le tue consumazioni. Le serviremo direttamente al tuo tavolo non appena saranno pronte! [5]
+                  </p>
 
-            <button 
-              onClick={() => { setView('MENU'); setActiveOrderId(null); }}
-              className="w-full mt-12 py-4 text-wood-400 font-bold hover:text-wood-600 transition-colors border-2 border-wood-50 rounded-2xl"
-            >
-              Torna al Menu
-            </button>
+                  {/* RIEPILOGO DEI PIATTI ORDINATI */}
+                  <div className="mt-6 pt-6 border-t border-wood-100 text-left">
+                     <span className="text-[10px] font-bold text-wood-400 uppercase tracking-widest block mb-2">Piatti in preparazione:</span>
+                     <div className="space-y-1.5 bg-wood-50 p-3 rounded-2xl border border-wood-100 font-mono text-xs text-wood-700">
+                        {currentOrder.cart_items?.map((item: any, idx: number) => (
+                           <div key={idx} className="flex justify-between">
+                              <span>{item.quantity}x {item.name.toUpperCase()}</span>
+                           </div>
+                        ))}
+                      </div>
+                   </div>
+                </div>
+             ) : (
+                // SCENARIO STRADALE CLASSICO (DELIVERY / TAKEAWAY)
+                <div className="relative space-y-8">
+                  {statusSteps.map((step, idx) => {
+                    const isDone = idx <= currentStepIndex;
+                    const isCurrent = idx === currentStepIndex;
+                    return (
+                      <div key={step.id} className="flex items-center gap-4">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${isDone ? 'bg-[#45856c]' : 'bg-wood-100'}`}>
+                          <step.icon size={20} className={isDone ? 'text-white' : 'text-wood-300'} />
+                        </div>
+                        <div className="flex-1">
+                          <p className={`font-bold ${isDone ? 'text-wood-900' : 'text-wood-300'} ${isCurrent ? 'text-lg text-[#45856c]' : ''}`}>
+                            {step.label}
+                          </p>
+                          {isCurrent && step.id !== 'completed' && (
+                            <span className="text-xs text-wood-400 animate-pulse">In corso...</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div className="absolute left-5 top-5 bottom-5 w-0.5 bg-wood-100 -z-10"></div>
+                  <div className="absolute left-5 top-5 w-0.5 bg-[#45856c] -z-10 transition-all duration-1000" style={{ height: `${(currentStepIndex / 3) * 100}%` }}></div>
+                </div>
+             )}
+
+             <button 
+               onClick={() => { setView('MENU'); setActiveOrderId(null); }}
+               className="w-full mt-12 py-4 text-wood-400 font-bold hover:text-wood-600 transition-colors border-2 border-wood-50 rounded-2xl"
+             >
+               Torna al Menu
+             </button>
           </div>
         </div>
       </div>
