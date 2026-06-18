@@ -1141,26 +1141,52 @@ export default function App() {
     } catch (error) { console.error('Error fetching data:', error); setItems([...INITIAL_MENU_ITEMS, ...EXTRA_INGREDIENTS_ITEMS]); } finally { setIsDataLoaded(true); }
   };
 
-  useEffect(() => { fetchItems(); const savedLogo = localStorage.getItem('oldWestLogoUrl'); if (savedLogo) setCustomLogo(savedLogo); const fetchCategories = async () => {
+  // Effetto iniziale di caricamento dati e lettura automatica QR del tavolo
+  useEffect(() => {
+    fetchItems();
+    
+    const savedLogo = localStorage.getItem('oldWestLogoUrl');
+    if (savedLogo) setCustomLogo(savedLogo);
+    
+    const fetchCategories = async () => {
       const { data } = await supabase.from('categories').select('*');
       if (data) setCategories(data);
     };
-    fetchCategories(); const savedOrderId = localStorage.getItem('activeOrderId');
+    fetchCategories();
+
+    // LEGGERE IL TAVOLO DAL QR CODE DELLA URL (ES: ?table=5)
+    const urlParams = new URLSearchParams(window.location.search);
+    const tableParam = urlParams.get('table'); // Legge il parametro "?table=5" [8]
+
+    if (tableParam) {
+      // 1. Configura il carrello in modalità Tavolo e fissa il numero del tavolo in automatico! [1]
+      setOrderForm(prev => ({
+        ...prev,
+        orderType: 'table',
+        tableNumber: tableParam
+      }));
+
+      // 2. SALTA LA LANDING PAGE e proietta il cliente direttamente nel MENÙ! [5]
+      setView('MENU');
+      window.scrollTo(0,0);
+    } else {
+      // Se NON c'è il parametro tavolo (ordine classico da casa), controlla se c'è un ordine attivo da tracciare [1]
+      const savedOrderId = localStorage.getItem('activeOrderId');
       if (savedOrderId) {
-      // Controlliamo se l'ordine esiste ancora e che stato ha
-      const checkOrder = async () => {
-         const { data } = await supabase.from('orders').select('*').eq('id', savedOrderId).single();
-         if (data && data.status !== 'completed' && data.status !== 'cancelled') {
-            setActiveOrderId(data.id);
-            setCurrentOrder(data);
-            setView('TRACKING');
-         } else {
-            // Se l'ordine è finito, puliamo la memoria
-            localStorage.removeItem('activeOrderId');
-         }
-      };
-      checkOrder();
-      } }, []);
+        const checkOrder = async () => {
+           const { data } = await supabase.from('orders').select('*').eq('id', savedOrderId).single();
+           if (data && data.status !== 'completed' && data.status !== 'cancelled') {
+              setActiveOrderId(data.id);
+              setCurrentOrder(data);
+              setView('TRACKING');
+           } else {
+              localStorage.removeItem('activeOrderId');
+           }
+        };
+        checkOrder();
+      }
+    }
+  }, []);
   useEffect(() => { const handleScroll = () => { if (window.scrollY > 300) setShowScrollTop(true); else setShowScrollTop(false); }; window.addEventListener('scroll', handleScroll); return () => window.removeEventListener('scroll', handleScroll); }, []);
   useEffect(() => { if (activeSubCategoryView === 'Hamburger "Fai da te"' && diyHeaderRef.current) { diyHeaderRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, [diyStep]);
   useEffect(() => {
@@ -2617,7 +2643,7 @@ const renderMenu = () => {
               </div>
               <div className="flex items-center gap-2 hover:text-accent-500 transition-colors">
                  <Mail size={16} className="text-accent-500" /> 
-                 <a href="mailto:oldwestconsegne@gmail.com" className="hover:underline">oldwestconsegne@gmail.com</a>
+                 <a href="mailto:oldwestconsegne@gmail.com" className="hover:underline">contatto@oldwest.click</a>
               </div>
             </div>
 
