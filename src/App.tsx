@@ -294,7 +294,7 @@ const LandingPage = ({ setView, setIsPreOrder, setTempReservationInfo, setReserv
 
       {/* FOOTER MINIMALE */}
       <div className="bg-transparent text-wood-400 py-4 text-center shrink-0">
-         <p className="text-[9px] opacity-25 font-bold uppercase tracking-wider">&copy; {new Date().getFullYear()} Old West. {t('rights_reserved', lang)}</p>
+         <p className="text-[9px] font-bold uppercase tracking-wider">&copy; {new Date().getFullYear()} Old West. {t('rights_reserved', lang)}</p>
       </div>
     </div>
   );
@@ -2301,7 +2301,7 @@ export default function App() {
                   </p>
                   {tempReservationInfo && (
                      <p className="font-bold text-orange-200 mt-2">
-                        Ti aspettiamo il {new Date(tempReservationInfo.date).toLocaleDateString('it-IT')} alle ore {tempReservationInfo.time}! [5]
+                        Ti aspettiamo il {new Date(tempReservationInfo.date).toLocaleDateString('it-IT')} alle ore {tempReservationInfo.time}!
                      </p>
                   )}
                </>
@@ -2644,10 +2644,10 @@ const renderMenu = () => {
             </div>
 
             {/* COPYRIGHT */}
-            <p className="text-xs opacity-50">&copy; {new Date().getFullYear()} Old West. {t('rights_reserved', lang)}</p>
+            <p className="text-xs opacity-75">&copy; {new Date().getFullYear()} Old West. {t('rights_reserved', lang)}</p>
             
             {/* SEZIONE LINK LEGALI STATICI OSPITATI NELLA CARTELLA PUBLIC */}
-            <div className="flex justify-center gap-3 mt-4 text-[10px] opacity-40 hover:opacity-75 transition-opacity font-bold uppercase tracking-wider">
+            <div className="flex justify-center gap-3 mt-4 text-[10px] opacity-60 hover:opacity-75 transition-opacity font-bold uppercase tracking-wider">
                <a href="/privacy.html" target="_blank" rel="noopener noreferrer" className="hover:underline">Privacy Policy</a>
                <span>•</span>
                <a href="/cookie.html" target="_blank" rel="noopener noreferrer" className="hover:underline">Cookie Policy</a>
