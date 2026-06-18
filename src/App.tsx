@@ -542,6 +542,9 @@ export default function App() {
               const { error } = await supabase.from('reservations').insert([newReservation]);
               if (error) throw error;
 
+              // AGGIUNTO: Salviamo la prenotazione classica in memoria temporanea per mostrarla a schermo!
+              setTempReservationInfo(reservationForm);
+              
               // AGGIUNTO: Specifichiamo che è una prenotazione del tavolo
               setSuccessType('BOOKING'); 
 
@@ -2290,7 +2293,12 @@ export default function App() {
          <div className="text-xl opacity-90 max-w-md mx-auto mb-12 space-y-2">
             {isBooking ? (
                <>
-                  <p>Grazie, la tua richiesta di prenotazione con pre-ordine di cibo è stata ricevuta dallo staff [5].</p>
+                  <p>
+                     {isPreOrder 
+                        ? 'Grazie, la tua richiesta di prenotazione con pre-ordine di cibo è stata ricevuta dallo staff.' 
+                        : 'Grazie, la tua richiesta di prenotazione del tavolo è stata ricevuta dallo staff.'
+                     }
+                  </p>
                   {tempReservationInfo && (
                      <p className="font-bold text-orange-200 mt-2">
                         Ti aspettiamo il {new Date(tempReservationInfo.date).toLocaleDateString('it-IT')} alle ore {tempReservationInfo.time}! [5]
@@ -2304,7 +2312,13 @@ export default function App() {
          
          <button 
             type="button"
-            onClick={() => { setView('LANDING'); window.scrollTo(0,0); }} 
+            onClick={() => { 
+               // PULISCE LE MEMORIE TEMPORANEE AL RITORNO ALLA HOME
+               setTempReservationInfo(null);
+               setIsPreOrder(false);
+               setView('LANDING'); 
+               window.scrollTo(0,0); 
+            }} 
             className="bg-white text-[#45856c] px-8 py-4 rounded-xl font-bold text-lg shadow-xl hover:scale-105 transition-transform"
          >
             Torna alla Home
