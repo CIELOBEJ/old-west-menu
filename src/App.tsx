@@ -485,6 +485,10 @@ export default function App() {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [isInitializingStripe, setIsInitializingStripe] = useState(false);
 
+  // --- STATI AGGIUNTI PER LA GESTIONE DEL CONTO UNICO AL TAVOLO ---
+  const [tableSessionId, setTableSessionId] = useState<string | null>(null);
+  const [hasPriorOrders, setHasPriorOrders] = useState(false); // Vero se il tavolo ha già ordinato in precedenza
+
   // --- STATI AGGIUNTI PER LA PRENOTAZIONE TAVOLO & PRE-ORDINE ---
   const [isPreOrder, setIsPreOrder] = useState(false);
   const [tempReservationInfo, setTempReservationInfo] = useState<any>(null);
@@ -563,6 +567,34 @@ export default function App() {
       setIsSubmittingReservation(false);
     }
   };
+
+  // Verifica se questo tavolo ha già effettuato ordini non pagati in questa sessione
+  const checkIfHasPriorOrders = async () => {
+    if (!tableSessionId) return;
+    try {
+      const { data } = await supabase
+        .from('orders')
+        .select('id')
+        .eq('table_session_id', tableSessionId)
+        .eq('payment_status', 'unpaid')
+        .limit(1);
+      
+      if (data && data.length > 0) {
+        setHasPriorOrders(true);
+      } else {
+        setHasPriorOrders(false);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // Controlla la presenza di ordini precedenti ogni volta che si va al checkout
+  useEffect(() => {
+    if (tableSessionId && view === 'CHECKOUT') {
+      checkIfHasPriorOrders();
+    }
+  }, [tableSessionId, view]);
 
   // --- STATI AGGIUNTI PER IL CALCOLO CHILOMETRICO DELLA CONSEGNA ---
   const [speseConsegna, setSpeseConsegna] = useState<number>(2.00); 
@@ -1170,7 +1202,19 @@ export default function App() {
         tableNumber: tableParam
       }));
 
-      // 2. SALTA LA LANDING PAGE e proietta il cliente direttamente nel MENÙ! [5]
+      // 2. GESTIONE SESSIONE TAVOLO UNICA (CONTO UNICO)
+      let session = localStorage.getItem('active_table_session_id');
+      const savedTableNum = localStorage.getItem('active_table_number');
+      
+      // Se cambia il numero del tavolo o non c'è una sessione attiva, ne generiamo una nuova di zecca! [1]
+      if (!session || savedTableNum !== tableParam) {
+        session = `session-${tableParam}-${Math.random().toString(36).substring(2, 9)}`;
+        localStorage.setItem('active_table_session_id', session);
+        localStorage.setItem('active_table_number', tableParam);
+      }
+      setTableSessionId(session);
+
+      // 3. SALTA LA LANDING PAGE e proietta il cliente direttamente nel MENÙ! [5]
       setView('MENU');
       window.scrollTo(0,0);
     } else {
@@ -1505,7 +1549,10 @@ export default function App() {
       });
 
       const newOrder = {
-        customer_name: finalCustomerName,
+        // Se è un'aggiunta successiva al tavolo, appendiamo "AGGIUNTA" al nome del cliente in modo che si stampi in cucina!
+        customer_name: (orderForm.orderType === 'table' && hasPriorOrders) 
+          ? `AGGIUNTA - ${finalCustomerName}` 
+          : finalCustomerName,
         customer_phone: finalPhone,
         customer_email: activeForm.customerEmail,
         order_type: activeForm.orderType,
@@ -1517,7 +1564,11 @@ export default function App() {
         cart_items: preparedCartItems,
         status: 'pending',
         notes: activeForm.notes,
-        user_id: user ? user.id : null
+        user_id: user ? user.id : null,
+        
+        // NUOVI CAMPI PER LA GESTIONE DEL CONTO UNICO E AGGIUNTE AL TAVOLO
+        table_session_id: tableSessionId, // Collega l'ordine a questa specifica sessione del tavolo!
+        payment_status: activeForm.paymentMethod === 'stripe' ? 'paid' : 'unpaid' // Segna come pagato solo se pagano con Stripe!
       };
 
       // Se c'è una prenotazione tavolo in sospeso (Scenario Pre-ordine), la salviamo nel database di Supabase
