@@ -2017,7 +2017,7 @@ export default function App() {
                     <div className="mt-4 pt-4 border-t border-wood-100 space-y-4 animate-in fade-in slide-in-from-top-2">
                        {/* Campo Nome obbligatorio al tavolo */}
                        <div>
-                          <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Nome di riferimento *</label>
+                          <label className="block text-xs font-bold text-wood-500 uppercase mb-1">{t('ref_name', lang)}</label>
                           <input 
                              required 
                              type="text" 
@@ -2030,7 +2030,7 @@ export default function App() {
 
                        {/* Campo Numero del Tavolo (bloccato e disabilitato se letto da QR) */}
                        <div>
-                          <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Numero del Tavolo *</label>
+                          <label className="block text-xs font-bold text-wood-500 uppercase mb-1">{t('table_num', lang)}</label>
                           <input 
                              required 
                              disabled={!!orderForm.tableNumber} // Blinda l'input se il numero viene dal QR code! [8]
@@ -2242,8 +2242,8 @@ export default function App() {
                              className="w-5 h-5 accent-[#45856c]" 
                           />
                           <div className="flex flex-col">
-                             <span className="font-bold text-wood-900">Paga al tavolo (Contanti / Bancomat)</span>
-                             <span className="text-xs text-wood-400 font-medium">Pagherai comodamente in cassa o al tavolo a fine pasto</span>
+                             <span className="font-bold text-wood-900">{t('pay_at_table_title', lang)}</span>
+                        <span className="text-xs text-wood-400 font-medium">{t('pay_at_table_desc', lang)}</span>
                           </div>
                        </label>
                     ) : (
@@ -2271,8 +2271,8 @@ export default function App() {
                           className="w-5 h-5 accent-[#45856c]" 
                        />
                        <div className="flex flex-col">
-                          <span className="font-bold text-wood-900">Carta di Debito o Credito / Apple Pay / Google Pay</span>
-                          <span className="text-xs text-wood-400 font-medium">Pagamento online protetto e crittografato</span>
+                          <span className="font-bold text-wood-900"> {t('stripe_pay_title', lang)}</span>
+                          <span className="text-xs text-wood-400 font-medium">{t('stripe_pay_desc', lang)}</span>
                        </div>
                     </label>
                  </div>
@@ -2284,7 +2284,7 @@ export default function App() {
               {/* RIEPILOGO TOTALE */}
               <div className="bg-wood-900 p-6 rounded-3xl text-white shadow-xl">
                  <div className="space-y-2 mb-4 border-b border-wood-700 pb-4">
-                    <div className="flex justify-between items-center text-wood-300"><span>Subtotale Prodotti</span><span>€{getCartItemsTotal().toFixed(2)}</span></div>
+                    <div className="flex justify-between items-center text-wood-300"><span>{t('subtotal_prod', lang)}</span><span>€{getCartItemsTotal().toFixed(2)}</span></div>
                     {coverCharge > 0 && <div className="flex justify-between items-center text-wood-300"><span>{t('cover_charge', lang)}</span><span>€{coverCharge.toFixed(2)}</span></div>}
                     {deliveryFee > 0 && <div className="flex justify-between items-center text-wood-300"><span>{t('delivery_fee', lang)}</span><span>€{deliveryFee.toFixed(2)}</span></div>}
                  </div>

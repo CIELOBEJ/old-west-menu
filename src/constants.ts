@@ -164,6 +164,13 @@ export const UI_TRANSLATIONS: Record<string, Record<LanguageCode, string>> = {
   'type_delivery': { it: 'Consegna', en: 'Delivery', fr: 'Livraison', de: 'Lieferung' },
 
   // --- TRADUZIONI CHECKOUT ---
+  'ref_name': { it: 'Nome di riferimento *', en: 'Reference Name *', fr: 'Nom de référence *', de: 'Referenzname *' },
+  'table_num': { it: 'Numero del Tavolo *', en: 'Table Number *', fr: 'Numéro de la table *', de: 'Tischnummer *' },
+  'subtotal_prod': { it: 'Subtotale Prodotti', en: 'Products Subtotal', fr: 'Sous-total des produits', de: 'Produkte-Zwischensumme' },
+  'pay_at_table_title': { it: 'Paga al tavolo (Contanti / Bancomat)', en: 'Pay at table (Cash / Card)', fr: 'Payer à table (Espèces / Carte)', de: 'Am Tisch bezahlen (Bargeld / Karte)' },
+  'pay_at_table_desc': { it: 'Pagherai comodamente in cassa o al tavolo a fine pasto', en: 'You can pay easily at the counter or at your table after dining', fr: 'Vous paierez facilement à la caisse ou à votre table après le repas', de: 'Sie zahlen bequem an der Kasse oder am Tisch nach dem Essen' },
+  'stripe_pay_desc': { it: 'Pagamento online protetto e crittografato', en: 'Secure and encrypted online payment', fr: 'Paiement en ligne sécurisé et crypté', de: 'Sichere und verschlüsselte Online-Zahlung' },
+  'stripe_pay_title': { it: 'Carta di Debito o Credito / Apple Pay / Google Pay', en: 'Debit or Credit Card / Apple Pay / Google Pay', fr: 'Carte de débit ou de crédit / Apple Pay / Google Pay', de: 'Debit- oder Kreditkarte / Apple Pay / Google Pay' },
   'table_details': { it: 'Dettagli Tavolo', en: 'Table Details', fr: 'Détails de la table', de: 'Tischdetails' },
   'checkout_title_booking': { it: 'Dettagli Prenotazione', en: 'Booking Details', fr: 'Détails de la réservation', de: 'Buchungsdetails' },
   'checkout_title': { it: 'Dettagli Ordine', en: 'Order Details', fr: 'Détails de la commande', de: 'Bestelldetails' },
