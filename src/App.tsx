@@ -3139,7 +3139,7 @@ const renderMenu = () => {
                   </div>
                   
                   <p className="text-sm text-wood-600 leading-relaxed font-medium">
-                     La cucina ha ricevuto le tue consumazioni. Le serviremo direttamente al tuo tavolo non appena saranno pronte! [5]
+                     La cucina ha ricevuto le tue consumazioni. Le serviremo direttamente al tuo tavolo non appena saranno pronte!
                   </p>
 
                   {/* RIEPILOGO DEI PIATTI ORDINATI */}
