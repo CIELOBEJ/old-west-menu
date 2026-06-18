@@ -424,7 +424,11 @@ const BookingPage = ({ reservationForm, setReservationForm, isSubmittingReservat
 export default function App() {
   const [orderDate, setOrderFormDate] = useState('Oggi');
   const [items, setItems] = useState<MenuItem[]>([]);
-  const [view, setView] = useState<ViewState>('LANDING'); // <--- IMPOSTATA LA SCHERMATA INIZIALE SU LANDING
+  // Inizializza lo stato leggendo al volo la URL per evitare lo sfarfallio (flickering) all'avvio
+  const [view, setView] = useState<ViewState>(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('table') ? 'MENU' : 'LANDING';
+  });
   const [successType, setSuccessType] = useState<'ORDER' | 'BOOKING'>('ORDER');
   const [activeCategory, setActiveCategory] = useState<string>('Tutti');
   const [activeSubCategoryView, setActiveSubCategoryView] = useState<string | null>(null);
