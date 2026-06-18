@@ -4,7 +4,7 @@ import {
   ChevronLeft, ChevronRight, Lock, Utensils, Star, MapPin, Clock, Instagram, Facebook, Phone, LayoutGrid, 
   ArrowRight, Upload, Image as ImageIcon, Download, RotateCcw, Save, ChevronDown, ChevronUp, X, Loader2, 
   Pencil, RefreshCw, Wheat, CircleDot, Globe, Languages, Check, Leaf, Flame, Award, QrCode, Database, Sprout, ShoppingBag, 
-  Milk, Egg, Nut, Bean, AlertCircle, Wine, Shell, Info, Search, Sandwich, Sparkles, Bike, Store, CheckCircle2, Copy, User, Mail, ShoppingCart, Undo 
+  Milk, Egg, Nut, Bean, AlertCircle, Wine, Shell, Info, Search, Sandwich, Sparkles, Bike, Store, CheckCircle2, Copy, User, Mail, ShoppingCart, Undo, ReceiptText 
 } from 'lucide-react';
 import { MenuItem, ProductCategory, ViewState, LanguageCode, ActiveFilters, CartItem, AllergenType, ProductVariant, OrderType, PaymentMethod } from './types';
 import { INITIAL_MENU_ITEMS, CATEGORIES_LIST, HAMBURGER_SUBCATEGORIES, DRINK_SUBCATEGORIES, DIY_OPTIONS, UI_TRANSLATIONS, CATEGORY_TRANSLATIONS, SUBCATEGORY_TRANSLATIONS, DATA_VERSION, ALLERGENS_CONFIG, EXTRA_INGREDIENTS_ITEMS, DELIVERY_ZONES, LUNCH_HOURS, DINNER_HOURS, ADDON_SUBCATEGORIES } from './constants';
@@ -488,6 +488,123 @@ export default function App() {
   // --- STATI AGGIUNTI PER LA GESTIONE DEL CONTO UNICO AL TAVOLO ---
   const [tableSessionId, setTableSessionId] = useState<string | null>(null);
   const [hasPriorOrders, setHasPriorOrders] = useState(false); // Vero se il tavolo ha già ordinato in precedenza
+  // --- STATI AGGIUNTI PER IL CONTO UNICO AL TAVOLO ---
+  const [isBillModalOpen, setIsBillModalOpen] = useState(false);
+  const [billOrders, setBillOrders] = useState<any[]>([]);
+  const [isRequestingBill, setIsRequestingBill] = useState(false);
+  const [billClientSecret, setBillClientSecret] = useState<string | null>(null);
+  const [isInitializingBillStripe, setIsInitializingBillStripe] = useState(false);
+
+  // Scarica in tempo reale tutti gli ordini non pagati associati a questa sessione del tavolo
+  const handleOpenBillModal = async () => {
+    if (!tableSessionId) return;
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('table_session_id', tableSessionId)
+        .eq('payment_status', 'unpaid');
+        
+      if (error) throw error;
+      if (data) {
+        setBillOrders(data);
+        setBillClientSecret(null); // Resetta eventuali vecchie sessioni Stripe
+        setIsBillModalOpen(true);
+      }
+    } catch (error) {
+      console.error("Errore caricamento conto:", error);
+      alert("Impossibile caricare il conto al momento. Riprova per favore.");
+    }
+  };
+
+  // Invia la richiesta fisica di pagamento in contanti/bancomat al cameriere
+  const handleRequestBillFromWaiter = async () => {
+    if (!tableSessionId || billOrders.length === 0) return;
+    setIsRequestingBill(true);
+    try {
+      const orderIds = billOrders.map(o => o.id);
+      
+      // Imposta il flag "bill_requested: true" su tutti gli ordini non pagati del tavolo
+      const { error } = await supabase
+        .from('orders')
+        .update({ bill_requested: true })
+        .in('id', orderIds);
+        
+      if (error) throw error;
+      
+      alert("Richiesta inviata! Un cameriere si avvicinerà a breve al tuo tavolo con il conto.");
+      setIsBillModalOpen(false);
+    } catch (error) {
+      console.error("Errore richiesta conto:", error);
+      alert("Impossibile inviare la richiesta del conto. Riprova.");
+    } finally {
+      setIsRequestingBill(false);
+    }
+  };
+
+  // Inizializza Stripe per pagare il totale complessivo di tutti gli ordini unificati
+  const handleInitBillStripePayment = async (totalAmount: number) => {
+    setIsInitializingBillStripe(true);
+    try {
+      const response = await fetch('/api/create-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: totalAmount })
+      });
+      const data = await response.json();
+      if (data.clientSecret) {
+        setBillClientSecret(data.clientSecret);
+      }
+    } catch (error) {
+      console.error("Errore inizializzazione Stripe Conto:", error);
+    } finally {
+      setIsInitializingBillStripe(false);
+    }
+  };
+
+  // Conferma del pagamento del conto unico tramite Stripe online
+  const handleConfirmConsolidatedPayment = async () => {
+    if (billOrders.length === 0) return;
+    try {
+      const orderIds = billOrders.map(o => o.id);
+      
+      // Aggiorna in blocco tutti gli ordini come completati e pagati!
+      const { error } = await supabase
+        .from('orders')
+        .update({ payment_status: 'paid', status: 'completed' })
+        .in('id', orderIds);
+        
+      if (error) throw error;
+
+      // Se c'è una prenotazione tavolo associata, aggiorna lo stato anche lì
+      const savedTableNum = localStorage.getItem('active_table_number');
+      if (savedTableNum) {
+         await supabase
+           .from('reservations')
+           .update({ status: 'confirmed' })
+           .eq('table_session_id', tableSessionId)
+           .eq('status', 'pending');
+      }
+
+      // Svuota e resetta la sessione locale del tavolo sul telefono (Tavolo libero!)
+      localStorage.removeItem('active_table_session_id');
+      localStorage.removeItem('active_table_number');
+      setTableSessionId(null);
+      setHasPriorOrders(false);
+      setCart([]);
+      setIsBillModalOpen(false);
+
+      // Mostra la schermata di successo
+      setSuccessType('ORDER');
+      setView('ORDER_SUCCESS');
+      
+      setSuggestionToast({ show: true, text: "🎉 Pagamento completato in app! Grazie e arrivederci!" });
+      setTimeout(() => setSuggestionToast({ show: false, text: '' }), 5000);
+      window.scrollTo(0,0);
+    } catch (error) {
+      console.error("Errore chiusura conto unico:", error);
+    }
+  };
 
   // --- STATI AGGIUNTI PER LA PRENOTAZIONE TAVOLO & PRE-ORDINE ---
   const [isPreOrder, setIsPreOrder] = useState(false);
@@ -1662,9 +1779,25 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-3">
+
+             {/* NUOVO PULSANTE: IL MIO CONTO UNIFICATO AL TAVOLO (FOTO 2) */}
+             {tableSessionId && (
+                <button 
+                   type="button"
+                   onClick={handleOpenBillModal} 
+                   className="w-10 h-10 rounded-full flex items-center justify-center text-wood-400 hover:text-white hover:bg-wood-800 transition-all relative"
+                   title="Il Mio Conto Unificato"
+                >
+                   <ReceiptText size={20} className={hasPriorOrders ? 'text-orange-400' : ''} />
+                   {/* Un piccolo pallino arancione lampeggiante avvisa il cliente se ha consumazioni non pagate in corso */}
+                   {hasPriorOrders && (
+                      <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-orange-500 rounded-full animate-pulse border border-wood-950"></span>
+                   )}
+                </button>
+             )}
              
-             {/* 1. FRECCIA CURVA DI RITORNO ALLA HOME (Invisibile sulla Landing, compatta su tutte le altre pagine!) */}
-             {view !== 'LANDING' && (
+             {/* 1. FRECCIA CURVA DI RITORNO ALLA HOME (Invisibile sulla Landing e se siamo al Tavolo!) */}
+             {view !== 'LANDING' && !tableSessionId && ( // <--- AGGIUNTO "!tableSessionId"
                 <button 
                    type="button"
                    onClick={() => { setView('LANDING'); window.scrollTo(0,0); }} 
@@ -3350,6 +3483,124 @@ const renderMenu = () => {
                         Annulla
                      </button>
                   </div>
+               </div>
+            </div>
+         );
+      })()}
+
+      {/* ================= MODALE DI VISUALIZZAZIONE E PAGAMENTO CONTO UNICO AL TAVOLO ================= */}
+      {isBillModalOpen && tableSessionId && (() => {
+         // Calcola il totale complessivo sommando i total_amount di tutti gli ordini non pagati della sessione
+         const billTotal = billOrders.reduce((sum, o) => sum + Number(o.total_amount), 0);
+
+         // Raggruppa e unifica i cibi ordinati in modo ordinato per la ricevuta a schermo
+         const consolidatedItems: Record<string, { quantity: number; name: string }> = {};
+         let totalPizzasAndBurgers = 0;
+         
+         billOrders.forEach(order => {
+            order.cart_items?.forEach((item: any) => {
+               if (consolidatedItems[item.name]) {
+                  consolidatedItems[item.name].quantity += item.quantity;
+               } else {
+                  consolidatedItems[item.name] = {
+                     quantity: item.quantity,
+                     name: item.name
+                  };
+               }
+               if (item.category === 'Pizza' || item.category === ProductCategory.HAMBURGER) {
+                  totalPizzasAndBurgers += item.quantity;
+               }
+            });
+         });
+
+         const itemsList = Object.values(consolidatedItems);
+
+         return (
+            <div className="fixed inset-0 bg-black/60 z-[70] flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
+               <div className="bg-white w-full md:max-w-md max-h-[90vh] md:rounded-3xl rounded-t-3xl p-6 flex flex-col shadow-2xl overflow-hidden text-left">
+                  
+                  <div className="text-center mb-6 pb-4 border-b border-wood-100 shrink-0">
+                     <h4 className="font-western text-2xl text-wood-900 leading-none">IL MIO CONTO</h4>
+                     <p className="text-xs text-[#45856c] font-black uppercase mt-1">Riepilogo Consolidato Tavolo {localStorage.getItem('active_table_number')}</p>
+                  </div>
+
+                  {/* CONTENUTO SCORREVOLE RICEVUTA */}
+                  <div className="flex-1 overflow-y-auto space-y-6 pr-1 custom-scrollbar pb-6">
+                     
+                     {billOrders.length === 0 ? (
+                        <p className="text-center py-10 text-wood-400 italic">Non ci sono consumazioni registrate in questo momento.</p>
+                     ) : (
+                        <div className="space-y-4">
+                           <span className="text-[10px] font-bold text-wood-400 uppercase tracking-widest block border-b border-wood-100 pb-1">Elementi ordinati:</span>
+                           <div className="space-y-2.5 bg-wood-50 p-4 rounded-2xl border border-wood-100 font-bold text-sm text-wood-800">
+                              {itemsList.map((item, idx) => (
+                                 <div key={idx} className="flex justify-between">
+                                    <span>{item.quantity}x {item.name.toUpperCase()}</span>
+                                 </div>
+                              ))}
+                              {/* Riga del Coperto moltiplicato se presente una prenotazione */}
+                              {totalPizzasAndBurgers > 0 && tempReservationInfo && (
+                                 <div className="flex justify-between border-t border-wood-200/50 pt-2 text-wood-500 font-medium">
+                                    <span>COPERTO (x{tempReservationInfo.numPeople} Persone)</span>
+                                    <span>€{(tempReservationInfo.numPeople * 2.00).toFixed(2)}</span>
+                                 </div>
+                              )}
+                           </div>
+                        </div>
+                     )}
+
+                     {/* METODI DI ADDEBITO DEL CONTO COERENTI (CAMERIERE O STRIPE IN APP) */}
+                     {billOrders.length > 0 && !billClientSecret && (
+                        <div className="space-y-3 pt-2">
+                           <span className="text-[10px] font-bold text-wood-400 uppercase tracking-widest block">Come vuoi saldare il conto?</span>
+                           
+                           {/* OPZIONE 1: RICHIEDI IL CONTO AL CAMERIERE */}
+                           <button 
+                              type="button"
+                              onClick={handleRequestBillFromWaiter}
+                              disabled={isRequestingBill}
+                              className="w-full text-left p-4 border-2 border-wood-200 rounded-2xl hover:bg-wood-50 transition-colors flex flex-col gap-0.5"
+                           >
+                              <span className="font-bold text-wood-900">Chiama il cameriere al tavolo</span>
+                              <span className="text-xs text-wood-400 font-medium">Il cameriere si avvicinerà con il POS o il resto</span>
+                           </button>
+
+                           {/* OPZIONE 2: PAGA IN APP CON STRIPE */}
+                           <button 
+                              type="button"
+                              onClick={() => handleInitBillStripePayment(billTotal)}
+                              disabled={isInitializingBillStripe}
+                              className="w-full text-left p-4 border border-[#45856c]/30 rounded-xl hover:bg-green-50/30 transition-colors flex flex-col gap-0.5"
+                           >
+                              <span className="font-bold text-wood-900">Paga ora in App con Carta</span>
+                              <span className="text-xs text-wood-400 font-medium">Sotto sotto trovi Google/Apple Pay e Carte di Credito</span>
+                           </button>
+                        </div>
+                     )}
+
+                     {/* ELEMENTO DI PAGAMENTO STRIPE INTEGRATO NELLA MODALE CONTO */}
+                     {billClientSecret && (
+                        <div className="mt-4 pt-4 border-t border-wood-100 animate-in fade-in duration-300">
+                           <Elements stripe={stripePromise} options={{ clientSecret: billClientSecret, locale: lang }}>
+                              <StripeCheckoutForm 
+                                 clientSecret={billClientSecret} 
+                                 cart={cart}
+                                 orderForm={orderForm}
+                                 tempReservationInfo={tempReservationInfo}
+                                 onPaymentSuccess={handleConfirmConsolidatedPayment} // Chiude e salda tutti gli ordini in blocco!
+                              />
+                           </Elements>
+                        </div>
+                     )}
+
+                  </div>
+
+                  {/* TOTALE COMPLESSIVO FISSO IN BASSO */}
+                  <div className="p-4 bg-wood-900 rounded-2xl text-white shadow-md flex justify-between items-center shrink-0 mt-4">
+                     <span className="text-sm font-bold uppercase tracking-wider">Totale Conto</span>
+                     <span className="text-3xl font-western text-accent-500">€{billTotal.toFixed(2)}</span>
+                  </div>
+
                </div>
             </div>
          );
