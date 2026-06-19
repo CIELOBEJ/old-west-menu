@@ -1501,8 +1501,9 @@ export default function App() {
   const handleSubmitOrder = async (
     e?: React.FormEvent, 
     customCart?: any[], 
-    customForm?: any
-  ) => {
+    customForm?: any,
+    isFastAddon = false
+    ) => {
     if (e) e.preventDefault();
     setIsSubmittingOrder(true);
 
@@ -1725,8 +1726,15 @@ export default function App() {
           window.history.replaceState({}, document.title, window.location.pathname);
         }
 
-        setView('TRACKING');
-        window.scrollTo(0,0);
+        if (tableSessionId) {
+          setHasPriorOrders(true);
+        }
+
+        if (!isFastAddon) {
+          setView('TRACKING');
+          window.scrollTo(0,0);
+        }
+
       }
     } catch (err) {
       console.error(err);
@@ -2070,7 +2078,7 @@ export default function App() {
                     if (isFastTableAddon) {
                        // AGGIUNTA RAPIDA (1-Click): Non serve il checkout form, invia subito!
                        const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
-                       await handleSubmitOrder(fakeEvent);
+                       await handleSubmitOrder(fakeEvent, undefined, undefined, true);
                        
                        setSuggestionToast({ show: true, text: "🚀 Aggiunta inviata in cucina!" });
                        setTimeout(() => setSuggestionToast({ show: false, text: '' }), 4000);
