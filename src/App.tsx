@@ -3124,7 +3124,13 @@ const renderMenu = () => {
             </h2>
             <p className="opacity-90 text-sm mt-2">
                {isTableOrder 
-                  ? `Grazie ${currentOrder.customer_name.replace("AGGIUNTE - ", "").replace(/TAVOLO\s+\d+/i, "").trim() || 'Ospite'}, mettiti comodo!`
+                  ? (() => {
+                       const nomePulito = currentOrder.customer_name
+                          .replace("AGGIUNTA - ", "")
+                          .replace(/TAVOLO\s+\d+/i, "")
+                          .trim();
+                       return `Grazie ${nomePulito || 'Ospite'}, mettiti comodo!`;
+                    })()
                   : `Grazie ${currentOrder.customer_name}, stiamo lavorando per te.`
                }
             </p>
