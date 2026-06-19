@@ -2070,18 +2070,18 @@ export default function App() {
                        alert("Seleziona i contorni e le bibite omaggio per procedere!");
                        return;
                     }
-                    setIsCartOpen(false); // Chiude il carrello
                     
                     if (isFastTableAddon) {
-                       // Invia direttamente l'aggiunta al database di Supabase senza passare dalla cassa! [1, 5]
+                       // AGGIUNTA RAPIDA (1-Click): Non serve il checkout form, invia subito!
                        const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
                        await handleSubmitOrder(fakeEvent);
                        
-                       // Trigger della notifica fluttuante di successo
-                       setSuggestionToast({ show: true, text: "🚀 Aggiunta inviata con successo in cucina!" });
+                       setSuggestionToast({ show: true, text: "🚀 Aggiunta inviata in cucina!" });
                        setTimeout(() => setSuggestionToast({ show: false, text: '' }), 4000);
+                       setIsCartOpen(false); // Chiudi solo il carrello
                     } else {
-                       // Se è il primo ordine o un ordine a casa, va alla cassa classica
+                       // PRIMO ORDINE O ASPORTO: Va al checkout
+                       setIsCartOpen(false);
                        setView('CHECKOUT');
                        window.scrollTo(0,0);
                     }
