@@ -1665,6 +1665,7 @@ export default function App() {
         return { ...item, selectedAddons: virtualAddons };
       });
 
+      const isAddition = tableSessionId !== null && hasPriorOrders;
       const newOrder = {
         // Se è un'aggiunta successiva al tavolo, appendiamo "AGGIUNTA" al nome del cliente in modo che si stampi in cucina!
         customer_name: (orderForm.orderType === 'table' && hasPriorOrders) 
@@ -1685,7 +1686,8 @@ export default function App() {
         
         // NUOVI CAMPI PER LA GESTIONE DEL CONTO UNICO E AGGIUNTE AL TAVOLO
         table_session_id: tableSessionId, // Collega l'ordine a questa specifica sessione del tavolo!
-        payment_status: activeForm.paymentMethod === 'stripe' ? 'paid' : 'unpaid' // Segna come pagato solo se pagano con Stripe!
+        payment_status: activeForm.paymentMethod === 'stripe' ? 'paid' : 'unpaid', // Segna come pagato solo se pagano con Stripe!
+        is_addition: (activeForm.orderType === 'table' && hasPriorOrders)
       };
 
       // Se c'è una prenotazione tavolo in sospeso (Scenario Pre-ordine), la salviamo nel database di Supabase
@@ -2088,7 +2090,7 @@ export default function App() {
                  const buttonLabel = isButtonDisabled 
                     ? "Scegli contorni/omaggi per procedere" 
                     : isFastTableAddon 
-                      ? "Invia Aggiunta alla Cucina (1-Click)" // <--- Testo chiaro e immediato [5]
+                      ? "Invia Aggiunta (1-Click)" // <--- Testo chiaro e immediato [5]
                       : t('show_staff', lang);
 
                  return (
