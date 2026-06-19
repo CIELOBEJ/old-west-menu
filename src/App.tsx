@@ -488,6 +488,9 @@ export default function App() {
   // --- STATI AGGIUNTI PER LA GESTIONE DEL CONTO UNICO AL TAVOLO ---
   const [tableSessionId, setTableSessionId] = useState<string | null>(null);
   const [hasPriorOrders, setHasPriorOrders] = useState(false); // Vero se il tavolo ha già ordinato in precedenza
+
+   
+
   // --- STATI AGGIUNTI PER IL CONTO UNICO AL TAVOLO ---
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
   const [billOrders, setBillOrders] = useState<any[]>([]);
@@ -2114,6 +2117,31 @@ export default function App() {
               })()}
            </div>
         </div>
+
+            {suggestionToast.show && (
+            <div style={{
+               position: 'fixed',
+               bottom: '40px',             // Lo posiziona in basso, sopra la navigazione
+               left: '50%',
+               transform: 'translateX(-50%)',
+               backgroundColor: '#45856c', // Un bel verde scuro (stile Old West)
+               color: '#ffffff',
+               padding: '12px 24px',
+               borderRadius: '30px',       // Arrotondato ai lati
+               boxShadow: '0px 4px 15px rgba(0, 0, 0, 0.2)', // Un po' di ombra per farlo risaltare
+               zIndex: 9999,               // Si assicura che stia sopra a qualsiasi altro elemento
+               fontWeight: 'bold',
+               fontSize: '14px',
+               textAlign: 'center',
+               whiteSpace: 'nowrap',       // Evita che il testo vada a capo
+               display: 'flex',
+               alignItems: 'center',
+               gap: '8px'
+            }}>
+               {suggestionToast.text}
+            </div>
+            )}
+
         {isAddonModalOpen && (
          <div className="fixed inset-0 bg-black/60 z-[60] flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
             <div className="bg-white w-full md:max-w-md h-[85vh] md:h-auto md:max-h-[80vh] md:rounded-3xl rounded-t-3xl p-6 flex flex-col shadow-2xl overflow-hidden">
@@ -2152,30 +2180,6 @@ export default function App() {
       </>
       );
   };
-
-  {suggestionToast.show && (
-  <div style={{
-    position: 'fixed',
-    bottom: '40px',             // Lo posiziona in basso, sopra la navigazione
-    left: '50%',
-    transform: 'translateX(-50%)',
-    backgroundColor: '#45856c', // Un bel verde scuro (stile Old West)
-    color: '#ffffff',
-    padding: '12px 24px',
-    borderRadius: '30px',       // Arrotondato ai lati
-    boxShadow: '0px 4px 15px rgba(0, 0, 0, 0.2)', // Un po' di ombra per farlo risaltare
-    zIndex: 9999,               // Si assicura che stia sopra a qualsiasi altro elemento
-    fontWeight: 'bold',
-    fontSize: '14px',
-    textAlign: 'center',
-    whiteSpace: 'nowrap',       // Evita che il testo vada a capo
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px'
-  }}>
-    {suggestionToast.text}
-  </div>
-)}
 
   const renderCheckout = () => {
     const timeSlots = [t('asap', lang), "18:30", "19:00", "19:30", "20:00", "20:30", "21:00", "21:30", "22:00", "22:30", "23:00"];
