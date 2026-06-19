@@ -1435,15 +1435,11 @@ export default function App() {
 
   const getCoverCharge = () => {
      if (orderForm.orderType === 'table') {
+        // Se è un'aggiunta (hasPriorOrders è true), il coperto è 0!
+        if (hasPriorOrders) return 0; 
+        
         const hasFood = cart.some(item => item.category !== ProductCategory.BEVANDE);
-        if (hasFood && cart.length > 0) {
-           // Se è un pre-ordine, moltiplica il coperto per il numero effettivo di persone prenotate!
-           if (tempReservationInfo) {
-              return tempReservationInfo.numPeople * 2.00;
-           }
-           // Altrimenti, per ora lascia il coperto fisso a 2.00 (Scenario B da fare dopo)
-           return 2.00;
-        }
+        return hasFood && cart.length > 0 ? (tempReservationInfo ? tempReservationInfo.numPeople * 2.00 : 2.00) : 0;
      }
      return 0;
   };
@@ -1509,6 +1505,7 @@ export default function App() {
   ) => {
     if (e) e.preventDefault();
     setIsSubmittingOrder(true);
+
     
     // Se passati (dopo il pagamento), usa i dati recuperati dal localStorage, altrimenti usa lo stato corrente
     const activeCart = customCart || cart;
@@ -1665,12 +1662,11 @@ export default function App() {
         return { ...item, selectedAddons: virtualAddons };
       });
 
-      const isAddition = tableSessionId !== null && hasPriorOrders;
+      const isAddition = tableSessionId !== null && cart.length > 0; 
+       // Nota: se il carrello ha prodotti e c'è una sessione, è un'aggiunta.
       const newOrder = {
         // Se è un'aggiunta successiva al tavolo, appendiamo "AGGIUNTA" al nome del cliente in modo che si stampi in cucina!
-        customer_name: (orderForm.orderType === 'table' && hasPriorOrders) 
-          ? `AGGIUNTA - ${finalCustomerName}` 
-          : finalCustomerName,
+        customer_name: finalCustomerName,
         customer_phone: finalPhone,
         customer_email: activeForm.customerEmail,
         order_type: activeForm.orderType,
@@ -1687,7 +1683,7 @@ export default function App() {
         // NUOVI CAMPI PER LA GESTIONE DEL CONTO UNICO E AGGIUNTE AL TAVOLO
         table_session_id: tableSessionId, // Collega l'ordine a questa specifica sessione del tavolo!
         payment_status: activeForm.paymentMethod === 'stripe' ? 'paid' : 'unpaid', // Segna come pagato solo se pagano con Stripe!
-        is_addition: (activeForm.orderType === 'table' && hasPriorOrders)
+        is_addition: isAddition
       };
 
       // Se c'è una prenotazione tavolo in sospeso (Scenario Pre-ordine), la salviamo nel database di Supabase
