@@ -489,7 +489,71 @@ export default function App() {
   const [tableSessionId, setTableSessionId] = useState<string | null>(null);
   const [hasPriorOrders, setHasPriorOrders] = useState(false); // Vero se il tavolo ha già ordinato in precedenza
 
-   
+   useEffect(() => {
+  if (!tableSessionId) return;
+
+  // 1. Controlla inizialmente se ci sono ordini non pagati per questa sessione
+  const checkActiveOrders = async () => {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('id')
+      .eq('table_session_id', tableSessionId)
+      .eq('payment_status', 'unpaid')
+      .neq('status', 'cancelled');
+      
+    if (!error && data) {
+      setHasPriorOrders(data.length > 0);
+    }
+  };
+  checkActiveOrders();
+
+  // 2. Ascolta in tempo reale quando lo staff chiude il conto o modifica gli ordini
+  const channel = supabase
+    .channel(`table-sync-${tableSessionId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*', // Ascolta inserimenti, aggiornamenti e cancellazioni
+        schema: 'public',
+        table: 'orders',
+        filter: `table_session_id=eq.${tableSessionId}`
+      },
+      async () => {
+        // Ogni volta che cambia qualcosa negli ordini di questo tavolo, verifichiamo se ci sono ancora ordini non pagati
+        const { data } = await supabase
+          .from('orders')
+          .select('id')
+          .eq('table_session_id', tableSessionId)
+          .eq('payment_status', 'unpaid')
+          .neq('status', 'cancelled');
+
+        if (data) {
+          const ancoraUnpaid = data.length > 0;
+          setHasPriorOrders(ancoraUnpaid);
+          
+          if (!ancoraUnpaid) {
+            // Se non ci sono più ordini attivi non pagati (il tavolo è stato liberato dallo staff)
+            localStorage.removeItem('activeOrderId');
+            setActiveOrderId(null);
+          }
+        }
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, [tableSessionId]);
+
+
+const [customModal, setCustomModal] = useState<{
+  show: boolean;
+  title: string;
+  message: string;
+  onConfirm?: () => void;
+  showCancel?: boolean;
+} | null>(null);
 
   // --- STATI AGGIUNTI PER IL CONTO UNICO AL TAVOLO ---
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
@@ -511,6 +575,7 @@ export default function App() {
       if (error) throw error;
       if (data) {
         setBillOrders(data);
+        setHasPriorOrders(data.length > 0);
         setBillClientSecret(null); // Resetta eventuali vecchie sessioni Stripe
         setIsBillModalOpen(true);
       }
@@ -535,7 +600,11 @@ export default function App() {
         
       if (error) throw error;
       
-      alert("Richiesta inviata! Un cameriere si avvicinerà a breve al tuo tavolo con il conto.");
+      setCustomModal({
+         show: true,
+         title: "Richiesta Inviata!",
+         message: "Un cameriere si avvicinerà a breve al tuo tavolo con il conto."
+         });
       setIsBillModalOpen(false);
     } catch (error) {
       console.error("Errore richiesta conto:", error);
@@ -3703,6 +3772,37 @@ const renderMenu = () => {
             </div>
          );
       })()}
+
+       {customModal && customModal.show && (
+         <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl text-center transform scale-in duration-200">
+               <h3 className="font-bold text-lg text-gray-900 mb-2">{customModal.title}</h3>
+               <p className="text-gray-600 text-sm mb-6">{customModal.message}</p>
+               
+               <div className="flex justify-center gap-3">
+               {customModal.showCancel && (
+                  <button
+                     type="button"
+                     onClick={() => setCustomModal(null)}
+                     className="px-4 py-2 border border-gray-300 rounded-xl text-gray-700 text-sm font-medium hover:bg-gray-50"
+                  >
+                     Annulla
+                  </button>
+               )}
+               <button
+                  type="button"
+                  onClick={() => {
+                     if (customModal.onConfirm) customModal.onConfirm();
+                     setCustomModal(null);
+                  }}
+                  className="px-6 py-2 bg-wood-700 hover:bg-wood-800 text-white rounded-xl text-sm font-medium"
+               >
+                  Ok
+               </button>
+               </div>
+            </div>
+         </div>
+         )}
 
       {/* ================= MODALE DI ACCESSO / REGISTRAZIONE UTENTE ================= */}
       {isAuthModalOpen && (
