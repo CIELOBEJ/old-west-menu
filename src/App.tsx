@@ -1663,7 +1663,7 @@ export default function App() {
         return { ...item, selectedAddons: virtualAddons };
       });
 
-      const isAddition = tableSessionId !== null && cart.length > 0; 
+      const isAddition = tableSessionId !== null && hasPriorOrders; 
        // Nota: se il carrello ha prodotti e c'è una sessione, è un'aggiunta.
       const newOrder = {
         // Se è un'aggiunta successiva al tavolo, appendiamo "AGGIUNTA" al nome del cliente in modo che si stampi in cucina!
@@ -2152,6 +2152,30 @@ export default function App() {
       </>
       );
   };
+
+  {suggestionToast.show && (
+  <div style={{
+    position: 'fixed',
+    bottom: '40px',             // Lo posiziona in basso, sopra la navigazione
+    left: '50%',
+    transform: 'translateX(-50%)',
+    backgroundColor: '#45856c', // Un bel verde scuro (stile Old West)
+    color: '#ffffff',
+    padding: '12px 24px',
+    borderRadius: '30px',       // Arrotondato ai lati
+    boxShadow: '0px 4px 15px rgba(0, 0, 0, 0.2)', // Un po' di ombra per farlo risaltare
+    zIndex: 9999,               // Si assicura che stia sopra a qualsiasi altro elemento
+    fontWeight: 'bold',
+    fontSize: '14px',
+    textAlign: 'center',
+    whiteSpace: 'nowrap',       // Evita che il testo vada a capo
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  }}>
+    {suggestionToast.text}
+  </div>
+)}
 
   const renderCheckout = () => {
     const timeSlots = [t('asap', lang), "18:30", "19:00", "19:30", "20:00", "20:30", "21:00", "21:30", "22:00", "22:30", "23:00"];
@@ -3580,8 +3604,15 @@ const renderMenu = () => {
 
          return (
             <div className="fixed inset-0 bg-black/60 z-[70] flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
-               <div className="bg-white w-full md:max-w-md max-h-[90vh] md:rounded-3xl rounded-t-3xl p-6 flex flex-col shadow-2xl overflow-hidden text-left">
-                  
+               <div className="relative bg-white w-full md:max-w-md max-h-[90vh] md:rounded-3xl rounded-t-3xl p-6 flex flex-col shadow-2xl overflow-hidden text-left">
+                    <button 
+                        type="button"
+                        onClick={() => setIsBillModalOpen(false)}
+                        className="absolute top-4 right-4 text-wood-500 hover:text-wood-800 transition-colors p-2 z-50 text-xl font-bold"
+                        title="Chiudi"
+                     >
+                        ✕
+                     </button>
                   <div className="text-center mb-6 pb-4 border-b border-wood-100 shrink-0">
                      <h4 className="font-western text-2xl text-wood-900 leading-none">IL MIO CONTO</h4>
                      <p className="text-xs text-[#45856c] font-black uppercase mt-1">Riepilogo Consolidato Tavolo {localStorage.getItem('active_table_number')}</p>
