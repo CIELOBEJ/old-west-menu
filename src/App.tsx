@@ -1497,7 +1497,9 @@ export default function App() {
   const handleImportData = () => alert("Import locale disabilitato. Usa sync cloud.");
   const handleFactoryReset = () => alert("Reset locale disabilitato. Gestisci da DB.");
 
-// FUNZIONE UNIFICATA PER L'INVIO DELL'ORDINE (SUPPORTA ANCHE IL RECUPERO POST-PAGAMENTO STRIPE)
+  const isFastTableAddon = tableSessionId !== null && hasPriorOrders;
+
+  // FUNZIONE UNIFICATA PER L'INVIO DELL'ORDINE (SUPPORTA ANCHE IL RECUPERO POST-PAGAMENTO STRIPE)
   const handleSubmitOrder = async (
     e?: React.FormEvent, 
     customCart?: any[], 
@@ -1717,6 +1719,12 @@ export default function App() {
         // AGGIUNTO: Pulisce la memoria del tavolo se l'ordine ha successo
         setTempReservationInfo(null);
         setIsPreOrder(false);
+
+        // MOSTRA IL TOAST SOLO SE È UN'AGGIUNTA 1-CLICK!
+        if (isFastTableAddon) {
+           setSuggestionToast({ show: true, text: "🚀 Aggiunta inviata in cucina!" });
+           setTimeout(() => setSuggestionToast({ show: false, text: '' }), 4000);
+        }
         
         if (customForm) {
           // Se è un recupero post-pagamento Stripe, puliamo la memoria temporanea ed eliminiamo i parametri dall'URL
@@ -2059,25 +2067,23 @@ export default function App() {
                  const isButtonDisabled = hasMissingSideDishes || hasMissingFreeDrinks;
 
                  // CAPOLAVORO UX: Se l'utente è al tavolo con consumazioni già in corso, sblocca la cassa rapida in 1-Click! [1, 5]
-                 const isFastTableAddon = tableSessionId !== null && hasPriorOrders;
+                 
 
                  const handleButtonClick = async () => {
                     if (isButtonDisabled) {
                        alert("Seleziona i contorni e le bibite omaggio per procedere!");
                        return;
                     }
-                    
+                    // CHIUDI SEMPRE IL CARRELLO APPENA CLICCA
+                     setIsCartOpen(false);
                     if (isFastTableAddon) {
                        // AGGIUNTA RAPIDA (1-Click): Non serve il checkout form, invia subito!
                        const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
                        await handleSubmitOrder(fakeEvent);
                        
-                       setSuggestionToast({ show: true, text: "🚀 Aggiunta inviata in cucina!" });
-                       setTimeout(() => setSuggestionToast({ show: false, text: '' }), 4000);
-                       setIsCartOpen(false); // Chiudi solo il carrello
                     } else {
                        // PRIMO ORDINE O ASPORTO: Va al checkout
-                       setIsCartOpen(false);
+                       
                        setView('CHECKOUT');
                        window.scrollTo(0,0);
                     }
