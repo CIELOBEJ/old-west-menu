@@ -11,6 +11,7 @@ import { INITIAL_MENU_ITEMS, CATEGORIES_LIST, HAMBURGER_SUBCATEGORIES, DRINK_SUB
 import { supabase } from './supabase';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import logoOldWest from './assets/LOGO-OLD-WEST.png';
 
 // Inizializza Stripe con la tua chiave pubblica di Test (Sostituisci con la tua pk_test_... reale!)
 const stripePromise = loadStripe('pk_test_51TiIYsCXySNnuldcThqR3ZAY2XpOwaUEb7rdhJ663hAfI7IeKap5bJ3HnbUbUVknR62JWTk6NbuVgocFIdRNrWj800M7BvpfqR');
@@ -53,7 +54,7 @@ const AllergenIcon = ({ type, className }: { type: AllergenType; className?: str
   return <IconComponent className={className} />;
 };
 
-const DEFAULT_LOGO = "https://oldwest.click/wp-content/uploads/2022/06/LOGO-OLD-WEST.png";
+const DEFAULT_LOGO = logoOldWest;
 const WesternLogo = ({ size = 'md', className, url }: { size?: 'md' | 'lg', className?: string, url?: string }) => {
   const isLarge = size === 'lg';
   const logoUrl = url || DEFAULT_LOGO;
@@ -2761,7 +2762,7 @@ const renderMenu = () => {
         <div className="flex-1 pb-20">
           {/* HERO */}
           <div className="relative h-96 bg-wood-900 overflow-hidden">
-            <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: "url('https://oldwest.click/wp-content/uploads/2018/07/background1.jpg')" }}></div>
+            <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: "url('/restaurant-bg.jpg')" }}></div>
             <div className="absolute inset-0 bg-gradient-to-t from-wood-900 via-transparent to-transparent"></div>
             <div className="relative z-10 flex flex-col items-center justify-center h-full text-center text-white pb-10 px-4 pt-16"><h1 className="text-4xl md:text-7xl font-western mb-4 shadow-sm drop-shadow-md tracking-wide pt-10">{t('hero_title', lang)}</h1><div className="flex flex-col items-center gap-2 text-wood-200 text-base md:text-xl font-medium"><p className="flex items-center gap-2"><MapPin size={20} className="text-accent-500" /> Via G. Galilei 35 - Cameri (NO)</p><p className="flex items-center gap-2 text-sm md:text-base opacity-80"><Clock size={16} /> 11:00 - 15:00 | 17:00 - 00:00</p></div></div>
           </div>
