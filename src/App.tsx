@@ -2447,7 +2447,7 @@ const handleInitStripePayment = async () => {
                                        setErroreIndirizzo(null);
                                     }} 
                                     className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#45856c]" 
-                                    placeholder="Via dei Mille 26 (specifica via e numero civico)" 
+                                    placeholder="Via Galileo 35 (specifica via e numero civico)" 
                                  />
                                  <button
                                     type="button"
