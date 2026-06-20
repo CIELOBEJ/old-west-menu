@@ -1474,7 +1474,7 @@ const handleInitStripePayment = async () => {
     const existingItemIndex = cart.findIndex((i) => i.id === item.id && (variant ? i.selectedVariant?.name === variant.name : !i.selectedVariant) && (!i.selectedAddons || i.selectedAddons.length === 0));
     if (existingItemIndex > -1) { const newCart = [...cart]; newCart[existingItemIndex].quantity += 1; setCart(newCart); } else { setCart([...cart, { ...item, cartId: Math.random().toString(), quantity: 1, selectedVariant: variant }]); }
     const suggText = getCrossSellSuggestion(item);
-    if (suggText) { setSuggestionToast({ show: true, text: suggText }); setTimeout(() => setSuggestionToast({ show: false, text: '' }), 4000); }
+    if (suggText) { setSuggestionToast({ show: true, text: suggText }); setTimeout(() => setSuggestionToast({ show: false, text: '' }), 2000); }
   };
   
   const removeFromCart = (cartId: string) => setCart(cart.filter(i => i.cartId !== cartId));
