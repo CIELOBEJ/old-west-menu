@@ -1136,35 +1136,35 @@ const [customModal, setCustomModal] = useState<{
 
 
   // Contatta la tua API serverless su Vercel per generare l'intenzione di pagamento segreta
-  const handleInitStripePayment = async () => {
-    setOrderForm(prev => ({ ...prev, paymentMethod: 'stripe' }));   
-    setIsInitializingStripe(true);
-    try {
-      const response = await fetch('/api/create-payment-intent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: getGrandTotal() }) // Invia il totale esatto in euro
-      });
-      const data = await response.json();
-      if (data.clientSecret) {
-        setClientSecret(data.clientSecret);
-        // SCORRIMENTO AUTOMATICO MORBIDO VERSO IL MODULO DI PAGAMENTO
-        setTimeout(() => {
-           const stripeFormElement = document.getElementById('stripe-payment-form');
-           if (stripeFormElement) {
-              stripeFormElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-           }
-        }, 600); // Ritardo di 600ms per attendere che la modale sia disegnata a schermo
-      } else {
-        alert("Errore nell'inizializzazione della cassa online. Riprova.");
-      }
-    } catch (error) {
-      console.error("Errore inizializzazione Stripe:", error);
-      alert("Impossibile contattare il server dei pagamenti. Scegli un altro metodo.");
-    } finally {
-      setIsInitializingStripe(false);
+const handleInitStripePayment = async () => {
+  // Rimosso il setOrderForm da qui!
+  setIsInitializingStripe(true);
+  try {
+    const response = await fetch('/api/create-payment-intent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount: getGrandTotal() })
+    });
+    const data = await response.json();
+    if (data.clientSecret) {
+      setClientSecret(data.clientSecret);
+      
+      setTimeout(() => {
+         const stripeFormElement = document.getElementById('stripe-payment-form');
+         if (stripeFormElement) {
+            stripeFormElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+         }
+      }, 600);
+    } else {
+      alert("Errore nell'inizializzazione della cassa online. Riprova.");
     }
-  };
+  } catch (error) {
+    console.error("Errore inizializzazione Stripe:", error);
+    alert("Impossibile contattare il server dei pagamenti. Scegli un altro metodo.");
+  } finally {
+    setIsInitializingStripe(false);
+  }
+};
 
   // Se il cliente modifica le opzioni di consegna (cambiando il totale) mentre Stripe è attivo,
   // ricalcola e aggiorna automaticamente l'intenzione di pagamento per addebitare la cifra esatta
@@ -2579,7 +2579,7 @@ const [customModal, setCustomModal] = useState<{
                           name="payment" 
                           value="stripe" 
                           checked={orderForm.paymentMethod === 'stripe'} 
-                          onChange={handleInitStripePayment}
+                          onChange={() => setOrderForm(prev => ({ ...prev, paymentMethod: 'stripe' }))}
                           className="w-5 h-5 accent-[#45856c]" 
                        />
                        <div className="flex flex-col">
@@ -2631,7 +2631,7 @@ const [customModal, setCustomModal] = useState<{
                           Seleziona o compila l'indirizzo per caricare la cassa online.
                        </div>
                     )
-                 ) : (
+                   ) : (
                     <button type="submit" disabled={isSubmittingOrder} className="w-full bg-[#45856c] text-white py-4 rounded-xl font-bold text-xl shadow-lg flex items-center justify-center gap-3 hover:bg-opacity-90 transition-all disabled:opacity-50">
                        {isSubmittingOrder ? <Loader2 className="animate-spin" size={24} /> : <>{t('send_order', lang)} <ArrowRight size={24} /></>}
                     </button>
