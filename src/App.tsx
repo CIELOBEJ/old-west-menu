@@ -2153,7 +2153,7 @@ const handleInitStripePayment = async () => {
                        const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
                        await handleSubmitOrder(fakeEvent, undefined, undefined, true);
                        
-                       setSuggestionToast({ show: true, text: "🚀 Aggiunta inviata in cucina!" });
+                       setSuggestionToast({ show: true, text: "🚀 Aggiunta inviata allo staff!" });
                        setTimeout(() => setSuggestionToast({ show: false, text: '' }), 4000);
                        setIsCartOpen(false); // Chiudi solo il carrello
                     } else {
@@ -2191,7 +2191,7 @@ const handleInitStripePayment = async () => {
             {suggestionToast.show && (
             <div style={{
                position: 'fixed',
-               bottom: '40px',             // Lo posiziona in basso, sopra la navigazione
+               bottom: '90px',             // Lo posiziona in basso, sopra la navigazione
                left: '50%',
                transform: 'translateX(-50%)',
                backgroundColor: '#45856c', // Un bel verde scuro (stile Old West)
