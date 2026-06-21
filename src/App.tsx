@@ -1628,6 +1628,33 @@ const handleInitStripePayment = async () => {
               });
             });
           }
+
+          if (item.brand === "Contorno compreso" && item.selectedSideDish) {
+            virtualAddons.push({
+               id: `virtual-side-${item.selectedSideDish}-${Date.now()}`,
+               name: `CONTORNO: ${item.selectedSideDish.toUpperCase()}`,
+               description: '',
+               price: 0,
+               category: 'Ingredienti Extra',
+               isAvailable: true
+            });
+         }
+          // AGGIUNTO: Genera la comanda virtuale per la bibita omaggio anche nei pre-ordini
+            const isPizza = item.category === ProductCategory.PIZZA;
+            const isBimbi = item.category === ProductCategory.BIMBI;
+            const isDeliveryOrTakeaway = activeForm.orderType === 'delivery' || activeForm.orderType === 'takeaway';
+            
+            if (((isDeliveryOrTakeaway && isPizza) || isBimbi) && item.selectedFreeDrink) {
+               virtualAddons.push({
+               id: `virtual-drink-${item.selectedFreeDrink}-${Date.now()}`,
+               name: `OMAGGIO: ${item.selectedFreeDrink.toUpperCase()}`,
+               description: '',
+               price: 0,
+               category: 'Ingredienti Extra',
+               isAvailable: true
+               });
+            }
+
           return { ...item, selectedAddons: virtualAddons };
         });
 
@@ -1733,6 +1760,19 @@ const handleInitStripePayment = async () => {
             isAvailable: true
           });
         }
+
+       // NUOVO: Genera la comanda virtuale per il contorno compreso dello Staff
+         if (item.brand === "Contorno compreso" && item.selectedSideDish) {
+            virtualAddons.push({
+               id: `virtual-side-${item.selectedSideDish}-${Date.now()}`,
+               name: `CONTORNO: ${item.selectedSideDish.toUpperCase()}`,
+               description: '',
+               price: 0,
+               category: 'Ingredienti Extra',
+               isAvailable: true
+            });
+         }
+
         return { ...item, selectedAddons: virtualAddons };
       });
 
