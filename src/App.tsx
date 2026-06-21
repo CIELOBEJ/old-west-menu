@@ -2203,9 +2203,12 @@ const handleInitStripePayment = async () => {
                fontWeight: 'bold',
                fontSize: '14px',
                textAlign: 'center',
-               whiteSpace: 'nowrap',       // Evita che il testo vada a capo
+               whiteSpace: 'pre-line',       // Evita che il testo vada a capo
+               width: 'max-content',       // Si allarga quanto la riga di testo più lunga
+               maxWidth: '90vw',
                display: 'flex',
                alignItems: 'center',
+               justifyContent: 'center',
                gap: '8px'
             }}>
                {suggestionToast.text}
