@@ -5,7 +5,8 @@ export const DATA_VERSION = '3.0'; // Versione Delivery
 export const HAMBURGER_SUBCATEGORIES = [
   "Old West Special",
   "Vegetariano/Vegano",
-  'Hamburger "Fai da te"'
+  'Hamburger "Fai da te"',
+  "Hamburger della Casa"
 ];
 
 export const DRINK_SUBCATEGORIES = [
@@ -23,13 +24,24 @@ export const ADDON_SUBCATEGORIES = [
   "Generale"
 ];
 
+export const HAMBURGER_SUBCATEGORIES_TRANSLATIONS: Record<string, Record<LanguageCode, string>> = {
+  "Old West Special": { it: "Old West Special", en: "Old West Special", fr: "Spécial Old West", de: "Old West Spezial" },
+  "Vegetariano/Vegano": { it: "Vegetariano/Vegano", en: "Vegetarian/Vegan", fr: "Végétarien/Végan", de: "Vegetarisch/Vegan" },
+  'Hamburger "Fai da te"': { it: 'Hamburger "Fai da te"', en: 'Build Your Own Burger', fr: 'Créez Votre Burger', de: 'DIY Burger' },
+  "Hamburger della Casa": { it: "Hamburger della Casa", en: "House Burgers", fr: "Burgers de la Maison", de: "Haus-Burger" }
+};
+
 export const SUBCATEGORY_TRANSLATIONS: Record<string, Record<LanguageCode, string>> = {
   "Acqua e Bibite": { it: "Acqua e Bibite", en: "Water & Soft Drinks", fr: "Eau et Boissons", de: "Wasser und Erfrischungsgetränke" },
   "Birre alla Spina": { it: "Birre alla Spina", en: "Draft Beers", fr: "Bières Pression", de: "Bier vom Fass" },
   "Birre in Bottiglia": { it: "Birre in Bottiglia", en: "Bottled Beers", fr: "Bières en Bouteille", de: "Flaschenbiere" },
   "Vini": { it: "Vini", en: "Wines", fr: "Vins", de: "Weine" },
   "Caffetteria": { it: "Caffetteria", en: "Coffee", fr: "Café", de: "Kaffee" },
-  "Amari e Digestivi": { it: "Amari e Digestivi", en: "Bitters & Digestifs", fr: "Amers et Digestifs", de: "Bitter und Digestifs" }
+  "Amari e Digestivi": { it: "Amari e Digestivi", en: "Bitters & Digestifs", fr: "Amers et Digestifs", de: "Bitter und Digestifs" },
+  "Old West Special": { it: "Old West Special", en: "Old West Special", fr: "Spécial Old West", de: "Old West Spezial" },
+  "Vegetariano/Vegano": { it: "Vegetariano/Vegano", en: "Vegetarian/Vegan", fr: "Végétarien/Végan", de: "Vegetarisch/Vegan" },
+  'Hamburger "Fai da te"': { it: 'Hamburger "Fai da te"', en: 'Build Your Own Burger', fr: 'Créez Votre Burger', de: 'DIY Burger' },
+  "Hamburger della Casa": { it: "Hamburger della Casa", en: "House Burgers", fr: "Burgers de la Maison", de: "Haus-Burger" }
 };
 
 export const ALLERGENS_CONFIG: Record<AllergenType, { label: string, iconName: string }> = {
@@ -49,11 +61,16 @@ export const ALLERGENS_CONFIG: Record<AllergenType, { label: string, iconName: s
   'Molluschi': { label: 'Molluschi', iconName: 'Shell' },
 };
 
-export const DIY_OPTIONS = {
+// =========================================================================
+// 1. HAMBURGER DELLA CASA (Tutti i passaggi a monoselezione)
+// =========================================================================
+export const HOUSE_BURGER_OPTIONS = {
   basePrice: 0,
   steps: [
     {
-      id: 1,
+      id: "pane",
+      isMulti: false,
+      isOptional: false,
       title: "Il Pane",
       description: "Scegli la base perfetta",
       translations: {
@@ -67,7 +84,9 @@ export const DIY_OPTIONS = {
       ]
     },
     {
-      id: 2,
+      id: "carne",
+      isMulti: false,
+      isOptional: false,
       title: "La Carne",
       description: "Il cuore del tuo burger",
       translations: { en: { title: "The Meat", description: "The heart of your burger" }, fr: { title: "La Viande", description: "Le cœur de votre burger" }, de: { title: "Das Fleisch", description: "Das Herz Ihres Burgers" } },
@@ -83,10 +102,12 @@ export const DIY_OPTIONS = {
       ]
     },
     {
-      id: 3,
+      id: "opzione",
+      isMulti: false,
+      isOptional: false,
       title: "L'Opzione",
-      description: "Arricchisci il gusto",
-      translations: { en: { title: "The Option", description: "Enrich the taste" }, fr: { title: "L'Option", description: "Enrichissez le goût" }, de: { title: "Die Option", description: "Bereichern Sie den Geschmack" } },
+      description: "Scegli la ricetta della casa",
+      translations: { en: { title: "The Option", description: "Choose the house recipe" }, fr: { title: "L'Option", description: "Choisissez la recette de la maison" }, de: { title: "Die Option", description: "Wählen Sie das Hausrezept" } },
       options: [
         { name: "OPZIONE N°1: Cipolle rosse, Grana, Pomodorini, Salsa boscaiola", price: 4.00, translations: { en: { name: "OPTION #1: Red onions, Parmesan, Cherry tomatoes, Boscaiola sauce" }, fr: { name: "OPTION N°1: Oignons rouges, Grana, Tomates cerises, Sauce boscaiola" }, de: { name: "OPTION NR.1: Rote Zwiebeln, Grana, Kirschtomaten, Boscaiola-Soße" } } },
         { name: "OPZIONE N°2: Gorgonzola, Bacon, Lattuga, Pomodorini, Melanzane", price: 5.00, translations: { en: { name: "OPTION #2: Gorgonzola, Bacon, Lettuce, Cherry tomatoes, Eggplant" }, fr: { name: "OPTION N°2: Gorgonzola, Bacon, Laitue, Tomates cerises, Aubergines" }, de: { name: "OPTION NR.2: Gorgonzola, Speck, Salat, Kirschtomaten, Auberginen" } } },
@@ -97,8 +118,82 @@ export const DIY_OPTIONS = {
       ]
     },
     {
-      id: 4,
-      title: "Il Contorno",
+      id: "contorno",
+      isMulti: false,
+      isOptional: true,
+      title: "Il Contorno (facoltativo)",
+      description: "Per accompagnare",
+      translations: { en: { title: "The Side Dish", description: "To accompany" }, fr: { title: "L'Accompagnement", description: "Pour accompagner" }, de: { title: "Die Beilage", description: "Zur Begleitung" } },
+      options: [
+        { name: "Patatine fritte", price: 5.00, translations: { en: { name: "French Fries" }, fr: { name: "Frites" }, de: { name: "Pommes Frites" } } },
+        { name: "Pomodorini", price: 5.00, translations: { en: { name: "Cherry Tomatoes" }, fr: { name: "Tomates Cerises" }, de: { name: "Kirschtomaten" } } },
+        { name: "Fagioli borlotti con cipolle crude", price: 5.00, translations: { en: { name: "Borlotti beans with raw onions" }, fr: { name: "Haricots Borlotti aux oignons crus" }, de: { name: "Borlotti-Bohnen mit rohen Zwiebeln" } } },
+        { name: "Insalata di lattuga e radicchio", price: 5.00, translations: { en: { name: "Lettuce and Radicchio Salad" }, fr: { name: "Salade de Laitue et Radicchio" }, de: { name: "Salat aus Kopfsalat und Radicchio" } } },
+        { name: "Mais e carote", price: 5.00, translations: { en: { name: "Corn and Carrots" }, fr: { name: "Maïs et Carottes" }, de: { name: "Mais und Karotten" } } },
+        { name: "Grill di verdure", price: 5.00, translations: { en: { name: "Grilled Vegetables" }, fr: { name: "Légumes grillés" }, de: { name: "Gegrilltes Gemüse" } } }
+      ]
+    }
+  ]
+};
+
+// =========================================================================
+// 2. IL VERO HAMBURGER FAI DA TE (Farcitura multipla a piacimento)
+// =========================================================================
+export const TRUE_DIY_OPTIONS = {
+  basePrice: 0,
+  steps: [
+    {
+      id: "pane",
+      isMulti: false,
+      isOptional: false,
+      title: "Il Pane",
+      description: "Scegli la base perfetta",
+      translations: {
+        en: { title: "The Bread", description: "Choose the perfect base" },
+        fr: { title: "Le Pain", description: "Choisissez la base parfaite" },
+        de: { title: "Das Brot", description: "Wählen Sie die perfekte Basis" }
+      },
+      options: [
+        { name: "PANINO preparato al momento", price: 0, translations: { en: { name: "Freshly prepared BUN" }, fr: { name: "PAIN préparé sur place" }, de: { name: "Frisch zubereitetes BRÖTCHEN" } } },
+        { name: "FOCACCIA CALDA per hamburger servito al piatto", price: 0, translations: { en: { name: "WARM FOCACCIA for plated burger" }, fr: { name: "FOCACCIA CHAUDE pour burger sur assiette" }, de: { name: "WARME FOCACCIA für Burger auf dem Teller" } } }
+      ]
+    },
+    {
+      id: "carne",
+      isMulti: false,
+      isOptional: false,
+      title: "La Carne",
+      description: "Il cuore del tuo burger",
+      translations: { en: { title: "The Meat", description: "The heart of your burger" }, fr: { title: "La Viande", description: "Le cœur de votre burger" }, de: { title: "Das Fleisch", description: "Das Herz Ihres Burgers" } },
+      options: [
+        { name: "Hamburger di fassona 270g", price: 9.00, translations: { en: { name: "Fassona Beef Burger 270g" }, fr: { name: "Burger de Bœuf Fassona 270g" }, de: { name: "Fassona Rindfleisch Burger 270g" } } },
+        { name: "Hamburger di bufalo 220g", price: 8.00, translations: { en: { name: "Buffalo Burger 220g" }, fr: { name: "Burger de Buffle 220g" }, de: { name: "Büffel Burger 220g" } } },
+        { name: "Hamburger di chianina 200g", price: 8.00, translations: { en: { name: "Chianina Beef Burger 200g" }, fr: { name: "Burger de Bœuf Chianina 200g" }, de: { name: "Chianina Rindfleisch Burger 200g" } } },
+        { name: "Hamburger di angus 200g", price: 8.00, translations: { en: { name: "Angus Burger 200g" }, fr: { name: "Burger Angus 200g" }, de: { name: "Angus Burger 200g" } } },
+        { name: "Hamburger di bovino 180g", price: 6.00, translations: { en: { name: "Beef Burger 180g" }, fr: { name: "Burger de Bœuf 180g" }, de: { name: "Rindfleisch Burger 180g" } } },
+        { name: "Hamburger di bovino 100g", price: 5.00, translations: { en: { name: "Beef Burger 100g" }, fr: { name: "Burger de Bœuf 100g" }, de: { name: "Rindfleisch Burger 100g" } } },
+        { name: "Hamburger di pollo 100g", price: 5.00, translations: { en: { name: "Chicken Burger 100g" }, fr: { name: "Burger de Poulet 100g" }, de: { name: "Hähnchen Burger 100g" } } },
+        { name: "Hamburger di salamella 100g", price: 4.00, translations: { en: { name: "Sausage Burger 100g" }, fr: { name: "Burger de Saucisse 100g" }, de: { name: "Wurst Burger 100g" } } }
+      ]
+    },
+    {
+      id: "condimenti",
+      isMulti: true, // <--- ATTIVA LA MULTISELEZIONE
+      isOptional: true, // <--- Facoltativo: l'utente può decidere di non mettere condimenti extra
+      title: "La Farcitura",
+      description: "Condisci a tuo piacimento (scelta multipla)",
+      translations: { 
+        en: { title: "Toppings", description: "Season to your liking (multiple choice)" }, 
+        fr: { title: "Garnitures", description: "Assaisonnez à votre goût (choix multiple)" }, 
+        de: { title: "Zutaten", description: "Nach Belieben würzen (Mehrfachauswahl)" } 
+      },
+      options: []
+    },
+    {
+      id: "contorno",
+      isMulti: false,
+      isOptional: true,
+      title: "Il Contorno (facoltativo)",
       description: "Per accompagnare",
       translations: { en: { title: "The Side Dish", description: "To accompany" }, fr: { title: "L'Accompagnement", description: "Pour accompagner" }, de: { title: "Die Beilage", description: "Zur Begleitung" } },
       options: [

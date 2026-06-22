@@ -7,7 +7,7 @@ import {
   Milk, Egg, Nut, Bean, AlertCircle, Wine, Shell, Info, Search, Sandwich, Sparkles, Bike, Store, CheckCircle2, Copy, User, Mail, ShoppingCart, Undo, ReceiptText 
 } from 'lucide-react';
 import { MenuItem, ProductCategory, ViewState, LanguageCode, ActiveFilters, CartItem, AllergenType, ProductVariant, OrderType, PaymentMethod } from './types';
-import { INITIAL_MENU_ITEMS, CATEGORIES_LIST, HAMBURGER_SUBCATEGORIES, DRINK_SUBCATEGORIES, DIY_OPTIONS, UI_TRANSLATIONS, CATEGORY_TRANSLATIONS, SUBCATEGORY_TRANSLATIONS, DATA_VERSION, ALLERGENS_CONFIG, EXTRA_INGREDIENTS_ITEMS, DELIVERY_ZONES, LUNCH_HOURS, DINNER_HOURS, ADDON_SUBCATEGORIES } from './constants';
+import { INITIAL_MENU_ITEMS, CATEGORIES_LIST, HAMBURGER_SUBCATEGORIES, DRINK_SUBCATEGORIES, TRUE_DIY_OPTIONS, HOUSE_BURGER_OPTIONS, UI_TRANSLATIONS, CATEGORY_TRANSLATIONS, SUBCATEGORY_TRANSLATIONS, HAMBURGER_SUBCATEGORIES_TRANSLATIONS, DATA_VERSION, ALLERGENS_CONFIG, EXTRA_INGREDIENTS_ITEMS, DELIVERY_ZONES, LUNCH_HOURS, DINNER_HOURS, ADDON_SUBCATEGORIES } from './constants';
 import { supabase } from './supabase';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
@@ -84,6 +84,12 @@ const tCategory = (cat: string, lang: LanguageCode): string => {
 };
 const tSubCategory = (subCat: string, lang: LanguageCode): string => {
   if (SUBCATEGORY_TRANSLATIONS[subCat] && SUBCATEGORY_TRANSLATIONS[subCat][lang]) return SUBCATEGORY_TRANSLATIONS[subCat][lang];
+  return subCat;
+};
+const tHamburgerSubCategory = (subCat: string, lang: LanguageCode): string => {
+  if (HAMBURGER_SUBCATEGORIES_TRANSLATIONS[subCat] && HAMBURGER_SUBCATEGORIES_TRANSLATIONS[subCat][lang]) {
+    return HAMBURGER_SUBCATEGORIES_TRANSLATIONS[subCat][lang];
+  }
   return subCat;
 };
 const getDIYStepContent = (step: any, lang: LanguageCode) => { 
@@ -435,7 +441,21 @@ export default function App() {
   const [activeSubCategoryView, setActiveSubCategoryView] = useState<string | null>(null);
   const [categories, setCategories] = useState<{ id: string; image_url: string | null }[]>([]);
   const [diyStep, setDiyStep] = useState(0);
-  const [diySelections, setDiySelections] = useState<Record<number, any>>({});
+  const [diySelections, setDiySelections] = useState<Record<string, any>>({});
+  const [diySearchQuery, setDiySearchQuery] = useState("");
+  const [diyType, setDiyType] = useState<'house' | 'diy' | null>(null);
+
+  // Sincronizza il tipo di panino in base alla sottocategoria cliccata dall'utente
+      useEffect(() => {
+      if (activeSubCategoryView === 'Hamburger della Casa') {
+         setDiyType('house');
+      } else if (activeSubCategoryView === 'Hamburger "Fai da te"') {
+         setDiyType('diy');
+      } else {
+         setDiyType(null);
+      }
+      }, [activeSubCategoryView]);
+
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAddonModalOpen, setIsAddonModalOpen] = useState(false);
@@ -1426,7 +1446,7 @@ const handleInitStripePayment = async () => {
     }
   }, []);
   useEffect(() => { const handleScroll = () => { if (window.scrollY > 300) setShowScrollTop(true); else setShowScrollTop(false); }; window.addEventListener('scroll', handleScroll); return () => window.removeEventListener('scroll', handleScroll); }, []);
-  useEffect(() => { if (activeSubCategoryView === 'Hamburger "Fai da te"' && diyHeaderRef.current) { diyHeaderRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, [diyStep]);
+  useEffect(() => { if (diyType && diyHeaderRef.current) { diyHeaderRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, [diyStep, diyType]);
   useEffect(() => {
     if (view === 'TRACKING' && activeOrderId) {
       const channel = supabase
@@ -1450,7 +1470,15 @@ const handleInitStripePayment = async () => {
   const handleMouseMove = (e: React.MouseEvent, ref: React.RefObject<HTMLDivElement>) => { if (!isDragging || !ref.current) return; e.preventDefault(); const x = e.pageX - ref.current.offsetLeft; const walk = (x - startX) * 2; ref.current.scrollLeft = scrollLeft - walk; };
   const scrollCarousel = (direction: 'left' | 'right', ref: React.RefObject<HTMLDivElement>) => { if (ref.current) { const scrollAmount = 300; ref.current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' }); } };
   const getProductContent = (item: MenuItem | Partial<MenuItem>) => { if (lang === 'it') return { name: item.name || '', description: item.description || '' }; const trans = item.translations?.[lang]; return { name: trans?.name || item.name || '', description: trans?.description || item.description || '' }; };
-
+  const getOptionName = (opt: any, lang: LanguageCode) => {
+  // Se l'oggetto ha la proprietà 'category', significa che è un MenuItem del database.
+  // In questo caso usiamo la tua funzione getProductContent
+  if (opt.category) {
+    return getProductContent(opt).name;
+  }
+  // Altrimenti, se è un'opzione statica del constants.ts, usiamo getDIYOptionContent
+  return getDIYOptionContent(opt, lang);
+};
   const checkFilters = (item: MenuItem) => {
     if (activeFilters.vegetarian) { const isVeg = item.tags?.includes('Vegetariano') || item.tags?.includes('Vegano') || item.category === ProductCategory.CONTORNI || (item.category === ProductCategory.PIZZA && (item.name === 'Vegetariana' || item.name === 'Margherita' || item.name === 'Marinara' || item.name === 'Verdure')); if (!isVeg) return false; }
     if (activeFilters.vegan) { const isVegan = item.tags?.includes('Vegano') || (item.category === ProductCategory.CONTORNI && item.name !== 'Patatine Fritte') || (item.category === ProductCategory.PIZZA && item.name === 'Marinara'); if (!isVegan) return false; }
@@ -1525,8 +1553,105 @@ const handleInitStripePayment = async () => {
 
   const getGrandTotal = () => getCartItemsTotal() + getCoverCharge() + getDeliveryFee();
 
-  const handleDiySelection = (stepId: number, option: any) => { setDiySelections(prev => ({ ...prev, [stepId]: option })); setTimeout(() => { diyControlsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 200); };
-  const handleDiyNext = () => { if (diyStep < DIY_OPTIONS.steps.length - 1) { setDiyStep(diyStep + 1); } else { const totalPrice = DIY_OPTIONS.basePrice + DIY_OPTIONS.steps.reduce((acc, step) => { const selected = diySelections[step.id]; return acc + (selected ? selected.price : 0); }, 0); const description = DIY_OPTIONS.steps.map(step => { const selected = diySelections[step.id]; return selected ? `${getDIYOptionContent(selected, lang)}` : ''; }).filter(Boolean).join(' + '); const diyItem: MenuItem = { id: `diy-${Date.now()}`, name: t('create_your_taste', lang), description: description, price: totalPrice, category: ProductCategory.HAMBURGER, isAvailable: true, imageUrl: 'https://oldwest.click/wp-content/uploads/2020/02/hamburger-fai-da-te.jpg' }; addToCart(diyItem); setDiySelections({}); setDiyStep(0); setActiveSubCategoryView(null); } };
+  const handleDiySelection = (stepId: string, option: any, isMulti = false) => {
+  setDiySelections(prev => {
+    if (!isMulti) {
+      // MONOSELEZIONE: Sostituisce la selezione precedente
+      return { ...prev, [stepId]: option };
+    } else {
+      // MULTISELEZIONE: Aggiunge o rimuove dall'array
+      const currentSelections = (prev[stepId] as any[]) || [];
+      const exists = currentSelections.some(item => item.name === option.name);
+      
+      if (exists) {
+        return {
+          ...prev,
+          [stepId]: currentSelections.filter(item => item.name !== option.name)
+        };
+      } else {
+        return {
+          ...prev,
+          [stepId]: [...currentSelections, option]
+        };
+      }
+    }
+  });
+
+  // Mantiene lo scorrimento fluido verso i controlli
+  setTimeout(() => { 
+    diyControlsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }); 
+  }, 200);
+};
+
+  const handleDiyNext = () => {
+  const activeConfig = diyType === 'house' ? HOUSE_BURGER_OPTIONS : TRUE_DIY_OPTIONS;
+
+  if (diyStep < activeConfig.steps.length - 1) {
+    setDiyStep(diyStep + 1);
+  } else {
+    // 1. CALCOLO DEL PREZZO TOTALE COMPRESO DI TUTTO
+    // Sommiamo pane + carne + tutti i condimenti scelti + contorno direttamente qui.
+    const totalPrice = activeConfig.basePrice + activeConfig.steps.reduce((acc, step) => {
+      const selected = diySelections[step.id];
+      if (!selected) return acc;
+
+      if (step.isMulti) {
+        const multiPrice = (selected as any[]).reduce((sum, item) => sum + Number(item.price), 0);
+        return acc + multiPrice;
+      } else {
+        return acc + Number(selected.price);
+      }
+    }, 0);
+
+    // 2. COMPOSIZIONE DELLA DESCRIZIONE DETTAGLIATA
+    const description = activeConfig.steps.map(step => {
+      const selected = diySelections[step.id];
+      if (!selected) return '';
+
+      if (step.isMulti) {
+        const labelStep = step.title;
+        const multiNames = (selected as any[])
+          .map(item => getOptionName(item, lang))
+          .join(', ');
+        
+        return multiNames ? `${labelStep}: ${multiNames}` : '';
+      } else {
+        const optionName = getOptionName(selected, lang);
+        
+        if (step.id === 'contorno') {
+          return `Contorno: ${optionName}`;
+        }
+        return `${optionName}`;
+      }
+    }).filter(Boolean).join(' + ');
+
+    // 3. CREAZIONE DELL'OGGETTO CARRELLO
+    const diyItem: any = {
+      id: `diy-${Date.now()}`,
+      name: diyType === 'house' 
+        ? (lang === 'it' ? "Hamburger della Casa" : (lang === 'fr' ? "Burger de la Maison" : "House Burger")) 
+        : t('create_your_taste', lang),
+      description: description,
+      price: totalPrice, // <--- Il prezzo di 15.00€ comprende già tutto
+      category: ProductCategory.HAMBURGER,
+      isAvailable: true,
+      imageUrl: diyType === 'house' 
+        ? 'https://oldwest.click/wp-content/uploads/2020/02/hamburger-della-casa.jpg' 
+        : 'https://oldwest.click/wp-content/uploads/2020/02/hamburger-fai-da-te.jpg',
+      
+      // Impostiamo selectedAddons vuoto per evitare doppioni grafici e tentativi di frode del cliente
+      selectedAddons: [] 
+    };
+
+    addToCart(diyItem);
+    
+    // Reset dello stato
+    setDiySelections({});
+    setDiyStep(0);
+    setDiyType(null);
+    setActiveSubCategoryView(null);
+  }
+};
 
   const handleLogin = (e: React.FormEvent) => { e.preventDefault(); if (adminPassword === '1234') { setView('ADMIN'); setAdminPassword(''); setLoginError(''); setActiveCategory('Tutti'); setLang('it'); } else { setLoginError('PIN non valido'); } };
   const handleSaveItem = async (e: React.FormEvent) => { e.preventDefault(); if (!newItem.name || !newItem.price) return; const itemToSave = { name: newItem.name, description: newItem.description, price: Number(newItem.price), category: newItem.category, subCategory: newItem.category === ProductCategory.HAMBURGER || newItem.category === ProductCategory.BEVANDE ? newItem.subCategory : undefined, imageUrl: newItem.imageUrl, isAvailable: newItem.isAvailable !== undefined ? newItem.isAvailable : true, tags: newItem.tags || [], brand: newItem.brand || null, variants: newItem.variants || null, translations: newItem.translations || null, allergens: newItem.allergens || [] }; try { if (editingId) { await supabase.from('menu_items').update(itemToSave).eq('id', editingId); alert('Prodotto modificato!'); } else { await supabase.from('menu_items').insert([itemToSave]); alert('Prodotto aggiunto!'); } fetchItems(); setEditingId(null); setNewItem({ category: ProductCategory.HAMBURGER, subCategory: HAMBURGER_SUBCATEGORIES[0], isAvailable: true, name: '', description: '', price: 0, imageUrl: '', translations: {}, brand: undefined, variants: undefined, allergens: [] }); setAdminLang('it'); } catch (error) { console.error(error); alert('Errore database.'); } };
@@ -2736,40 +2861,202 @@ const handleInitStripePayment = async () => {
     );
   };
   const renderDIY = () => {
-    const currentStepConfig = DIY_OPTIONS.steps[diyStep];
-    const { title, description } = getDIYStepContent(currentStepConfig, lang);
+  const activeConfig = diyType === 'house' ? HOUSE_BURGER_OPTIONS : TRUE_DIY_OPTIONS;
+  const currentStepConfig = activeConfig.steps[diyStep];
+  const { title, description } = getDIYStepContent(currentStepConfig, lang);
 
-    return (
-      <div className="container mx-auto px-4 py-8 pb-32" ref={diyHeaderRef}>
-        <div className="bg-white rounded-3xl border border-wood-100 shadow-xl overflow-hidden">
-          <div className="bg-wood-900 p-6 text-white text-center relative overflow-hidden">
-             <button onClick={() => setActiveSubCategoryView(null)} className="absolute top-12 left-3 z-50 bg-wood-900 text-white p-3 rounded-full shadow-2xl border-2 border-white/20 hover:scale-110 transition-transform" aria-label="Chiudi"><X size={28} /></button>
-             <div className="absolute inset-0 bg-cover bg-center opacity-20" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=2000')" }}></div>
-             <div className="relative z-10 pt-12"><h2 className="text-3xl font-western mb-2">{t('diy_title', lang)}</h2><p className="text-wood-300">{t('diy_subtitle', lang)}</p><div className="flex justify-center gap-2 mt-4">{DIY_OPTIONS.steps.map((s, idx) => (<div key={s.id} className={`h-1.5 rounded-full transition-all duration-500 ${idx <= diyStep ? 'w-8 bg-accent-500' : 'w-4 bg-wood-700'}`}></div>))}</div></div>
-          </div>
-          <div className="p-6 md:p-8">
-             <div className="flex items-center justify-between mb-8"><div><span className="text-accent-600 font-bold tracking-widest text-xs uppercase mb-1 block">Step {diyStep + 1}/{DIY_OPTIONS.steps.length}</span><h3 className="text-2xl font-bold text-wood-900">{title}</h3><p className="text-wood-500">{description}</p></div></div>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{currentStepConfig.options.map((option: any) => { const isSelected = diySelections[currentStepConfig.id]?.name === option.name; return (<button key={option.name} onClick={() => handleDiySelection(currentStepConfig.id, option)} className={`relative p-6 rounded-2xl border-2 text-left transition-all duration-300 group ${isSelected ? 'border-accent-500 bg-accent-50 shadow-lg scale-[1.02]' : 'border-wood-100 bg-wood-50 hover:border-accent-300 hover:bg-white'}`}><div className="flex flex-col gap-1">
-            <div className="flex justify-between items-start gap-2">
-               <span className={`font-bold text-lg leading-tight ${isSelected ? 'text-accent-700' : 'text-wood-800'}`}>
-                  {getDIYOptionContent(option, lang)}
-               </span>
-               {option.price > 0 && (
-                  <span className="font-mono font-bold text-[#45856c] shrink-0 bg-white px-2 py-0.5 rounded-lg shadow-sm border border-wood-100">
-                     +€{option.price.toFixed(2)}
-                  </span>
-               )}
-            </div>
-         </div>{isSelected && <div className="absolute top-4 right-4 text-accent-500"><Check size={20} /></div>}</button>); })}</div>
-             <div className="flex justify-between items-center mt-10 pt-6 border-t border-wood-100" ref={diyControlsRef}><button onClick={() => { if (diyStep > 0) setDiyStep(diyStep - 1); else setActiveSubCategoryView(null); }} className="text-wood-500 font-bold hover:text-wood-800 transition-colors flex items-center gap-2 px-4 py-2"><ChevronLeft size={20} /> {t('back', lang)}</button><button onClick={handleDiyNext} disabled={!diySelections[currentStepConfig.id]} className="bg-wood-900 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-accent-600 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95">{diyStep === DIY_OPTIONS.steps.length - 1 ? (<>{t('add_to_cart', lang)} <Plus size={20} /></>) : (<>{t('add', lang)} <ArrowRight size={20} /></>)}</button></div>
-          </div>
-        </div>
-      </div>
+  // TITOLO E SOTTOTITOLO TRADOTTI IN TEMPO REALE (Risolto per le foto 1 e 3)
+  const wizardTitle = diyType === 'house'
+    ? (lang === 'it' ? "Hamburger della Casa" : (lang === 'fr' ? "Burgers de la Maison" : "House Burgers"))
+    : (lang === 'it' ? "Hamburger Fai da te" : (lang === 'fr' ? "Créez Votre Burger" : "Build Your Own Burger"));
+
+  const wizardSubtitle = diyType === 'house'
+    ? (lang === 'it' ? "Scegli pane, carne, ricetta della casa e contorno" : (lang === 'fr' ? "Choisissez le pain, la viande, la recette de la maison et l'accompagnement" : "Choose bread, meat, house recipe and side dish"))
+    : (lang === 'it' ? "Scegli pane, carne e condisci a tuo piacimento" : (lang === 'fr' ? "Choisissez le pain, la viande et assaisonnez à votre goût" : "Choose bread, meat and season to your liking"));
+
+  // ==========================================
+  // CARICAMENTO DINAMICO DELLE OPZIONI DAL DATABASE
+  let stepOptions = currentStepConfig.options as any[];
+  
+  if (currentStepConfig.id === 'condimenti') {
+    // Filtra gli ingredienti extra dal database caricati in "items"
+    stepOptions = items.filter(item => 
+      item.category === ProductCategory.AGGIUNTE && 
+      item.subCategory === 'Hamburger' &&
+      item.isAvailable
     );
-  };
+  }
+  // ==========================================
+
+  // Calcolo dello stato del pulsante "Avanti"
+  const currentSelection = diySelections[currentStepConfig.id];
+  const isStepEmpty = currentStepConfig.isMulti
+    ? (!currentSelection || currentSelection.length === 0)
+    : !currentSelection;
+
+  const isNextDisabled = !currentStepConfig.isOptional && isStepEmpty;
+
+  return (
+    <div className="container mx-auto px-4 py-8 pb-32" ref={diyHeaderRef}>
+      <div className="bg-white rounded-3xl border border-wood-100 shadow-xl overflow-hidden">
+        
+        {/* Header del Wizard */}
+        <div className="bg-wood-900 p-6 text-white text-center relative overflow-hidden">
+           <button onClick={() => { setActiveSubCategoryView(null); setDiyType(null); }} className="absolute top-12 left-3 z-50 bg-wood-900 text-white p-3 rounded-full shadow-2xl border-2 border-white/20 hover:scale-110 transition-transform" aria-label="Chiudi"><X size={28} /></button>
+           <div className="absolute inset-0 bg-cover bg-center opacity-20" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=2000')" }}></div>
+           
+           <div className="relative z-10 pt-12">
+              <h2 className="text-3xl font-western mb-2">
+               {wizardTitle}
+               </h2>
+               <p className="text-wood-300">
+               {wizardSubtitle}
+               </p>
+              
+              <div className="flex justify-center gap-2 mt-4">
+                 {activeConfig.steps.map((s, idx) => (
+                    <div key={s.id} className={`h-1.5 rounded-full transition-all duration-500 ${idx <= diyStep ? 'w-8 bg-accent-500' : 'w-4 bg-wood-700'}`}></div>
+                 ))}
+              </div>
+           </div>
+        </div>
+
+        {/* Corpo dello Step */}
+        <div className="p-6 md:p-8">
+           <div className="flex items-center justify-between mb-8">
+              <div>
+                 <span className="text-accent-600 font-bold tracking-widest text-xs uppercase mb-1 block">Step {diyStep + 1}/{activeConfig.steps.length}</span>
+                 <h3 className="text-2xl font-bold text-wood-900">{title}</h3>
+                 <p className="text-wood-500">{description}</p>
+              </div>
+           </div>
+
+           {/* SEZIONE OPZIONI DINAMICA */}
+           {currentStepConfig.id === 'condimenti' ? (
+             // ELENCO SCORREVOLE CON RICERCA (PER IL VERO FAI DA TE - STEP 3)
+             <div className="flex flex-col h-[350px] md:h-[400px]">
+                
+                {/* Barra di ricerca interna allo step */}
+                <div className="mb-4 relative shrink-0">
+                   <input
+                      type="text"
+                      placeholder="Cerca ingrediente (es: bacon, cheddar...)"
+                      value={diySearchQuery}
+                      onChange={(e) => setDiySearchQuery(e.target.value)}
+                      className="w-full px-4 py-3 border border-wood-100 rounded-2xl text-sm focus:outline-none focus:border-accent-500 bg-wood-50"
+                   />
+                </div>
+                
+                {/* Lista scrollabile dei prodotti database */}
+                <div className="flex-1 overflow-y-auto pr-1 space-y-2 custom-scrollbar">
+                   {stepOptions
+                      .filter(opt => {
+                         const optionName = getOptionName(opt, lang);
+                         return optionName.toLowerCase().includes(diySearchQuery.toLowerCase());
+                      })
+                      .map((option: any) => {
+                         const isSelected = (diySelections[currentStepConfig.id] as any[])?.some(item => item.name === option.name);
+                         const optionName = getOptionName(option, lang);
+
+                         return (
+                            <div 
+                               key={option.id || option.name}
+                               onClick={() => handleDiySelection(currentStepConfig.id, option, true)}
+                               className={`flex justify-between items-center p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 ${
+                                  isSelected 
+                                     ? 'border-accent-500 bg-accent-50/50' 
+                                     : 'border-wood-100 bg-white hover:bg-wood-50'
+                               }`}
+                            >
+                               <div className="flex flex-col">
+                                  <span className="font-bold text-wood-800 text-base">{optionName}</span>
+                                  {option.price > 0 && <span className="text-xs text-[#45856c] font-mono font-bold">+€{option.price.toFixed(2)}</span>}
+                               </div>
+                               
+                               <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                                  isSelected ? 'bg-accent-500 border-accent-500 text-white' : 'border-wood-300'
+                                }`}>
+                                  {isSelected && <Check size={14} />}
+                               </div>
+                            </div>
+                         );
+                      })}
+                   {stepOptions.filter(opt => getOptionName(opt, lang).toLowerCase().includes(diySearchQuery.toLowerCase())).length === 0 && (
+                     <p className="text-center text-gray-400 text-sm py-8">Nessun ingrediente trovato.</p>
+                   )}
+                </div>
+             </div>
+           ) : (
+             // LAYOUT CLASSICO A GRIGLIA (PER PANE, CARNE E CONTORNO)
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {stepOptions.map((option: any) => {
+                   const isSelected = diySelections[currentStepConfig.id]?.name === option.name;
+                   const optionName = getOptionName(option, lang);
+
+                   return (
+                      <button 
+                         key={option.name} 
+                         onClick={() => handleDiySelection(currentStepConfig.id, option, false)} 
+                         className={`relative p-6 rounded-2xl border-2 text-left transition-all duration-300 group ${
+                            isSelected 
+                               ? 'border-accent-500 bg-accent-50 shadow-lg scale-[1.02]' 
+                               : 'border-wood-100 bg-wood-50 hover:border-accent-300 hover:bg-white'
+                         }`}
+                      >
+                         <div className="flex flex-col gap-1">
+                            <div className="flex justify-between items-start gap-2">
+                               <span className={`font-bold text-lg leading-tight ${isSelected ? 'text-accent-700' : 'text-wood-800'}`}>
+                                  {optionName}
+                               </span>
+                               {option.price > 0 && (
+                                  <span className="font-mono font-bold text-[#45856c] shrink-0 bg-white px-2 py-0.5 rounded-lg shadow-sm border border-wood-100">
+                                     +€{option.price.toFixed(2)}
+                                  </span>
+                               )}
+                            </div>
+                         </div>
+                         {isSelected && <div className="absolute top-4 right-4 text-accent-500"><Check size={20} /></div>}
+                      </button>
+                   );
+                })}
+             </div>
+           )}
+
+           {/* Controlli di navigazione inferiori */}
+           <div className="flex justify-between items-center mt-10 pt-6 border-t border-wood-100" ref={diyControlsRef}>
+              <button 
+                 onClick={() => { 
+                    if (diyStep > 0) setDiyStep(diyStep - 1); 
+                    else { setActiveSubCategoryView(null); setDiyType(null); }
+                 }} 
+                 className="text-wood-500 font-bold hover:text-wood-800 transition-colors flex items-center gap-2 px-4 py-2"
+              >
+                 <ChevronLeft size={20} /> {t('back', lang)}
+              </button>
+              
+              <button 
+                 onClick={handleDiyNext} 
+                 disabled={isNextDisabled} 
+                 className="bg-wood-900 text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-accent-600 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95"
+              >
+                 {diyStep === activeConfig.steps.length - 1 
+                    ? (<>{t('add_to_cart', lang)} <Plus size={20} /></>) 
+                    : (<>{t('add', lang)} <ArrowRight size={20} /></>)
+                 }
+              </button>
+           </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
 
 const renderMenu = () => {
-    if (activeCategory === ProductCategory.HAMBURGER && activeSubCategoryView === 'Hamburger "Fai da te"') { return renderDIY(); }
+    // Mostra il costruttore se l'utente clicca su uno dei due tipi di hamburger personalizzabili
+      if (activeCategory === ProductCategory.HAMBURGER && (activeSubCategoryView === 'Hamburger "Fai da te"' || activeSubCategoryView === 'Hamburger della Casa')) { 
+      return renderDIY(); 
+      }
     const hasActiveFilters = activeFilters.vegetarian || activeFilters.vegan || activeFilters.spicy || activeFilters.bestseller;
     const filteredItems = items.filter(item => {
       if (item.category === ProductCategory.AGGIUNTE) return false;
@@ -2819,7 +3106,7 @@ const renderMenu = () => {
                   <button onClick={() => scrollCarousel('right', carouselRef)} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-white/80 rounded-full shadow-md flex items-center justify-center text-wood-600 opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-0"><ChevronRight size={18} /></button>
                </div>
                <div className="mt-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  {activeCategory === ProductCategory.HAMBURGER && (<div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1"><button onClick={() => setActiveSubCategoryView(null)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${activeSubCategoryView === null ? 'bg-wood-800 text-white' : 'bg-wood-200 text-wood-600 hover:bg-wood-300'}`}>{t('all', lang)}</button>{HAMBURGER_SUBCATEGORIES.map(sub => (<button key={sub} onClick={() => setActiveSubCategoryView(sub)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${activeSubCategoryView === sub ? 'bg-wood-800 text-white' : 'bg-wood-200 text-wood-600 hover:bg-wood-300'}`}>{sub}</button>))}</div>)}
+                  {activeCategory === ProductCategory.HAMBURGER && (<div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1"><button onClick={() => setActiveSubCategoryView(null)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${activeSubCategoryView === null ? 'bg-wood-800 text-white' : 'bg-wood-200 text-wood-600 hover:bg-wood-300'}`}>{t('all', lang)}</button>{HAMBURGER_SUBCATEGORIES.map(sub => (<button key={sub} onClick={() => setActiveSubCategoryView(sub)} className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-colors whitespace-nowrap ${activeSubCategoryView === sub ? 'bg-wood-800 text-white' : 'bg-wood-200 text-wood-600 hover:bg-wood-300'}`}>{tHamburgerSubCategory(sub, lang)}</button>))}</div>)}
                   <div className="flex gap-2 overflow-x-auto scrollbar-hide ml-auto">
                      <button onClick={() => setActiveFilters({...activeFilters, vegetarian: !activeFilters.vegetarian})} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all whitespace-nowrap ${activeFilters.vegetarian ? 'bg-green-100 border-green-300 text-green-700' : 'bg-white border-wood-200 text-wood-500 hover:border-wood-400'}`}><Leaf size={12} /> {t('filter_veg', lang)}</button>
                      <button onClick={() => setActiveFilters({...activeFilters, vegan: !activeFilters.vegan})} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all whitespace-nowrap ${activeFilters.vegan ? 'bg-green-100 border-green-300 text-green-700' : 'bg-white border-wood-200 text-wood-500 hover:border-wood-400'}`}><Sprout size={12} /> {t('filter_vegan', lang)}</button>
