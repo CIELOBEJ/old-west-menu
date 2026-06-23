@@ -778,6 +778,8 @@ const [customModal, setCustomModal] = useState<{
     }
   };
 
+  
+
   // Verifica se questo tavolo ha già effettuato ordini non pagati in questa sessione
   const checkIfHasPriorOrders = async () => {
     if (!tableSessionId) return;
@@ -1445,6 +1447,35 @@ const handleInitStripePayment = async () => {
       }
     }
   }, []);
+
+  useEffect(() => {
+  // Se l'utente è al tavolo (orderForm.tableNumber è popolato) e non ha ancora un ID sessione locale
+  if (orderForm.tableNumber && !tableSessionId) {
+    const connectToActiveTableSession = async () => {
+      // Cerca se esiste un ordine attivo non pagato per questo specifico tavolo
+      const { data, error } = await supabase
+        .from('orders')
+        .select('table_session_id')
+        .eq('order_type', 'table')
+        .eq('payment_status', 'unpaid')
+        .ilike('customer_name', `%TAVOLO ${orderForm.tableNumber}%`) // Cerca "TAVOLO 5" (case-insensitive)
+        .limit(1);
+
+      if (!error && data && data.length > 0) {
+        const activeSid = data[0].table_session_id;
+        
+        // Collega istantaneamente il telefono del cliente a questa sessione usando le tue chiavi locali!
+        setTableSessionId(activeSid);
+        localStorage.setItem('active_table_session_id', activeSid);
+        localStorage.setItem('active_table_number', orderForm.tableNumber);
+        setHasPriorOrders(true); // Sblocca la cassa rapida in 1-Click!
+      }
+    };
+    
+    connectToActiveTableSession();
+  }
+}, [orderForm.tableNumber, tableSessionId]); // Monitora i cambiamenti del numero tavolo o della sessione
+
   useEffect(() => { const handleScroll = () => { if (window.scrollY > 300) setShowScrollTop(true); else setShowScrollTop(false); }; window.addEventListener('scroll', handleScroll); return () => window.removeEventListener('scroll', handleScroll); }, []);
   useEffect(() => { if (diyType && diyHeaderRef.current) { diyHeaderRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }, [diyStep, diyType]);
   useEffect(() => {
@@ -1900,6 +1931,12 @@ const handleInitStripePayment = async () => {
 
         return { ...item, selectedAddons: virtualAddons };
       });
+       
+      // Genera una nuova sessione unica per il tavolo se è il primo ordine assoluto e l'utente ha scansionato il QR
+         let activeTableSessionId = tableSessionId;
+         if (activeForm.orderType === 'table' && !activeTableSessionId) {
+         activeTableSessionId = `session-${activeForm.tableNumber}-${Date.now()}`;
+         }
 
       const isAddition = tableSessionId !== null && hasPriorOrders; 
        // Nota: se il carrello ha prodotti e c'è una sessione, è un'aggiunta.
@@ -1920,7 +1957,7 @@ const handleInitStripePayment = async () => {
         user_id: user ? user.id : null,
         
         // NUOVI CAMPI PER LA GESTIONE DEL CONTO UNICO E AGGIUNTE AL TAVOLO
-        table_session_id: tableSessionId, // Collega l'ordine a questa specifica sessione del tavolo!
+        table_session_id: activeTableSessionId, // Collega l'ordine a questa specifica sessione del tavolo!
         payment_status: activeForm.paymentMethod === 'stripe' ? 'paid' : 'unpaid', // Segna come pagato solo se pagano con Stripe!
         is_addition: isAddition
       };
@@ -1964,9 +2001,11 @@ const handleInitStripePayment = async () => {
           window.history.replaceState({}, document.title, window.location.pathname);
         }
 
-        if (tableSessionId) {
-          setHasPriorOrders(true);
-        }
+        if (activeForm.orderType === 'table' && activeTableSessionId) {
+            setTableSessionId(activeTableSessionId);
+            localStorage.setItem('tableSessionId', activeTableSessionId);
+            setHasPriorOrders(true); // Sblocca la cassa rapida per i giri successivi!
+         }
 
         if (!isFastAddon) {
           setView('TRACKING');
