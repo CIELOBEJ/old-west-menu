@@ -3232,7 +3232,7 @@ const renderMenu = () => {
                                        // ==========================================
                                        // CONTROLLO DI SICUREZZA PER LE BEVANDE DA CASA
                                        const isDineInOnlyDrink = item.subCategory !== "Acqua e Bibite" && item.subCategory !== "Birre in Bottiglia";
-                                       const isUnavailableForDelivery = (tableSessionId === null) && isDineInOnlyDrink;
+                                       const isUnavailableForDelivery = (tableSessionId === null && !isPreOrder) && isDineInOnlyDrink;
                                        // ==========================================
                                        return (
                                          <div key={item.id} className="bg-white rounded-2xl border border-wood-100 overflow-hidden shadow-sm p-4 flex justify-between items-center gap-4 hover:shadow-md transition-all">
@@ -3284,7 +3284,7 @@ const renderMenu = () => {
                             // ==========================================
                            // CONTROLLO DI SICUREZZA PER LE BEVANDE DA CASA (AGGIUNTO ANCHE QUI)
                            const isDineInOnlyDrink = isDrink && item.subCategory !== "Acqua e Bibite" && item.subCategory !== "Birre in Bottiglia";
-                           const isUnavailableForDelivery = (tableSessionId === null) && isDineInOnlyDrink;
+                           const isUnavailableForDelivery = (tableSessionId === null && !isPreOrder) && isDineInOnlyDrink;
                            // ==========================================
 
                            return (
