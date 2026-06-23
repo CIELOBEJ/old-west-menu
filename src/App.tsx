@@ -439,6 +439,8 @@ export default function App() {
   const [successType, setSuccessType] = useState<'ORDER' | 'BOOKING'>('ORDER');
   const [activeCategory, setActiveCategory] = useState<string>('Tutti');
   const [activeSubCategoryView, setActiveSubCategoryView] = useState<string | null>(null);
+  // Traccia quale sottocategoria delle bevande è attualmente aperta (null se sono tutte chiuse)
+  const [expandedSubCategory, setExpandedSubCategory] = useState<string | null>(null);
   const [categories, setCategories] = useState<{ id: string; image_url: string | null }[]>([]);
   const [diyStep, setDiyStep] = useState(0);
   const [diySelections, setDiySelections] = useState<Record<string, any>>({});
@@ -3305,52 +3307,89 @@ const renderMenu = () => {
              ) : (
                <>
                  {activeCategory === ProductCategory.BEVANDE ? (
-                    <div className="space-y-10">
-                       {DRINK_SUBCATEGORIES.map(subCat => {
-                          const subCatItems = filteredItems.filter(i => i.subCategory === subCat);
-                          if (subCatItems.length === 0) return null;
-                          return (
-                             <div key={subCat}>
-                                <h3 className="text-2xl font-western text-wood-900 mb-4 border-b-2 border-accent-500 pb-2 inline-block">{tSubCategory(subCat, lang)}</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                   {subCatItems.map(item => {
+                  <div className="space-y-4">
+                     {DRINK_SUBCATEGORIES.map(subCat => {
+                        const subCatItems = filteredItems.filter(i => i.subCategory === subCat);
+                        if (subCatItems.length === 0) return null;
+                        
+                        // Controlliamo se questa specifica sottocategoria è attualmente aperta
+                        const isExpanded = expandedSubCategory === subCat;
+
+                        return (
+                           <div key={subCat} className="bg-white rounded-2xl border border-wood-100 overflow-hidden shadow-sm transition-all duration-300">
+                              
+                              {/* INTESTAZIONE CLICCABILE (RIGA DELLA TENDINA) */}
+                              <div 
+                                 onClick={() => setExpandedSubCategory(prev => prev === subCat ? null : subCat)}
+                                 className="flex justify-between items-center cursor-pointer p-4 hover:bg-wood-50 transition-colors select-none"
+                              >
+                                 <h3 className="text-xl font-western text-wood-900 leading-none">
+                                    {tSubCategory(subCat, lang)}
+                                 </h3>
+                                 
+                                 {/* Freccetta animata che ruota di 180° se espansa */}
+                                 <ChevronDown 
+                                    size={20} 
+                                    className={`text-wood-500 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} 
+                                 />
+                              </div>
+
+                              {/* CONTENUTO SCORREVOLE A COMPARSA FLUIDA */}
+                              {isExpanded && (
+                                 <div className="p-4 pt-0 border-t border-wood-50 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-in slide-in-from-top-3 duration-300">
+                                    {subCatItems.map(item => {
                                        const { name, description } = getProductContent(item);
                                        const isAdded = addedItemId === item.id;
-                                       // ==========================================
-                                       // CONTROLLO DI SICUREZZA PER LE BEVANDE DA CASA
+
+                                       // Controllo di sicurezza per le bevande da asporto/consegna
                                        const isDineInOnlyDrink = item.subCategory !== "Acqua e Bibite" && item.subCategory !== "Birre in Bottiglia";
                                        const isUnavailableForDelivery = (tableSessionId === null && !isPreOrder) && isDineInOnlyDrink;
-                                       // ==========================================
+
                                        return (
-                                         <div key={item.id} className="bg-white rounded-2xl border border-wood-100 overflow-hidden shadow-sm p-4 flex justify-between items-center gap-4 hover:shadow-md transition-all">
-                                            <div className="flex-1 min-w-0"><div className="flex flex-col items-start"><h4 className="font-bold text-wood-900 leading-tight truncate w-full">{name}</h4>{item.brand && <span className="text-xs text-accent-600 font-bold mt-0.5">{item.brand}</span>}</div>{description && <p className="text-xs text-wood-500 mt-1 line-clamp-2">{description}</p>}</div>
-                                            <div className="flex items-center gap-3 shrink-0"><span className="font-western text-xl text-wood-900">€{item.price.toFixed(2)}</span>
-                                            {/* APPLICAZIONE DEL BLOCCO CONDIZIONALE SUL PULSANTE DI AGGIUNTA */}
-                                             {isUnavailableForDelivery ? (
-                                                <span className="text-[10px] font-bold text-gray-500 bg-gray-100 border border-gray-200 px-2 py-1.5 rounded-lg select-none whitespace-nowrap">
-                                                   Solo al tavolo 🍷
-                                                </span>
-                                             ) : (
-                                            <button onClick={(e) => { 
-                                                e.preventDefault(); 
-                                                e.stopPropagation(); 
+                                          <div key={item.id} className="bg-wood-50/50 rounded-2xl border border-wood-100 overflow-hidden p-4 flex justify-between items-center gap-4 hover:shadow-sm transition-all">
+                                             <div className="flex-1 min-w-0">
+                                                <div className="flex flex-col items-start">
+                                                   <h4 className="font-bold text-wood-900 leading-tight truncate w-full">{name}</h4>
+                                                   {item.brand && <span className="text-xs text-accent-600 font-bold mt-0.5">{item.brand}</span>}
+                                                </div>
+                                                {description && <p className="text-xs text-wood-500 mt-1 line-clamp-2">{description}</p>}
+                                             </div>
+                                             <div className="flex items-center gap-3 shrink-0">
+                                                <span className="font-western text-xl text-wood-900">€{item.price.toFixed(2)}</span>
                                                 
-                                                if (item.variants && item.variants.length > 0) {
-                                                   // Se ha varianti (come l'amaro), apriamo il modale di selezione
-                                                   setSelectingVariantItem(item);
-                                                   setVariantSearchQuery(""); // Svuota ricerche precedenti
-                                                } else {
-                                                   // Altrimenti, aggiunge direttamente al carrello
-                                                   addToCart(item);
-                                                }
-                                             }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm ${isAdded ? 'bg-green-500 text-white' : 'bg-wood-900 text-white hover:bg-accent-600'}`}>{isAdded ? <Check size={18} /> : <Plus size={18} />}</button> )}</div>
-                                         </div>
+                                                {isUnavailableForDelivery ? (
+                                                   <span className="text-[10px] font-bold text-gray-500 bg-gray-100 border border-gray-200 px-2 py-1.5 rounded-lg select-none whitespace-nowrap">
+                                                      Solo al tavolo 🍷
+                                                   </span>
+                                                ) : (
+                                                   <button 
+                                                      onClick={(e) => { 
+                                                         e.preventDefault(); 
+                                                         e.stopPropagation(); 
+                                                         
+                                                         if (item.variants && item.variants.length > 0) {
+                                                            setSelectingVariantItem(item);
+                                                            setVariantSearchQuery("");
+                                                         } else {
+                                                            addToCart(item); 
+                                                         }
+                                                      }} 
+                                                      className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm ${
+                                                         isAdded ? 'bg-green-500 text-white' : 'bg-wood-900 text-white hover:bg-accent-600'
+                                                      }`}
+                                                   >
+                                                      {isAdded ? <Check size={18} /> : <Plus size={18} />}
+                                                   </button>
+                                                )}
+                                             </div>
+                                          </div>
                                        );
-                                   })}
-                                </div>
-                             </div>
-                          )
-                       })}
+                                    })}
+                                 </div>
+                              )}
+                           </div>
+                        )
+                     })}
                        {filteredItems.filter(i => !i.subCategory).length > 0 && (
                           <div>
                              <h3 className="text-2xl font-western text-wood-900 mb-4 border-b-2 border-wood-200 pb-2 inline-block">Altro</h3>
