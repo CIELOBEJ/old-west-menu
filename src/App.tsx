@@ -461,6 +461,8 @@ export default function App() {
   const [isAddonModalOpen, setIsAddonModalOpen] = useState(false);
   const [editingCartItemIndex, setEditingCartItemIndex] = useState<number | null>(null);
   const [addonSearch, setAddonSearch] = useState('');
+  const [selectingVariantItem, setSelectingVariantItem] = useState<any | null>(null);
+  const [variantSearchQuery, setVariantSearchQuery] = useState<string>("");
   const [activeFilters, setActiveFilters] = useState<ActiveFilters>({ vegetarian: false, vegan: false, spicy: false, bestseller: false });
   const [adminPassword, setAdminPassword] = useState('');
   const [loginError, setLoginError] = useState('');
@@ -3329,7 +3331,19 @@ const renderMenu = () => {
                                                    Solo al tavolo 🍷
                                                 </span>
                                              ) : (
-                                            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); addToCart(item);}} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm ${isAdded ? 'bg-green-500 text-white' : 'bg-wood-900 text-white hover:bg-accent-600'}`}>{isAdded ? <Check size={18} /> : <Plus size={18} />}</button> )}</div>
+                                            <button onClick={(e) => { 
+                                                e.preventDefault(); 
+                                                e.stopPropagation(); 
+                                                
+                                                if (item.variants && item.variants.length > 0) {
+                                                   // Se ha varianti (come l'amaro), apriamo il modale di selezione
+                                                   setSelectingVariantItem(item);
+                                                   setVariantSearchQuery(""); // Svuota ricerche precedenti
+                                                } else {
+                                                   // Altrimenti, aggiunge direttamente al carrello
+                                                   addToCart(item);
+                                                }
+                                             }} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm ${isAdded ? 'bg-green-500 text-white' : 'bg-wood-900 text-white hover:bg-accent-600'}`}>{isAdded ? <Check size={18} /> : <Plus size={18} />}</button> )}</div>
                                          </div>
                                        );
                                    })}
@@ -4246,6 +4260,71 @@ const renderMenu = () => {
             </div>
          </div>
          )}
+
+
+         {selectingVariantItem && (
+  <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200">
+    <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl flex flex-col max-h-[75vh]">
+      
+      {/* Intestazione */}
+      <div className="flex justify-between items-center pb-4 border-b border-gray-100 shrink-0">
+        <div>
+          <h3 className="font-bold text-lg text-gray-900">Scegli {getProductContent(selectingVariantItem).name}</h3>
+          <p className="text-gray-500 text-xs mt-0.5">Seleziona la tua variante preferita</p>
+        </div>
+        <button 
+          onClick={() => setSelectingVariantItem(null)} 
+          className="text-gray-400 hover:text-gray-600 text-xl font-bold p-1"
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* Input di Ricerca interna al modale */}
+      <div className="my-4 shrink-0 relative">
+        <input
+          type="text"
+          placeholder="Cerca... (es: Montenegro, Averna)"
+          value={variantSearchQuery}
+          onChange={(e) => setVariantSearchQuery(e.target.value)}
+          className="w-full bg-wood-50 border border-wood-200 rounded-xl py-2.5 pl-4 pr-4 text-sm focus:outline-none focus:border-gray-400"
+        />
+      </div>
+
+      {/* Lista Varianti filtrata con scorrimento */}
+      <div className="flex-1 overflow-y-auto pr-1 space-y-2 custom-scrollbar">
+        {selectingVariantItem.variants
+          .filter((v: any) => v.name.toLowerCase().includes(variantSearchQuery.toLowerCase()))
+          .map((variant: any) => (
+            <div 
+              key={variant.name}
+              onClick={() => {
+                // Genera l'oggetto carrello finale con la variante selezionata e il prezzo aggiornato
+                const finalItem = {
+                  ...selectingVariantItem,
+                  selectedVariant: variant,
+                  price: Number(variant.price) // Aggiorna il prezzo del prodotto con quello della variante
+                };
+                addToCart(finalItem);
+                setSelectingVariantItem(null);
+                setVariantSearchQuery("");
+              }}
+              className="flex justify-between items-center p-4 rounded-xl border border-wood-100 hover:bg-wood-50 hover:border-accent-300 cursor-pointer transition-all duration-200"
+            >
+              <span className="font-bold text-wood-800 text-sm">{variant.name}</span>
+              <span className="font-western text-base text-[#45856c]">€{Number(variant.price).toFixed(2)}</span>
+            </div>
+          ))}
+
+        {/* Messaggio se la ricerca non produce risultati */}
+        {selectingVariantItem.variants.filter((v: any) => v.name.toLowerCase().includes(variantSearchQuery.toLowerCase())).length === 0 && (
+          <p className="text-center text-gray-400 text-sm py-8">Nessuna opzione disponibile.</p>
+        )}
+      </div>
+
+    </div>
+  </div>
+)}
 
       {/* ================= MODALE DI ACCESSO / REGISTRAZIONE UTENTE ================= */}
       {isAuthModalOpen && (
