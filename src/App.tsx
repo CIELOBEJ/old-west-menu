@@ -1406,7 +1406,7 @@ const handleInitStripePayment = async () => {
     const urlParams = new URLSearchParams(window.location.search);
     const tableParam = urlParams.get('table'); // Legge il parametro "?table=5" [8]
 
-    if (tableParam) {
+   if (tableParam) {
       // 1. Configura il carrello in modalità Tavolo e fissa il numero del tavolo in automatico! [1]
       setOrderForm(prev => ({
         ...prev,
@@ -1414,19 +1414,47 @@ const handleInitStripePayment = async () => {
         tableNumber: tableParam
       }));
 
-      // 2. GESTIONE SESSIONE TAVOLO UNICA (CONTO UNICO)
-      let session = localStorage.getItem('active_table_session_id');
-      const savedTableNum = localStorage.getItem('active_table_number');
-      
-      // Se cambia il numero del tavolo o non c'è una sessione attiva, ne generiamo una nuova di zecca! [1]
-      if (!session || savedTableNum !== tableParam) {
-        session = `session-${tableParam}-${Math.random().toString(36).substring(2, 9)}`;
+      // 2. GESTIONE SESSIONE TAVOLO INTELLIGENTE (CONTO UNICO)
+      const initTableSession = async () => {
+        // Cerca in tempo reale se esiste già un conto aperto non pagato per questo tavolo su Supabase [1]
+        const { data, error } = await supabase
+          .from('orders')
+          .select('table_session_id')
+          .eq('order_type', 'table')
+          .eq('payment_status', 'unpaid')
+          .ilike('customer_name', `%TAVOLO ${tableParam}%`)
+          .limit(1);
+
+        let session = '';
+
+        if (!error && data && data.length > 0) {
+          // CASO 1: C'è un conto attivo dello staff (pre-ordine o ordine in corso) [1]
+          session = data[0].table_session_id;
+          setHasPriorOrders(true); // Attiva subito lo scontrino rosso pulsante!
+        } else {
+          // CASO 2: Nessun conto attivo nel database. Controlliamo se ne abbiamo una salvata in locale [1]
+          const localSession = localStorage.getItem('active_table_session_id');
+          const savedTableNum = localStorage.getItem('active_table_number');
+          
+          if (localSession && savedTableNum === tableParam) {
+            session = localSession;
+          } else {
+            // Altrimenti generiamo una nuova sessione da zero per il primo ordine [1]
+            session = `session-${tableParam}-${Math.random().toString(36).substring(2, 9)}`;
+          }
+          setHasPriorOrders(false);
+        }
+
+        // Memorizziamo la sessione corretta sia nello stato che nel localStorage [1]
+        setTableSessionId(session);
         localStorage.setItem('active_table_session_id', session);
         localStorage.setItem('active_table_number', tableParam);
-      }
-      setTableSessionId(session);
+      };
 
-      // 3. SALTA LA LANDING PAGE e proietta il cliente direttamente nel MENÙ! [5]
+      // Avvia l'inizializzazione della sessione
+      initTableSession();
+
+      // 3. SALTA LA LANDING PAGE e proietta il cliente direttamente nel MENÙ!
       setView('MENU');
       window.scrollTo(0,0);
     } else {
