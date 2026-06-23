@@ -1419,7 +1419,7 @@ const handleInitStripePayment = async () => {
         // Cerca in tempo reale se esiste già un conto aperto non pagato per questo tavolo su Supabase [1]
         const { data, error } = await supabase
           .from('orders')
-          .select('table_session_id')
+          .select('table_session_id, customer_name')
           .eq('order_type', 'table')
           .eq('payment_status', 'unpaid')
           .ilike('customer_name', `%TAVOLO ${tableParam}%`)
@@ -1431,6 +1431,22 @@ const handleInitStripePayment = async () => {
           // CASO 1: C'è un conto attivo dello staff (pre-ordine o ordine in corso) [1]
           session = data[0].table_session_id;
           setHasPriorOrders(true); // Attiva subito lo scontrino rosso pulsante!
+
+          // ESTRAZIONE E SINCRONIZZAZIONE AUTOMATICA DEL NOME
+          const rawName = data[0].customer_name;
+          const parsedName = rawName
+            .replace("AGGIUNTE - ", "")
+            .replace(/TAVOLO\s+\d+/i, "")
+            .replace(/[()]/g, "") // Rimuove le parentesi tonde
+            .trim();
+
+          if (parsedName && parsedName !== "Ospite") {
+            setOrderForm(prev => ({
+              ...prev,
+              customerName: parsedName // Imposta automaticamente "Alexandra" nel modulo
+            }));
+          }
+
         } else {
           // CASO 2: Nessun conto attivo nel database. Controlliamo se ne abbiamo una salvata in locale [1]
           const localSession = localStorage.getItem('active_table_session_id');
@@ -1769,7 +1785,9 @@ const handleInitStripePayment = async () => {
     const activeCart = customCart || cart;
     const activeForm = customForm || orderForm;
 
-    const finalCustomerName = activeForm.orderType === 'table' ? `TAVOLO ${activeForm.tableNumber}` : activeForm.customerName;
+    const finalCustomerName = activeForm.orderType === 'table' 
+      ? `TAVOLO ${activeForm.tableNumber} (${activeForm.customerName || 'Ospite'})` 
+      : activeForm.customerName;
     const finalPhone = activeForm.orderType === 'table' ? 'N/D' : activeForm.customerPhone;
     const isDeliveryOrTakeaway = activeForm.orderType === 'delivery' || activeForm.orderType === 'takeaway';
     const hasMissingFreeDrinks = activeCart.some(item => {
@@ -3635,6 +3653,14 @@ const renderMenu = () => {
     ];
 
     const currentStepIndex = statusSteps.findIndex(s => s.id === currentOrder.status);
+    const displayCustomerName = currentOrder?.customer_name
+  ? currentOrder.customer_name
+      .replace("AGGIUNTA - ", "")
+      .replace("AGGIUNTE - ", "")
+      .replace(/TAVOLO\s+\d+/i, "")
+      .replace(/[()]/g, "")
+      .trim()
+  : (orderForm.customerName || "Ospite");
 
     return (
       <div className="min-h-screen bg-wood-50 pt-24 pb-20 px-4">
@@ -3647,17 +3673,11 @@ const renderMenu = () => {
                {isTableOrder ? 'Ordine in Preparazione!' : 'Ordine Ricevuto!'}
             </h2>
             <p className="opacity-90 text-sm mt-2">
-               {isTableOrder 
-                  ? (() => {
-                       const nomePulito = currentOrder.customer_name
-                          .replace("AGGIUNTA - ", "")
-                          .replace(/TAVOLO\s+\d+/i, "")
-                          .trim();
-                       return `Grazie ${nomePulito || 'Ospite'}, mettiti comodo!`;
-                    })()
-                  : `Grazie ${currentOrder.customer_name}, stiamo lavorando per te.`
-               }
-            </p>
+                {isTableOrder
+                   ? `Grazie ${displayCustomerName}, mettiti comodo!` // <--- Molto più semplice ed elegante! [1]
+                   : `Grazie ${displayCustomerName}, stiamo lavorando per te.`
+                }
+             </p>
           </div>
 
           <div className="p-6 md:p-8">
