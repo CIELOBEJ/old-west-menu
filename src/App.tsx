@@ -3229,10 +3229,22 @@ const renderMenu = () => {
                                    {subCatItems.map(item => {
                                        const { name, description } = getProductContent(item);
                                        const isAdded = addedItemId === item.id;
+                                       // ==========================================
+                                       // CONTROLLO DI SICUREZZA PER LE BEVANDE DA CASA
+                                       const isDineInOnlyDrink = item.subCategory !== "Acqua e Bibite" && item.subCategory !== "Birre in Bottiglia";
+                                       const isUnavailableForDelivery = (tableSessionId === null) && isDineInOnlyDrink;
+                                       // ==========================================
                                        return (
                                          <div key={item.id} className="bg-white rounded-2xl border border-wood-100 overflow-hidden shadow-sm p-4 flex justify-between items-center gap-4 hover:shadow-md transition-all">
                                             <div className="flex-1 min-w-0"><div className="flex flex-col items-start"><h4 className="font-bold text-wood-900 leading-tight truncate w-full">{name}</h4>{item.brand && <span className="text-xs text-accent-600 font-bold mt-0.5">{item.brand}</span>}</div>{description && <p className="text-xs text-wood-500 mt-1 line-clamp-2">{description}</p>}</div>
-                                            <div className="flex items-center gap-3 shrink-0"><span className="font-western text-xl text-wood-900">€{item.price.toFixed(2)}</span><button onClick={(e) => { e.preventDefault(); e.stopPropagation(); addToCart(item);}} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm ${isAdded ? 'bg-green-500 text-white' : 'bg-wood-900 text-white hover:bg-accent-600'}`}>{isAdded ? <Check size={18} /> : <Plus size={18} />}</button></div>
+                                            <div className="flex items-center gap-3 shrink-0"><span className="font-western text-xl text-wood-900">€{item.price.toFixed(2)}</span>
+                                            {/* APPLICAZIONE DEL BLOCCO CONDIZIONALE SUL PULSANTE DI AGGIUNTA */}
+                                             {isUnavailableForDelivery ? (
+                                                <span className="text-[10px] font-bold text-gray-500 bg-gray-100 border border-gray-200 px-2 py-1.5 rounded-lg select-none whitespace-nowrap">
+                                                   Solo al tavolo 🍷
+                                                </span>
+                                             ) : (
+                                            <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); addToCart(item);}} className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm ${isAdded ? 'bg-green-500 text-white' : 'bg-wood-900 text-white hover:bg-accent-600'}`}>{isAdded ? <Check size={18} /> : <Plus size={18} />}</button> )}</div>
                                          </div>
                                        );
                                    })}
@@ -3268,6 +3280,13 @@ const renderMenu = () => {
                            const { name, description } = getProductContent(item);
                            const isAdded = addedItemId === item.id;
                            const isDrink = item.category === ProductCategory.BEVANDE;
+
+                            // ==========================================
+                           // CONTROLLO DI SICUREZZA PER LE BEVANDE DA CASA (AGGIUNTO ANCHE QUI)
+                           const isDineInOnlyDrink = isDrink && item.subCategory !== "Acqua e Bibite" && item.subCategory !== "Birre in Bottiglia";
+                           const isUnavailableForDelivery = (tableSessionId === null) && isDineInOnlyDrink;
+                           // ==========================================
+
                            return (
                              <div key={item.id} onClick={(e) => { const target = e.target as HTMLElement; if (target.closest('button')) return; setInfoItem(item);}} className="bg-white rounded-3xl border border-wood-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group cursor-pointer">
                                {!isDrink && (
@@ -3281,7 +3300,13 @@ const renderMenu = () => {
                                  <div className="flex justify-between items-start mb-2"><div className="flex-1 min-w-0"><h3 className="text-xl font-bold text-wood-900 leading-tight break-words">{name}</h3>{item.brand && <p className="text-accent-600 font-bold text-sm mb-1">{item.brand}</p>}{item.category === ProductCategory.HAMBURGER && item.subCategory && <span className="text-[10px] font-bold text-wood-400 bg-wood-50 px-2 py-1 rounded-md whitespace-nowrap">{item.subCategory}</span>}</div>{isDrink && (<div className="flex items-center gap-1 pl-2 shrink-0"><span className="text-sm font-bold text-wood-500">€</span><span className="text-xl font-western text-wood-900">{item.price.toFixed(2)}</span></div>)}</div>
                                  <div className="flex-1 mb-4">{description && <p className="text-sm text-wood-500 line-clamp-3">{description}</p>}{description.includes('*') && (<p className="text-[10px] text-wood-400 italic mt-1">* Prodotto surgelato</p>)}</div>
                                  {item.allergens && item.allergens.length > 0 && (<div className="flex flex-wrap gap-1 mb-4 border-t border-wood-100 pt-2">{item.allergens.map(a => (<div key={a} className="group/allergen relative p-1"><AllergenIcon type={a} className="w-4 h-4 text-wood-400" /><span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-wood-800 text-white text-[10px] rounded opacity-0 group-hover/allergen:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">{a}</span></div>))}</div>)}
-                                 <button onClick={() => addToCart(item)} className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all duration-200 shadow-lg ${isAdded ? 'bg-green-500 text-white scale-95' : 'bg-wood-900 text-white hover:bg-accent-600 shadow-wood-200'}`}>{isAdded ? <Check size={18} /> : <Plus size={18} />} {t('add_to_cart', lang)}</button>
+                                 {/* APPLICAZIONE DEL BLOCCO CONDIZIONALE SUL PULSANTE DI AGGIUNTA IN FONDO ALLA SCHEDA */}
+                                 {isUnavailableForDelivery ? (
+                                    <div className="w-full py-3 bg-gray-100 border border-gray-200 text-gray-500 rounded-xl font-bold text-center text-sm select-none">
+                                       Solo consumazione al tavolo 🍷
+                                    </div>
+                                 ) : (
+                                 <button onClick={() => addToCart(item)} className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all duration-200 shadow-lg ${isAdded ? 'bg-green-500 text-white scale-95' : 'bg-wood-900 text-white hover:bg-accent-600 shadow-wood-200'}`}>{isAdded ? <Check size={18} /> : <Plus size={18} />} {t('add_to_cart', lang)}</button>)}
                                </div>
                              </div>
                            );
