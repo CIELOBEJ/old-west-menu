@@ -484,6 +484,38 @@ export default function App() {
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
   const [currentOrder, setCurrentOrder] = useState<any>(null);
   const [suggestionToast, setSuggestionToast] = useState<{show: boolean, text: string}>({ show: false, text: '' });
+  const getCustomerVariantPlaceholder = () => {
+  if (!selectingVariantItem) return "Cerca...";
+  
+  const isDrink = selectingVariantItem.category === ProductCategory.BEVANDE;
+  
+  if (isDrink) {
+    if (selectingVariantItem.subCategory === 'Amari e Digestivi') {
+      return lang === 'it' 
+         ? "Cerca amaro... (es: Montenegro, Braulio)" 
+         : "Search digestif... (e.g., Montenegro, Braulio)";
+    }
+    if (selectingVariantItem.subCategory === 'Birre alla Spina' || selectingVariantItem.subCategory === 'Birre in Bottiglia') {
+      return lang === 'it' 
+         ? "Cerca formato... (es: Media, Piccola, Caraffa)" 
+         : "Search size... (e.g., Medium, Small, Pitcher)";
+    }
+    if (selectingVariantItem.subCategory === 'Vini') {
+      return lang === 'it' 
+         ? "Cerca opzione... (es: Calice, Bottiglia)" 
+         : "Search option... (e.g., Glass, Bottle)";
+    }
+    return lang === 'it' ? "Cerca..." : "Search...";
+  }
+  
+  if (selectingVariantItem.category === ProductCategory.PIZZA) {
+    return lang === 'it' 
+       ? "Cerca dimensione... (es: Normale, Baby)" 
+       : "Search size... (e.g., Regular, Kid)";
+  }
+
+  return lang === 'it' ? "Cerca..." : "Search...";
+};
   
   // --- STATI AGGIUNTI PER L'AUTENTICAZIONE CLIENTE ---
   const [user, setUser] = useState<any>(null);
@@ -4319,16 +4351,22 @@ const renderMenu = () => {
         </button>
       </div>
 
-      {/* Input di Ricerca interna al modale */}
-      <div className="my-4 shrink-0 relative">
-        <input
-          type="text"
-          placeholder="Cerca... (es: Montenegro, Averna)"
-          value={variantSearchQuery}
-          onChange={(e) => setVariantSearchQuery(e.target.value)}
-          className="w-full bg-wood-50 border border-wood-200 rounded-xl py-2.5 pl-4 pr-4 text-sm focus:outline-none focus:border-gray-400"
-        />
-      </div>
+      {/* RICERCA INTERNA AL MODALE - MOSTRATA SOLO SE CI SONO PIÙ DI 3 OPZIONI */}
+      {selectingVariantItem.variants.length > 3 && (
+        <div className="my-4 shrink-0 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-wood-400" size={16}/>
+          <input
+            type="text"
+            
+            // MODIFICATO QUI: Il placeholder si adatta alla categoria e alla lingua del cliente! [1, 2, 4]
+            placeholder={getCustomerVariantPlaceholder()} 
+            
+            value={variantSearchQuery}
+            onChange={(e) => setVariantSearchQuery(e.target.value)}
+            className="w-full bg-wood-50 border border-wood-200 rounded-xl py-2.5 pl-9 pr-4 text-sm focus:outline-none focus:border-gray-400"
+          />
+        </div>
+      )}
 
       {/* Lista Varianti filtrata con scorrimento */}
       <div className="flex-1 overflow-y-auto pr-1 space-y-2 custom-scrollbar">
