@@ -4382,7 +4382,7 @@ const renderMenu = () => {
                   selectedVariant: variant,
                   price: Number(variant.price) // Aggiorna il prezzo del prodotto con quello della variante
                 };
-                addToCart(finalItem);
+                addToCart(finalItem, variant);
                 setSelectingVariantItem(null);
                 setVariantSearchQuery("");
               }}
