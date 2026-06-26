@@ -1615,6 +1615,17 @@ const handleInitStripePayment = async () => {
     const suggText = getCrossSellSuggestion(item);
     if (suggText) { setSuggestionToast({ show: true, text: suggText }); setTimeout(() => setSuggestionToast({ show: false, text: '' }), 2000); }
   };
+
+  const handleAddToCartClick = (item: any) => {
+  if (item.variants && item.variants.length > 0) {
+    // Se il prodotto ha varianti (come gli Amari o le Pizze), apre il modale
+    setSelectingVariantItem(item);
+    setVariantSearchQuery(""); // Svuota ricerche precedenti
+  } else {
+    // Altrimenti lo aggiunge direttamente
+    addToCart(item);
+  }
+};
   
   const removeFromCart = (cartId: string) => setCart(cart.filter(i => i.cartId !== cartId));
   const updateCartItemQuantity = (cartId: string, delta: number) => { setCart(cart.map(item => { if (item.cartId === cartId) { const newQty = item.quantity + delta; return newQty > 0 ? { ...item, quantity: newQty } : item; } return item; })); };
@@ -3389,29 +3400,20 @@ const renderMenu = () => {
                                              <div className="flex items-center gap-3 shrink-0">
                                                 <span className="font-western text-xl text-wood-900">€{item.price.toFixed(2)}</span>
                                                 
+                                                {/* Nel ciclo delle bevande, sostituisci il vecchio controllo con questa chiamata pulita: */}
                                                 {isUnavailableForDelivery ? (
-                                                   <span className="text-[10px] font-bold text-gray-500 bg-gray-100 border border-gray-200 px-2 py-1.5 rounded-lg select-none whitespace-nowrap">
-                                                      Solo al tavolo 🍷
-                                                   </span>
+                                                <span className="text-[10px] font-bold text-gray-500 bg-gray-100 border border-gray-200 px-2 py-1.5 rounded-lg select-none whitespace-nowrap">
+                                                   Solo al tavolo 🍷
+                                                </span>
                                                 ) : (
-                                                   <button 
-                                                      onClick={(e) => { 
-                                                         e.preventDefault(); 
-                                                         e.stopPropagation(); 
-                                                         
-                                                         if (item.variants && item.variants.length > 0) {
-                                                            setSelectingVariantItem(item);
-                                                            setVariantSearchQuery("");
-                                                         } else {
-                                                            addToCart(item); 
-                                                         }
-                                                      }} 
-                                                      className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm ${
-                                                         isAdded ? 'bg-green-500 text-white' : 'bg-wood-900 text-white hover:bg-accent-600'
-                                                      }`}
-                                                   >
-                                                      {isAdded ? <Check size={18} /> : <Plus size={18} />}
-                                                   </button>
+                                                <button 
+                                                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleAddToCartClick(item); }} 
+                                                   className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm ${
+                                                      isAdded ? 'bg-green-500 text-white' : 'bg-wood-900 text-white hover:bg-accent-600'
+                                                   }`}
+                                                >
+                                                   {isAdded ? <Check size={18} /> : <Plus size={18} />}
+                                                </button>
                                                 )}
                                              </div>
                                           </div>
@@ -3471,12 +3473,23 @@ const renderMenu = () => {
                                  <div className="flex-1 mb-4">{description && <p className="text-sm text-wood-500 line-clamp-3">{description}</p>}{description.includes('*') && (<p className="text-[10px] text-wood-400 italic mt-1">* Prodotto surgelato</p>)}</div>
                                  {item.allergens && item.allergens.length > 0 && (<div className="flex flex-wrap gap-1 mb-4 border-t border-wood-100 pt-2">{item.allergens.map(a => (<div key={a} className="group/allergen relative p-1"><AllergenIcon type={a} className="w-4 h-4 text-wood-400" /><span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-wood-800 text-white text-[10px] rounded opacity-0 group-hover/allergen:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">{a}</span></div>))}</div>)}
                                  {/* APPLICAZIONE DEL BLOCCO CONDIZIONALE SUL PULSANTE DI AGGIUNTA IN FONDO ALLA SCHEDA */}
+                                 {/* Nel ciclo delle schede grandi in fondo (pizze, hamburger speciali, ecc.): */}
                                  {isUnavailableForDelivery ? (
-                                    <div className="w-full py-3 bg-gray-100 border border-gray-200 text-gray-500 rounded-xl font-bold text-center text-sm select-none">
-                                       Solo consumazione al tavolo 🍷
-                                    </div>
+                                 <div className="w-full py-3 bg-gray-100 border border-gray-200 text-gray-500 rounded-xl font-bold text-center text-sm select-none">
+                                    Solo consumazione al tavolo 🍷
+                                 </div>
                                  ) : (
-                                 <button onClick={() => addToCart(item)} className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all duration-200 shadow-lg ${isAdded ? 'bg-green-500 text-white scale-95' : 'bg-wood-900 text-white hover:bg-accent-600 shadow-wood-200'}`}>{isAdded ? <Check size={18} /> : <Plus size={18} />} {t('add_to_cart', lang)}</button>)}
+                                 <button 
+                                    type="button"
+                                    // Richiama la nostra nuova funzione filtro!
+                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleAddToCartClick(item); }} 
+                                    className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all duration-200 shadow-lg ${
+                                       isAdded ? 'bg-green-500 text-white scale-95' : 'bg-wood-900 text-white hover:bg-accent-600 shadow-wood-200'
+                                    }`}
+                                 >
+                                    {isAdded ? <Check size={18} /> : <Plus size={18} />} {t('add_to_cart', lang)}
+                                 </button>
+                                 )}
                                </div>
                              </div>
                            );
@@ -4351,38 +4364,36 @@ const renderMenu = () => {
         </button>
       </div>
 
-      {/* RICERCA INTERNA AL MODALE - MOSTRATA SOLO SE CI SONO PIÙ DI 3 OPZIONI */}
-      {selectingVariantItem.variants.length > 3 && (
+      {/* ======================================================== */}
+      {/* BARRA DI RICERCA - MOSTRATA SOLO SE NON È PIZZA E CI SONO PIÙ DI 3 OPZIONI [1] */}
+      {selectingVariantItem.category !== 'Pizza' && selectingVariantItem.variants.length > 3 && (
         <div className="my-4 shrink-0 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-wood-400" size={16}/>
           <input
             type="text"
-            
-            // MODIFICATO QUI: Il placeholder si adatta alla categoria e alla lingua del cliente! [1, 2, 4]
             placeholder={getCustomerVariantPlaceholder()} 
-            
             value={variantSearchQuery}
             onChange={(e) => setVariantSearchQuery(e.target.value)}
             className="w-full bg-wood-50 border border-wood-200 rounded-xl py-2.5 pl-9 pr-4 text-sm focus:outline-none focus:border-gray-400"
           />
         </div>
       )}
+      {/* ======================================================== */}
 
-      {/* Lista Varianti filtrata con scorrimento */}
-      <div className="flex-1 overflow-y-auto pr-1 space-y-2 custom-scrollbar">
+      {/* LISTA DELLE OPZIONI (FUORI DAL BLOCCO DI RICERCA!) [1] */}
+      {/* Se ci sono poche opzioni (es. pizza), diamo un po' di margine superiore per distanziarla dal titolo */}
+      <div className={`flex-1 overflow-y-auto pr-1 space-y-2 custom-scrollbar ${selectingVariantItem.variants.length <= 3 ? 'mt-4' : ''}`}>
         {selectingVariantItem.variants
           .filter((v: any) => v.name.toLowerCase().includes(variantSearchQuery.toLowerCase()))
           .map((variant: any) => (
             <div 
               key={variant.name}
               onClick={() => {
-                // Genera l'oggetto carrello finale con la variante selezionata e il prezzo aggiornato
                 const finalItem = {
                   ...selectingVariantItem,
-                  selectedVariant: variant,
-                  price: Number(variant.price) // Aggiorna il prezzo del prodotto con quello della variante
+                  price: Number(variant.price)
                 };
-                addToCart(finalItem, variant);
+                addToCart(finalItem, variant); 
                 setSelectingVariantItem(null);
                 setVariantSearchQuery("");
               }}
@@ -4392,8 +4403,6 @@ const renderMenu = () => {
               <span className="font-western text-base text-[#45856c]">€{Number(variant.price).toFixed(2)}</span>
             </div>
           ))}
-
-        {/* Messaggio se la ricerca non produce risultati */}
         {selectingVariantItem.variants.filter((v: any) => v.name.toLowerCase().includes(variantSearchQuery.toLowerCase())).length === 0 && (
           <p className="text-center text-gray-400 text-sm py-8">Nessuna opzione disponibile.</p>
         )}
