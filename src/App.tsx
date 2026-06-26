@@ -1889,7 +1889,8 @@ const handleInitStripePayment = async () => {
             });
          }
           // AGGIUNTO: Genera la comanda virtuale per la bibita omaggio anche nei pre-ordini
-            const isPizza = item.category === ProductCategory.PIZZA;
+            const isFocaccia = item.name.toLowerCase() === "focaccia";
+            const isPizza = item.category === ProductCategory.PIZZA && !isFocaccia;;
             const isBimbi = item.category === ProductCategory.BIMBI;
             const isDeliveryOrTakeaway = activeForm.orderType === 'delivery' || activeForm.orderType === 'takeaway';
             
@@ -1994,7 +1995,8 @@ const handleInitStripePayment = async () => {
             });
           });
         }
-       const isPizza = item.category === ProductCategory.PIZZA;
+        const isFocaccia = item.name.toLowerCase() === "focaccia";
+        const isPizza = item.category === ProductCategory.PIZZA && !isFocaccia;
         const isBimbi = item.category === ProductCategory.BIMBI;
         const isDeliveryOrTakeaway = activeForm.orderType === 'delivery' || activeForm.orderType === 'takeaway';
         
@@ -2377,7 +2379,8 @@ const handleInitStripePayment = async () => {
                               {/* SEZIONE BEVANDA OMAGGIO TRADOTTA */}
                            {/* SEZIONE BEVANDA OMAGGIO (Dinamica: per le pizze solo a casa/asporto, per il menu bimbi sempre!) */}
                               {(() => {
-                                 const isPizza = item.category === ProductCategory.PIZZA;
+                                 const isFocaccia = item.name.toLowerCase() === "focaccia";
+                                 const isPizza = item.category === ProductCategory.PIZZA && !isFocaccia;
                                  const isBimbi = item.category === ProductCategory.BIMBI;
                                  
                                  // Mostra il pulsante se è un menu bimbi, OPPURE se è una pizza ma l'ordine è a casa/asporto
@@ -2430,7 +2433,8 @@ const handleInitStripePayment = async () => {
                  const isDeliveryOrTakeaway = orderForm.orderType === 'delivery' || orderForm.orderType === 'takeaway';
                  const hasMissingSideDishes = cart.some(item => item.brand === "Contorno compreso" && !item.selectedSideDish);
                  const hasMissingFreeDrinks = cart.some(item => {
-                     const isPizza = item.category === ProductCategory.PIZZA;
+                     const isFocaccia = item.name.toLowerCase() === "focaccia";
+                     const isPizza = item.category === ProductCategory.PIZZA && !isFocaccia;
                      const isBimbi = item.category === ProductCategory.BIMBI;
                      return (isBimbi && !item.selectedFreeDrink) || (isDeliveryOrTakeaway && isPizza && !item.selectedFreeDrink);
                      });
