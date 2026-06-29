@@ -1381,12 +1381,12 @@ const handleInitStripePayment = async () => {
         setDistanzaRilevata(km);
         
         // APPLICAZIONE TARIFFE RICHIESTE:
-        let costo = 2.00; // Fino a 5km
+        let costo = 2.00; // Fino a 4km
         
-        if (km > 5 && km <= 10) {
-          costo = 5.00; // Da 5 a 10 km
-        } else if (km > 10 && km <= 15) {
-          costo = 8.00; // Da 10 a 15 km
+        if (km > 4 && km <= 8) {
+          costo = 5.00; // Da 4 a 8 km
+        } else if (km > 8 && km <= 15) {
+          costo = 8.00; // Da 8 a 15 km
         } else if (km > 15) {
           setErroreIndirizzo(`La tua posizione (~${km.toFixed(1)} km) supera il nostro limite massimo di consegna di 15km.`);
           setSpeseConsegna(0);
