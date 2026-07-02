@@ -459,6 +459,7 @@ export default function App() {
   // Traccia quale sottocategoria delle bevande è attualmente aperta (null se sono tutte chiuse)
   const [expandedSubCategory, setExpandedSubCategory] = useState<string | null>(null);
   const [categories, setCategories] = useState<{ id: string; image_url: string | null }[]>([]);
+  const [tempSelectedVariant, setTempSelectedVariant] = useState<any>(null);
   const [diyStep, setDiyStep] = useState(0);
   const [diySelections, setDiySelections] = useState<Record<string, any>>({});
   const [diySearchQuery, setDiySearchQuery] = useState("");
@@ -2328,6 +2329,9 @@ const handleInitStripePayment = async () => {
     // Mostriamo gli Extra Generali o quelli del reparto specifico (Pizza o Hamburger)
     return i.subCategory === "Generale" || i.subCategory === logicalCategory;
   });
+      const filteredAddons = addons.filter((a: any) => 
+         a.name.toLowerCase().includes(addonSearch.toLowerCase())
+      );
 
       return (
       <>
@@ -4407,27 +4411,40 @@ const renderMenu = () => {
          )}
 
 
-         {selectingVariantItem && (
+         {/* POPUP SELEZIONE VARIANTE E SERVIZIO PERSONALIZZATO */}
+{/* POPUP SELEZIONE VARIANTE E SERVIZIO PERSONALIZZATO */}
+{selectingVariantItem && (
   <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200">
-    <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl flex flex-col max-h-[75vh]">
+    <div className="bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl flex flex-col max-h-[85vh]">
       
       {/* Intestazione */}
       <div className="flex justify-between items-center pb-4 border-b border-gray-100 shrink-0">
         <div>
-          <h3 className="font-bold text-lg text-gray-900">Scegli {getProductContent(selectingVariantItem).name}</h3>
-          <p className="text-gray-500 text-xs mt-0.5">Seleziona la tua variante preferita</p>
+          <h3 className="font-bold text-lg text-gray-900">
+            {tempSelectedVariant 
+              ? `${tempSelectedVariant.name}` 
+              : `Scegli ${getProductContent(selectingVariantItem).name}`}
+          </h3>
+          <p className="text-gray-500 text-xs mt-0.5">
+            {tempSelectedVariant 
+              ? "Come desideri servire la bevanda?" 
+              : "Seleziona la tua variante preferita"}
+          </p>
         </div>
         <button 
-          onClick={() => setSelectingVariantItem(null)} 
+          onClick={() => {
+            setSelectingVariantItem(null);
+            setTempSelectedVariant(null);
+            setVariantSearchQuery("");
+          }} 
           className="text-gray-400 hover:text-gray-600 text-xl font-bold p-1"
         >
           ✕
         </button>
       </div>
 
-      {/* ======================================================== */}
-      {/* BARRA DI RICERCA - MOSTRATA SOLO SE NON È PIZZA E CI SONO PIÙ DI 3 OPZIONI [1] */}
-      {selectingVariantItem.category !== 'Pizza' && selectingVariantItem.variants.length > 3 && (
+      {/* BARRA DI RICERCA - MOSTRATA SOLO IN FASE 1 SE NON È PIZZA E CI SONO PIÙ DI 3 OPZIONI */}
+      {!tempSelectedVariant && selectingVariantItem.category !== 'Pizza' && selectingVariantItem.variants.length > 3 && (
         <div className="my-4 shrink-0 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-wood-400" size={16}/>
           <input
@@ -4439,35 +4456,196 @@ const renderMenu = () => {
           />
         </div>
       )}
-      {/* ======================================================== */}
 
-      {/* LISTA DELLE OPZIONI (FUORI DAL BLOCCO DI RICERCA!) [1] */}
-      {/* Se ci sono poche opzioni (es. pizza), diamo un po' di margine superiore per distanziarla dal titolo */}
-      <div className={`flex-1 overflow-y-auto pr-1 space-y-2 custom-scrollbar ${selectingVariantItem.variants.length <= 3 ? 'mt-4' : ''}`}>
-        {selectingVariantItem.variants
-          .filter((v: any) => v.name.toLowerCase().includes(variantSearchQuery.toLowerCase()))
-          .map((variant: any) => (
-            <div 
-              key={variant.name}
-              onClick={() => {
-                const finalItem = {
-                  ...selectingVariantItem,
-                  price: Number(variant.price)
-                };
-                addToCart(finalItem, variant); 
-                setSelectingVariantItem(null);
-                setVariantSearchQuery("");
-              }}
-              className="flex justify-between items-center p-4 rounded-xl border border-wood-100 hover:bg-wood-50 hover:border-accent-300 cursor-pointer transition-all duration-200"
-            >
-              <span className="font-bold text-wood-800 text-sm">{variant.name}</span>
-              <span className="font-western text-base text-[#45856c]">€{Number(variant.price).toFixed(2)}</span>
-            </div>
-          ))}
-        {selectingVariantItem.variants.filter((v: any) => v.name.toLowerCase().includes(variantSearchQuery.toLowerCase())).length === 0 && (
-          <p className="text-center text-gray-400 text-sm py-8">Nessuna opzione disponibile.</p>
-        )}
-      </div>
+      {/* SEZIONE CONTENUTO: CODA DI STAMPA O LISTA DELLE OPZIONI */}
+      {tempSelectedVariant ? (
+        /* ========================================== */
+        /* FASE 2: OPZIONI DI SERVIZIO AL TAVOLO / BANCO */
+        /* ========================================== */
+        <div className="py-4 space-y-3 flex-1 flex flex-col justify-center">
+          {(() => {
+            const catName = selectingVariantItem.category?.toUpperCase() || "";
+            const subCatName = selectingVariantItem.subCategory?.toUpperCase() || "";
+            const prodName = selectingVariantItem.name?.toUpperCase() || "";
+            
+            const isCoffeeMode = 
+              catName === "BEVANDE" && 
+              (
+                subCatName.includes("CAFFE") || 
+                subCatName.includes("CAFFETTERIA") || 
+                prodName.includes("CAFFE") || 
+                prodName.includes("ESPRESSO")
+              );
+
+            if (isCoffeeMode) {
+              /* RENDERING OPZIONI PER CAFFETTERIA (CON "SCHIUMATO" INCLUSO) */
+              return (
+                <>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider text-center mb-2">
+                    Opzione per il caffè:
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {[
+                      { label: "Caffè Liscio", icon: "☕", name: "LISCIO" },
+                      { label: "Macchiato Caldo", icon: "🥛🔥", name: "MACCHIATO CALDO" },
+                      { label: "Macchiato Freddo", icon: "🥛❄️", name: "MACCHIATO FREDDO" },
+                      { label: "Schiumato", icon: "☁️", name: "SCHIUMATO" }
+                    ].map((opt) => (
+                      <button
+                        key={opt.name}
+                        onClick={() => {
+                          const addonServizio = { name: opt.name, price: 0 };
+                          const finalItem = {
+                            ...selectingVariantItem,
+                            price: Number(tempSelectedVariant.price),
+                            selectedAddons: [addonServizio] // L'extra a costo zero è salvato dentro finalItem
+                          };
+                          // Rimosso il terzo argomento per conformarsi con la tua funzione addToCart
+                          addToCart(finalItem, tempSelectedVariant); 
+                          setSelectingVariantItem(null);
+                          setTempSelectedVariant(null);
+                          setVariantSearchQuery("");
+                        }}
+                        className="flex items-center p-3.5 rounded-xl border-2 border-gray-200 hover:border-[#45856c] hover:bg-green-50/80 transition-all gap-4 active:scale-95 shadow-sm text-left"
+                      >
+                        <span className="text-2xl">{opt.icon}</span>
+                        <span className="font-bold text-sm text-gray-800">{opt.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              );
+            } else {
+              /* RENDERING OPZIONI PER ALCOLICI / SPIRITS / BIBITE */
+              return (
+                <>
+                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider text-center mb-1">
+                    Opzione di servizio al banco / tavolo:
+                  </p>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {[
+                      { label: "Liscio", icon: "🥃", name: "LISCIO" },
+                      { label: "Con Ghiaccio", icon: "🧊", name: "CON GHIACCIO" },
+                      { label: "Con Limone", icon: "🍋", name: "CON LIMONE" },
+                      { label: "Ghiaccio & Limone", icon: "🧊🍋", name: "GHIACCIO E LIMONE" }
+                    ].map((opt) => (
+                      <button
+                        key={opt.name}
+                        onClick={() => {
+                          const addonServizio = { name: opt.name, price: 0 };
+                          const finalItem = {
+                            ...selectingVariantItem,
+                            price: Number(tempSelectedVariant.price),
+                            selectedAddons: [addonServizio] // L'extra a costo zero è salvato dentro finalItem
+                          };
+                          // Rimosso il terzo argomento per conformarsi con la tua funzione addToCart
+                          addToCart(finalItem, tempSelectedVariant); 
+                          setSelectingVariantItem(null);
+                          setTempSelectedVariant(null);
+                          setVariantSearchQuery("");
+                        }}
+                        className="flex flex-col items-center justify-center p-3.5 rounded-xl border-2 border-gray-200 hover:border-[#45856c] hover:bg-green-50/80 transition-all text-center gap-1 active:scale-95 shadow-sm"
+                      >
+                        <span className="text-2xl">{opt.icon}</span>
+                        <span className="font-bold text-xs text-gray-800">{opt.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              );
+            }
+          })()}
+
+          {/* Pulsante per tornare indietro alla lista delle varianti */}
+          <button
+            onClick={() => setTempSelectedVariant(null)}
+            className="mt-3 text-xs font-semibold text-gray-500 hover:text-gray-800 text-center underline py-1 animate-in fade-in"
+          >
+            ← Torna alla lista dei prodotti
+          </button>
+        </div>
+      ) : (
+        /* ========================================== */
+        /* FASE 1: LISTA DELLE OPZIONI ORIGINALI (CON RICERCA) */
+        /* ========================================== */
+        <div className={`flex-1 overflow-y-auto pr-1 space-y-2 custom-scrollbar ${selectingVariantItem.variants.length <= 3 ? 'mt-4' : ''}`}>
+          {selectingVariantItem.variants
+            .filter((v: any) => v.name.toLowerCase().includes(variantSearchQuery.toLowerCase()))
+            .map((variant: any) => (
+              <div 
+                key={variant.name}
+                onClick={() => {
+                  const catName = selectingVariantItem.category?.toUpperCase() || "";
+                  const subCatName = selectingVariantItem.subCategory?.toUpperCase() || "";
+                  const prodName = selectingVariantItem.name?.toUpperCase() || "";
+                  const variantName = variant.name?.toUpperCase() || "";
+                  
+                  // Verifica se l'articolo è un caffè/caffetteria
+                  const isCoffee = 
+                    catName === "BEVANDE" && 
+                    (
+                      subCatName.includes("CAFFE") || 
+                      subCatName.includes("CAFFETTERIA") || 
+                      prodName.includes("CAFFE") || 
+                      prodName.includes("ESPRESSO") || 
+                      prodName.includes("GINSENG") || 
+                      prodName.includes("ORZO")
+                    );
+
+                  // Escludiamo il macchiato per il Caffè Corretto
+                  const isCorretto = prodName.includes("CORRETTO") || variantName.includes("CORRETTO");
+
+                  // Verifica se l'articolo è un liquore/amaro/spirits o bibita
+                  const isDrinkWithService = 
+                    catName === "BEVANDE" && 
+                    !isCoffee && 
+                    (
+                      subCatName.includes("AMARO") || 
+                      subCatName.includes("DIGESTIV") || 
+                      subCatName.includes("LIQUOR") || 
+                      subCatName.includes("BRANDY") || 
+                      subCatName.includes("COGNAC") || 
+                      subCatName.includes("WHISKY") || 
+                      subCatName.includes("APERITIV") || 
+                      subCatName.includes("VERMOUTH") || 
+                      subCatName.includes("VODKA") || 
+                      subCatName.includes("RUM") || 
+                      subCatName.includes("DISTILLAT") || 
+                      subCatName.includes("GRAPPA") || 
+                      subCatName.includes("BIBIT") || 
+                      subCatName.includes("LATTIN") ||
+                      prodName.includes("AMARO") || 
+                      prodName.includes("COCA") || 
+                      prodName.includes("FANTA") || 
+                      prodName.includes("SPRITE") ||
+                      prodName.includes("COLA")
+                    );
+
+                  if (isCoffee && !isCorretto) {
+                    setTempSelectedVariant(variant);
+                  } else if (isDrinkWithService) {
+                    setTempSelectedVariant(variant);
+                  } else {
+                    const finalItem = {
+                      ...selectingVariantItem,
+                      price: Number(variant.price)
+                    };
+                    addToCart(finalItem, variant); 
+                    setSelectingVariantItem(null);
+                    setVariantSearchQuery("");
+                  }
+                }}
+                className="flex justify-between items-center p-4 rounded-xl border border-wood-100 hover:bg-wood-50 hover:border-accent-300 cursor-pointer transition-all duration-200"
+              >
+                <span className="font-bold text-wood-800 text-sm">{variant.name}</span>
+                <span className="font-western text-base text-[#45856c]">€{Number(variant.price).toFixed(2)}</span>
+              </div>
+            ))}
+          {selectingVariantItem.variants.filter((v: any) => v.name.toLowerCase().includes(variantSearchQuery.toLowerCase())).length === 0 && (
+            <p className="text-center text-gray-400 text-sm py-8">Nessuna opzione disponibile.</p>
+          )}
+        </div>
+      )}
 
     </div>
   </div>
