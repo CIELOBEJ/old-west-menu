@@ -7,7 +7,7 @@ import {
   Milk, Egg, Nut, Bean, AlertCircle, Wine, Shell, Info, Search, Sandwich, Sparkles, Bike, Store, CheckCircle2, Copy, User, Mail, ShoppingCart, Undo, ReceiptText 
 } from 'lucide-react';
 import { MenuItem, ProductCategory, ViewState, LanguageCode, ActiveFilters, CartItem, AllergenType, ProductVariant, OrderType, PaymentMethod } from './types';
-import { INITIAL_MENU_ITEMS, CATEGORIES_LIST, HAMBURGER_SUBCATEGORIES, DRINK_SUBCATEGORIES, TRUE_DIY_OPTIONS, HOUSE_BURGER_OPTIONS, UI_TRANSLATIONS, CATEGORY_TRANSLATIONS, SUBCATEGORY_TRANSLATIONS, HAMBURGER_SUBCATEGORIES_TRANSLATIONS, DATA_VERSION, ALLERGENS_CONFIG, EXTRA_INGREDIENTS_ITEMS, DELIVERY_ZONES, LUNCH_HOURS, DINNER_HOURS, ADDON_SUBCATEGORIES } from './constants';
+import { INITIAL_MENU_ITEMS, CATEGORIES_LIST, HAMBURGER_SUBCATEGORIES, DRINK_SUBCATEGORIES, TRUE_DIY_OPTIONS, HOUSE_BURGER_OPTIONS, UI_TRANSLATIONS, CATEGORY_TRANSLATIONS, SUBCATEGORY_TRANSLATIONS, HAMBURGER_SUBCATEGORIES_TRANSLATIONS, DATA_VERSION, ALLERGENS_CONFIG, EXTRA_INGREDIENTS_ITEMS, DELIVERY_ZONES, LUNCH_HOURS, DINNER_HOURS, ADDON_SUBCATEGORIES, HAMBURGER_SPECIAL_NAMES } from './constants';
 import { supabase } from './supabase';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
@@ -2280,19 +2280,37 @@ const handleInitStripePayment = async () => {
     const itemBeingEdited = editingCartItemIndex !== null ? cart[editingCartItemIndex] : null;
 
     // Filtriamo gli ingredienti extra in base alla categoria del prodotto
-    const addons = items.filter(i => {
-      if (i.category !== ProductCategory.AGGIUNTE) return false;
-      if (!itemBeingEdited) return true;
+  // Filtriamo gli ingredienti extra in base alla categoria del prodotto
+  const addons = items.filter(i => {
+    if (i.category !== ProductCategory.AGGIUNTE) return false;
+    if (!itemBeingEdited) return true; // Controllo di sicurezza se l'articolo è nullo
 
-      // Logica intelligente:
-      // Mostra l'extra se la sua sottocategoria è "Generale" 
-      // OPPURE se corrisponde alla categoria del piatto (Pizza o Hamburger)
-      return (
-        i.subCategory === "Generale" || 
-        i.subCategory === itemBeingEdited.category
-      );
-    });
-      const filteredAddons = addons.filter(a => a.name.toLowerCase().includes(addonSearch.toLowerCase()));
+    const prodName = itemBeingEdited.name?.toUpperCase() || "";
+    const prodCategory = itemBeingEdited.category?.toUpperCase() || "";
+
+    // MODIFICA APPLICATA QUI (aggiunto ": any"):
+    let logicalCategory: any = itemBeingEdited.category; 
+
+    // Fallback A: Se il nome è nella lista degli speciali, lo trattiamo come "Hamburger"
+    const isSpecialHamburger = HAMBURGER_SPECIAL_NAMES.some(
+      specialName => specialName.toUpperCase() === prodName
+    );
+
+    if (isSpecialHamburger) {
+      logicalCategory = "Hamburger";
+    }
+    // Fallback B: Se la categoria contiene "PIZZA" o "PIZZE" (es: Pizze Speciali)
+    else if (prodCategory.includes("PIZZA") || prodCategory.includes("PIZZE")) {
+      logicalCategory = "Pizza";
+    }
+    // Fallback C: Se la categoria contiene "HAMBURGER" o "PANINI"
+    else if (prodCategory.includes("HAMBURGER") || prodCategory.includes("PANINI")) {
+      logicalCategory = "Hamburger";
+    }
+
+    // Mostriamo gli Extra Generali o quelli del reparto specifico (Pizza o Hamburger)
+    return i.subCategory === "Generale" || i.subCategory === logicalCategory;
+  });
 
       return (
       <>

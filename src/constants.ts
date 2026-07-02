@@ -303,6 +303,23 @@ export const CATEGORY_TRANSLATIONS: Record<ProductCategory, Record<LanguageCode,
   [ProductCategory.AGGIUNTE]: { it: 'Ingredienti Extra', en: 'Extra Ingredients', fr: 'Ingrédients Supplémentaires', de: 'Zusätzliche Zutaten' }
 };
 
+export const HAMBURGER_SPECIAL_NAMES = [
+  "Hamburger della Settimana",
+  "Porky's Piadizza",
+  "Old West",
+  "Veneto",
+  "Lombardo",
+  "Emiliano",
+  "Siciliano",
+  "Piemontese",
+  "Uruguay",
+  "Valdostano",
+  "Campano",
+  "Laziale",
+  "Italia",
+  "Calabrese"
+];
+
 export const EXTRA_INGREDIENTS_ITEMS: MenuItem[] = [
   { id: 'agg1', name: 'Funghi', description: '', price: 1.00, category: ProductCategory.AGGIUNTE, isAvailable: true },
   { id: 'agg2', name: 'Doppia Mozzarella', description: '', price: 1.50, category: ProductCategory.AGGIUNTE, isAvailable: true },
