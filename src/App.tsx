@@ -54,6 +54,23 @@ const AllergenIcon = ({ type, className }: { type: AllergenType; className?: str
   return <IconComponent className={className} />;
 };
 
+const ALLERGEN_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  'Glutine': { bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200' },
+  'Crostacei': { bg: 'bg-red-50', text: 'text-red-800', border: 'border-red-200' },
+  'Uova': { bg: 'bg-yellow-50', text: 'text-yellow-800', border: 'border-yellow-200' },
+  'Pesce': { bg: 'bg-blue-50', text: 'text-blue-800', border: 'border-blue-200' },
+  'Arachidi': { bg: 'bg-orange-50', text: 'text-orange-800', border: 'border-orange-200' },
+  'Soia': { bg: 'bg-green-50', text: 'text-green-800', border: 'border-green-200' },
+  'Latte': { bg: 'bg-sky-50', text: 'text-sky-800', border: 'border-sky-200' },
+  'Frutta a guscio': { bg: 'bg-amber-100/50', text: 'text-amber-900', border: 'border-amber-300/50' },
+  'Sedano': { bg: 'bg-emerald-50', text: 'text-emerald-800', border: 'border-emerald-200' },
+  'Senape': { bg: 'bg-yellow-50', text: 'text-yellow-800', border: 'border-yellow-200' },
+  'Sesamo': { bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200' },
+  'Anidride solforosa': { bg: 'bg-purple-50', text: 'text-purple-800', border: 'border-purple-200' },
+  'Lupini': { bg: 'bg-lime-50', text: 'text-lime-800', border: 'border-lime-200' },
+  'Molluschi': { bg: 'bg-cyan-50', text: 'text-cyan-800', border: 'border-cyan-200' },
+};
+
 const DEFAULT_LOGO = logoOldWest;
 const WesternLogo = ({ size = 'md', className, url }: { size?: 'md' | 'lg', className?: string, url?: string }) => {
   const isLarge = size === 'lg';
@@ -3493,7 +3510,29 @@ const renderMenu = () => {
                                <div className="p-6 flex-1 flex flex-col">
                                  <div className="flex justify-between items-start mb-2"><div className="flex-1 min-w-0"><h3 className="text-xl font-bold text-wood-900 leading-tight break-words">{name}</h3>{item.brand && <p className="text-accent-600 font-bold text-sm mb-1">{item.brand}</p>}{item.category === ProductCategory.HAMBURGER && item.subCategory && <span className="text-[10px] font-bold text-wood-400 bg-wood-50 px-2 py-1 rounded-md whitespace-nowrap">{item.subCategory}</span>}</div>{isDrink && (<div className="flex items-center gap-1 pl-2 shrink-0"><span className="text-sm font-bold text-wood-500">€</span><span className="text-xl font-western text-wood-900">{item.price.toFixed(2)}</span></div>)}</div>
                                  <div className="flex-1 mb-4">{description && <p className="text-sm text-wood-500 line-clamp-3">{description}</p>}{description.includes('*') && (<p className="text-[10px] text-wood-400 italic mt-1">* Prodotto surgelato</p>)}</div>
-                                 {item.allergens && item.allergens.length > 0 && (<div className="flex flex-wrap gap-1 mb-4 border-t border-wood-100 pt-2">{item.allergens.map(a => (<div key={a} className="group/allergen relative p-1"><AllergenIcon type={a} className="w-4 h-4 text-wood-400" /><span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-wood-800 text-white text-[10px] rounded opacity-0 group-hover/allergen:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">{a}</span></div>))}</div>)}
+                                 {/* BLOCCO ALLERGENI CON BADGE COMPATTI E INTELLIGENTI */}
+                                    {item.allergens && item.allergens.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5 mb-4 border-t border-wood-100 pt-2">
+                                       {item.allergens.map(a => {
+                                          // Recuperiamo i colori coordinati per l'allergene corrente (con un fallback grigio per sicurezza)
+                                          const colors = ALLERGEN_COLORS[a] || { bg: 'bg-gray-50', text: 'text-gray-800', border: 'border-gray-200' };
+
+                                          return (
+                                          <div 
+                                             key={a} 
+                                             className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${colors.bg} ${colors.text} ${colors.border} shadow-sm transition-transform hover:scale-105`}
+                                          >
+                                             {/* 
+                                                La tua icona Lucide personalizzata erediterà automaticamente il colore del testo del badge,
+                                                diventando coordinata e bellissima (es: l'icona del Glutine sarà color ambra)!
+                                             */}
+                                             <AllergenIcon type={a} className="w-3.5 h-3.5 shrink-0" />
+                                             <span>{a}</span>
+                                          </div>
+                                          );
+                                       })}
+                                    </div>
+                                    )}
                                  {/* APPLICAZIONE DEL BLOCCO CONDIZIONALE SUL PULSANTE DI AGGIUNTA IN FONDO ALLA SCHEDA */}
                                  {/* Nel ciclo delle schede grandi in fondo (pizze, hamburger speciali, ecc.): */}
                                  {isUnavailableForDelivery ? (
