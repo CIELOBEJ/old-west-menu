@@ -476,6 +476,32 @@ export default function App() {
       }
       }, [activeSubCategoryView]);
 
+   // Gestione dello scorrimento fluido automatico quando si aprono le tendine delle bevande
+      useEffect(() => {
+      if (expandedSubCategory) {
+         // Impostiamo un piccolissimo delay (120ms) per dare il tempo a React 
+         // di chiudere la tendina precedente e ricalcolare le altezze del sito
+         const timer = setTimeout(() => {
+            const elementId = `subcat-${expandedSubCategory.replace(/\s+/g, '-')}`;
+            const element = document.getElementById(elementId);
+            
+            if (element) {
+            // Altezza del tuo header fisso/sticky in alto (es: 90px) per evitare che la tendina ci finisca sotto
+            const headerOffset = 90; 
+            const elementPosition = element.getBoundingClientRect().top;
+            const offsetPosition = elementPosition + window.scrollY - headerOffset;
+
+            window.scrollTo({
+               top: offsetPosition,
+               behavior: 'smooth' // Effetto scorrimento morbido e premium
+            });
+            }
+         }, 120);
+
+         return () => clearTimeout(timer);
+      }
+      }, [expandedSubCategory]);   
+
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAddonModalOpen, setIsAddonModalOpen] = useState(false);
@@ -3433,7 +3459,7 @@ const renderMenu = () => {
                         const isExpanded = expandedSubCategory === subCat;
 
                         return (
-                           <div key={subCat} className="bg-white rounded-2xl border border-wood-100 overflow-hidden shadow-sm transition-all duration-300">
+                           <div key={subCat}id={`subcat-${subCat.replace(/\s+/g, '-')}`} className="bg-white rounded-2xl border border-wood-100 overflow-hidden shadow-sm transition-all duration-300">
                               
                               {/* INTESTAZIONE CLICCABILE (RIGA DELLA TENDINA) */}
                               <div 
@@ -3515,7 +3541,7 @@ const renderMenu = () => {
                              </div>
                           </div>
                        )}
-                    </div>
+                     </div>
                  ) : (
                    <>
                      {filteredItems.length === 0 ? (
