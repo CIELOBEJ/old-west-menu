@@ -1635,12 +1635,39 @@ const handleInitStripePayment = async () => {
   };
 
   const handleAddToCartClick = (item: any) => {
+  const catName = item.category?.toUpperCase() || "";
+  const subCatName = item.subCategory?.toUpperCase() || "";
+  const prodName = item.name?.toUpperCase() || "";
+
+  // Rileva se si tratta di una bibita singola (senza varianti) che necessita del servizio bar
+  const isSingleDrinkWithService = 
+    catName === "BEVANDE" && 
+    (!item.variants || item.variants.length === 0) &&
+    (
+      subCatName.includes("BIBIT") || 
+      subCatName.includes("LATTIN") ||
+      subCatName.includes("ACQUA") ||
+      prodName.includes("COCA") || 
+      prodName.includes("FANTA") || 
+      prodName.includes("SPRITE") ||
+      prodName.includes("COLA") ||
+      prodName.includes("CHINOTTO") ||
+      prodName.includes("LEMON") ||
+      prodName.includes("TONICA") ||
+      prodName.includes("ESTATHE")
+    );
+
   if (item.variants && item.variants.length > 0) {
     // Se il prodotto ha varianti (come gli Amari o le Pizze), apre il modale
     setSelectingVariantItem(item);
     setVariantSearchQuery(""); // Svuota ricerche precedenti
+  } else if (isSingleDrinkWithService) {
+    // Se è una bibita singola, apriamo il modale e impostiamo una variante fittizia ("dummy")
+    // Questo farà saltare la Fase 1 e aprirà direttamente la Fase 2 di scelta servizio!
+    setSelectingVariantItem(item);
+    setTempSelectedVariant({ name: "Standard", price: item.price, isDummy: true });
   } else {
-    // Altrimenti lo aggiunge direttamente
+    // Altrimenti lo aggiunge direttamente (Pizze, Hamburger, Dolci, ecc.)
     addToCart(item);
   }
 };
@@ -4540,16 +4567,24 @@ const renderMenu = () => {
                       key={opt.name}
                       onClick={() => {
                         const addonServizio = { name: opt.name, price: 0 };
+                        
+                        // Verifichiamo se si tratta della variante fittizia della bibita singola
+                        const isDummy = tempSelectedVariant?.isDummy;
+
                         const finalItem = {
-                          ...selectingVariantItem,
-                          price: Number(tempSelectedVariant.price),
-                          selectedAddons: [addonServizio]
+                           ...selectingVariantItem,
+                           price: isDummy ? Number(selectingVariantItem.price) : Number(tempSelectedVariant.price),
+                           selectedAddons: [addonServizio]
                         };
-                        addToCart(finalItem, tempSelectedVariant);
+
+                        // Se è una variante fittizia, passiamo "null" come variante a addToCart,
+                        // così nel carrello e sullo scontrino non comparirà alcuna dicitura "Standard"
+                        addToCart(finalItem, isDummy ? null : tempSelectedVariant);
+                        
                         setSelectingVariantItem(null);
                         setTempSelectedVariant(null);
                         setVariantSearchQuery("");
-                      }}
+                        }}
                       className="flex items-center p-3.5 rounded-xl border-2 border-gray-200 hover:border-[#45856c] hover:bg-green-50/80 transition-all gap-4 active:scale-95 shadow-sm text-left animate-in fade-in"
                     >
                       <span className="text-2xl">{opt.icon}</span>
