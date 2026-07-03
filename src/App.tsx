@@ -487,7 +487,7 @@ export default function App() {
             
             if (element) {
             // Altezza del tuo header fisso/sticky in alto (es: 90px) per evitare che la tendina ci finisca sotto
-            const headerOffset = 90; 
+            const headerOffset = 150; 
             const elementPosition = element.getBoundingClientRect().top;
             const offsetPosition = elementPosition + window.scrollY - headerOffset;
 
