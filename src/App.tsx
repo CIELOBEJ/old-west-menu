@@ -2388,7 +2388,11 @@ const handleInitStripePayment = async () => {
                                  <div className="text-sm text-[#45856c] mt-1 space-y-1">
                                     {item.selectedAddons.map((add, addonIdx) => (
                                        <div key={addonIdx} className="flex items-center gap-3 group">
-                                          <div className="flex items-center gap-1 font-medium"><Plus size={10} /> {add.name} (+€{add.price.toFixed(2)})</div>
+                                          <div className="flex items-center gap-1 font-medium">
+                                             <Plus size={10} /> {add.name}
+                                             {/* Mostra il prezzo tra parentesi solo se è maggiore di zero! */}
+                                             {Number(add.price) > 0 && ` (+€${Number(add.price).toFixed(2)})`}
+                                             </div>
                                           <button onClick={() => removeAddonFromItem(index, addonIdx)} className="p-1.5 bg-red-50 text-red-500 rounded-md hover:bg-red-100 transition-colors flex items-center justify-center shadow-sm border border-red-100" title="Rimuovi"><Trash2 size={12} /></button>
                                        </div>
                                     ))}
@@ -4411,7 +4415,6 @@ const renderMenu = () => {
          )}
 
 
-         {/* POPUP SELEZIONE VARIANTE E SERVIZIO PERSONALIZZATO */}
 {/* POPUP SELEZIONE VARIANTE E SERVIZIO PERSONALIZZATO */}
 {selectingVariantItem && (
   <div className="fixed inset-0 bg-black/60 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200">
@@ -4457,12 +4460,12 @@ const renderMenu = () => {
         </div>
       )}
 
-      {/* SEZIONE CONTENUTO: CODA DI STAMPA O LISTA DELLE OPZIONI */}
+      {/* SEZIONE CONTENUTO: TERNARIO TRA FASE 2 (SERVIZIO) E FASE 1 (LISTA PRODOTTI) */}
       {tempSelectedVariant ? (
         /* ========================================== */
         /* FASE 2: OPZIONI DI SERVIZIO AL TAVOLO / BANCO */
         /* ========================================== */
-        <div className="py-4 space-y-3 flex-1 flex flex-col justify-center">
+        <div className="py-4 space-y-3 flex-1 flex flex-col justify-center animate-in fade-in duration-200">
           {(() => {
             const catName = selectingVariantItem.category?.toUpperCase() || "";
             const subCatName = selectingVariantItem.subCategory?.toUpperCase() || "";
@@ -4477,83 +4480,85 @@ const renderMenu = () => {
                 prodName.includes("ESPRESSO")
               );
 
+            const isSpiritMode = 
+              catName === "BEVANDE" && 
+              !isCoffeeMode &&
+              (
+                subCatName.includes("AMARO") || 
+                subCatName.includes("DIGESTIV") || 
+                subCatName.includes("LIQUOR") || 
+                subCatName.includes("BRANDY") || 
+                subCatName.includes("COGNAC") || 
+                subCatName.includes("WHISKY") || 
+                subCatName.includes("VODKA") || 
+                subCatName.includes("RUM") || 
+                subCatName.includes("DISTILLAT") || 
+                subCatName.includes("GRAPPA") || 
+                subCatName.includes("APERITIV") ||
+                subCatName.includes("VERMOUTH") ||
+                prodName.includes("AMARO") || 
+                prodName.includes("WHISKY") || 
+                prodName.includes("RUM") || 
+                prodName.includes("GRAPPA")
+              );
+
+            let serviceOptions = [];
+            let labelText = "";
+
             if (isCoffeeMode) {
-              /* RENDERING OPZIONI PER CAFFETTERIA (CON "SCHIUMATO" INCLUSO) */
-              return (
-                <>
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider text-center mb-2">
-                    Opzione per il caffè:
-                  </p>
-                  <div className="flex flex-col gap-2">
-                    {[
-                      { label: "Caffè Liscio", icon: "☕", name: "LISCIO" },
-                      { label: "Macchiato Caldo", icon: "🥛🔥", name: "MACCHIATO CALDO" },
-                      { label: "Macchiato Freddo", icon: "🥛❄️", name: "MACCHIATO FREDDO" },
-                      { label: "Schiumato", icon: "☁️", name: "SCHIUMATO" }
-                    ].map((opt) => (
-                      <button
-                        key={opt.name}
-                        onClick={() => {
-                          const addonServizio = { name: opt.name, price: 0 };
-                          const finalItem = {
-                            ...selectingVariantItem,
-                            price: Number(tempSelectedVariant.price),
-                            selectedAddons: [addonServizio] // L'extra a costo zero è salvato dentro finalItem
-                          };
-                          // Rimosso il terzo argomento per conformarsi con la tua funzione addToCart
-                          addToCart(finalItem, tempSelectedVariant); 
-                          setSelectingVariantItem(null);
-                          setTempSelectedVariant(null);
-                          setVariantSearchQuery("");
-                        }}
-                        className="flex items-center p-3.5 rounded-xl border-2 border-gray-200 hover:border-[#45856c] hover:bg-green-50/80 transition-all gap-4 active:scale-95 shadow-sm text-left"
-                      >
-                        <span className="text-2xl">{opt.icon}</span>
-                        <span className="font-bold text-sm text-gray-800">{opt.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </>
-              );
+              labelText = "Opzione per il caffè:";
+              serviceOptions = [
+                { label: "Caffè Liscio", icon: "☕", name: "Liscio" },
+                { label: "Macchiato Caldo", icon: "🥛🔥", name: "Macchiato caldo" },
+                { label: "Macchiato Freddo", icon: "🥛❄️", name: "Macchiato freddo" },
+                { label: "Schiumato", icon: "☁️", name: "Schiumato" }
+              ];
+            } else if (isSpiritMode) {
+              labelText = "Opzione di servizio distillati / amari:";
+              serviceOptions = [
+                { label: "Liscio", icon: "🥃", name: "Liscio" },
+                { label: "Con Ghiaccio", icon: "🧊", name: "Con ghiaccio" }
+              ];
             } else {
-              /* RENDERING OPZIONI PER ALCOLICI / SPIRITS / BIBITE */
-              return (
-                <>
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider text-center mb-1">
-                    Opzione di servizio al banco / tavolo:
-                  </p>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    {[
-                      { label: "Liscio", icon: "🥃", name: "LISCIO" },
-                      { label: "Con Ghiaccio", icon: "🧊", name: "CON GHIACCIO" },
-                      { label: "Con Limone", icon: "🍋", name: "CON LIMONE" },
-                      { label: "Ghiaccio & Limone", icon: "🧊🍋", name: "GHIACCIO E LIMONE" }
-                    ].map((opt) => (
-                      <button
-                        key={opt.name}
-                        onClick={() => {
-                          const addonServizio = { name: opt.name, price: 0 };
-                          const finalItem = {
-                            ...selectingVariantItem,
-                            price: Number(tempSelectedVariant.price),
-                            selectedAddons: [addonServizio] // L'extra a costo zero è salvato dentro finalItem
-                          };
-                          // Rimosso il terzo argomento per conformarsi con la tua funzione addToCart
-                          addToCart(finalItem, tempSelectedVariant); 
-                          setSelectingVariantItem(null);
-                          setTempSelectedVariant(null);
-                          setVariantSearchQuery("");
-                        }}
-                        className="flex flex-col items-center justify-center p-3.5 rounded-xl border-2 border-gray-200 hover:border-[#45856c] hover:bg-green-50/80 transition-all text-center gap-1 active:scale-95 shadow-sm"
-                      >
-                        <span className="text-2xl">{opt.icon}</span>
-                        <span className="font-bold text-xs text-gray-800">{opt.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </>
-              );
+              labelText = "Opzione di servizio bibite / analcolici:";
+              serviceOptions = [
+                { label: "Liscio", icon: "🥃", name: "Liscio" },
+                { label: "Con Ghiaccio", icon: "🧊", name: "Con ghiaccio" },
+                { label: "Con Limone", icon: "🍋", name: "Con limone" },
+                { label: "Ghiaccio & Limone", icon: "🧊🍋", name: "Ghiaccio & limone" }
+              ];
             }
+
+            return (
+              <>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider text-center mb-2">
+                  {labelText}
+                </p>
+                <div className="flex flex-col gap-2">
+                  {serviceOptions.map((opt) => (
+                    <button
+                      key={opt.name}
+                      onClick={() => {
+                        const addonServizio = { name: opt.name, price: 0 };
+                        const finalItem = {
+                          ...selectingVariantItem,
+                          price: Number(tempSelectedVariant.price),
+                          selectedAddons: [addonServizio]
+                        };
+                        addToCart(finalItem, tempSelectedVariant);
+                        setSelectingVariantItem(null);
+                        setTempSelectedVariant(null);
+                        setVariantSearchQuery("");
+                      }}
+                      className="flex items-center p-3.5 rounded-xl border-2 border-gray-200 hover:border-[#45856c] hover:bg-green-50/80 transition-all gap-4 active:scale-95 shadow-sm text-left animate-in fade-in"
+                    >
+                      <span className="text-2xl">{opt.icon}</span>
+                      <span className="font-bold text-sm text-gray-800">{opt.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            );
           })()}
 
           {/* Pulsante per tornare indietro alla lista delle varianti */}
@@ -4606,8 +4611,6 @@ const renderMenu = () => {
                       subCatName.includes("BRANDY") || 
                       subCatName.includes("COGNAC") || 
                       subCatName.includes("WHISKY") || 
-                      subCatName.includes("APERITIV") || 
-                      subCatName.includes("VERMOUTH") || 
                       subCatName.includes("VODKA") || 
                       subCatName.includes("RUM") || 
                       subCatName.includes("DISTILLAT") || 
