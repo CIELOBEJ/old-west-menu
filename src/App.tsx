@@ -4364,10 +4364,31 @@ const renderMenu = () => {
                            <span className="text-[10px] font-bold text-wood-400 uppercase tracking-widest block border-b border-wood-100 pb-1">Elementi ordinati:</span>
                            <div className="space-y-2.5 bg-wood-50 p-4 rounded-2xl border border-wood-100 font-bold text-sm text-wood-800">
                               {itemsList.map((item, idx) => (
-                                 <div key={idx} className="flex justify-between">
-                                    <span>{item.quantity}x {item.name.toUpperCase()}</span>
+                              <div key={idx} className="flex flex-col border-b border-gray-50/50 pb-2 last:border-0">
+                              <div className="flex justify-between">
+                                 <span>{item.quantity}x {item.name.toUpperCase()}</span>
+                              </div>
+                              
+                              {/* Aggiunto il cast (item as any) per superare il controllo di TypeScript */}
+                              {(item as any).selectedVariant && (
+                                 <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-sans block w-fit mt-1 font-bold uppercase tracking-wider">
+                                    {(item as any).selectedVariant.name.toUpperCase()}
+                                 </span>
+                              )}
+
+                              {/* Aggiunto il cast (item as any) per superare il controllo di TypeScript */}
+                              {(item as any).selectedAddons && (item as any).selectedAddons.length > 0 && (
+                                 <div className="flex flex-col gap-0.5 mt-1 pl-2">
+                                    {(item as any).selectedAddons.map((add: any, i: number) => (
+                                    <span key={i} className="text-[10px] text-[#45856c] font-sans font-bold uppercase tracking-wider block text-left">
+                                       + {add.name.toUpperCase()}
+                                    </span>
+                                    ))}
                                  </div>
+                              )}
+                              </div>
                               ))}
+                              
                               {/* Riga del Coperto moltiplicato se presente una prenotazione */}
                               {totalPizzasAndBurgers > 0 && tempReservationInfo && (
                                  <div className="flex justify-between border-t border-wood-200/50 pt-2 text-wood-500 font-medium">
