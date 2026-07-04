@@ -2453,7 +2453,7 @@ const handleInitStripePayment = async () => {
                               )}
 
                               {/* SEZIONE CONTORNO COMPRESO TRADOTTA */}
-                           {requiresSideDish && (
+                            {requiresSideDish && (
                               <div className="mt-2">
                                  {item.selectedSideDish ? (
                                     <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 text-xs font-bold px-3 py-1.5 rounded-xl w-fit">
@@ -2470,10 +2470,10 @@ const handleInitStripePayment = async () => {
                                     </button>
                                  )}
                               </div>
-                           )}
+                            )}
 
                               {/* SEZIONE BEVANDA OMAGGIO TRADOTTA */}
-                           {/* SEZIONE BEVANDA OMAGGIO (Dinamica: per le pizze solo a casa/asporto, per il menu bimbi sempre!) */}
+                            {/* SEZIONE BEVANDA OMAGGIO (Dinamica: per le pizze solo a casa/asporto, per il menu bimbi sempre!) */}
                               {(() => {
                                  const isFocaccia = item.name.toLowerCase() === "focaccia";
                                  const isPizza = item.category === ProductCategory.PIZZA && !isFocaccia;
@@ -4582,24 +4582,25 @@ const renderMenu = () => {
             if (isCoffeeMode) {
               labelText = "Opzione per il caffè:";
               serviceOptions = [
-                { label: "Caffè Liscio", icon: "☕", name: "Liscio" },
-                { label: "Macchiato Caldo", icon: "🥛🔥", name: "Macchiato caldo" },
-                { label: "Macchiato Freddo", icon: "🥛❄️", name: "Macchiato freddo" },
-                { label: "Schiumato", icon: "☁️", name: "Schiumato" }
+                { label: "Caffè Normale", name: "Normale" },
+                { label: "Caffè Ristretto", name: "Ristretto" },
+                { label: "Macchiato Caldo", name: "Macchiato caldo" },
+                { label: "Macchiato Freddo", name: "Macchiato freddo" },
+                { label: "Schiumato", name: "Schiumato" }
               ];
             } else if (isSpiritMode) {
               labelText = "Opzione di servizio distillati / amari:";
               serviceOptions = [
-                { label: "Liscio", icon: "🥃", name: "Liscio" },
-                { label: "Con Ghiaccio", icon: "🧊", name: "Con ghiaccio" }
+                { label: "Liscio", name: "Liscio" },
+                { label: "Con Ghiaccio", name: "Con ghiaccio" }
               ];
             } else {
               labelText = "Opzione di servizio bibite / analcolici:";
               serviceOptions = [
-                { label: "Liscio", icon: "🥃", name: "Liscio" },
-                { label: "Con Ghiaccio", icon: "🧊", name: "Con ghiaccio" },
-                { label: "Con Limone", icon: "🍋", name: "Con limone" },
-                { label: "Ghiaccio & Limone", icon: "🧊🍋", name: "Ghiaccio & limone" }
+                { label: "Liscio", name: "Liscio" },
+                { label: "Con Ghiaccio", name: "Con ghiaccio" },
+                { label: "Con Limone", name: "Con limone" },
+                { label: "Ghiaccio & Limone", name: "Ghiaccio & limone" }
               ];
             }
 
@@ -4634,7 +4635,6 @@ const renderMenu = () => {
                         }}
                       className="flex items-center p-3.5 rounded-xl border-2 border-gray-200 hover:border-[#45856c] hover:bg-green-50/80 transition-all gap-4 active:scale-95 shadow-sm text-left animate-in fade-in"
                     >
-                      <span className="text-2xl">{opt.icon}</span>
                       <span className="font-bold text-sm text-gray-800">{opt.label}</span>
                     </button>
                   ))}
