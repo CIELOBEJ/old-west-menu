@@ -56,7 +56,7 @@ export const ALLERGENS_CONFIG: Record<AllergenType, { label: string, iconName: s
   'Sedano': { label: 'Sedano', iconName: 'Leaf' },
   'Senape': { label: 'Senape', iconName: 'AlertCircle' },
   'Sesamo': { label: 'Semi di sesamo', iconName: 'CircleDot' },
-  'Solfiti': { label: 'Anidride solforosa e solfiti', iconName: 'Wine' },
+  'Solfiti': { label: 'Solfiti', iconName: 'Wine' },
   'Lupini': { label: 'Lupini', iconName: 'Bean' },
   'Molluschi': { label: 'Molluschi', iconName: 'Shell' },
 };
