@@ -33,7 +33,7 @@ export interface ActiveFilters {
 export type AllergenType = 
   | 'Glutine' | 'Crostacei' | 'Uova' | 'Pesce' | 'Arachidi' 
   | 'Soia' | 'Latte' | 'Frutta a guscio' | 'Sedano' | 'Senape' 
-  | 'Sesamo' | 'Anidride solforosa' | 'Lupini' | 'Molluschi';
+  | 'Sesamo' | 'Solfiti' | 'Lupini' | 'Molluschi';
 
 export interface MenuItem {
   id: string;
