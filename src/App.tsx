@@ -66,7 +66,7 @@ const ALLERGEN_COLORS: Record<string, { bg: string; text: string; border: string
   'Sedano': { bg: 'bg-emerald-50', text: 'text-emerald-800', border: 'border-emerald-200' },
   'Senape': { bg: 'bg-yellow-50', text: 'text-yellow-800', border: 'border-yellow-200' },
   'Sesamo': { bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200' },
-  'Anidride solforosa': { bg: 'bg-purple-50', text: 'text-purple-800', border: 'border-purple-200' },
+  'Solfiti': { bg: 'bg-purple-50', text: 'text-purple-800', border: 'border-purple-200' },
   'Lupini': { bg: 'bg-lime-50', text: 'text-lime-800', border: 'border-lime-200' },
   'Molluschi': { bg: 'bg-cyan-50', text: 'text-cyan-800', border: 'border-cyan-200' },
 };
