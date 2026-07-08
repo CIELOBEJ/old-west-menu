@@ -232,7 +232,7 @@ const LandingPage = ({ setView, setIsPreOrder, setTempReservationInfo, setReserv
     prenota_title: { it: 'Prenota Tavolo', en: 'Book a Table', fr: 'Réserver une table', de: 'Tisch reservieren' },
     prenota_sub: { it: 'Riserva un tavolo nel locale', en: 'Reserve a table in the restaurant', fr: 'Réservez une table', de: 'Tisch im Restaurant reservieren' },
     preordine_title: { it: 'Pre-ordine cibo', en: 'Pre-order food', fr: 'Précommande de repas', de: 'Essen vorbestellen' },
-    preordine_sub: { it: 'Prenota tavolo + Piatti', en: 'Book table + Dishes', fr: 'Réserver table + Plats', de: 'Tisch reservieren + Gerichte' }
+    preordine_sub: { it: 'Prenota tavolo + Piatti in anticipo', en: 'Book table + Dishes in advance', fr: 'Réserver table + Plats à l\'avance', de: 'Tisch buchen + Gerichte vorab' }
   };
 
   const getTxt = (key: string) => translations[key]?.[lang] || translations[key]?.['it'] || key;
@@ -2274,16 +2274,16 @@ const handleInitStripePayment = async () => {
              )}
              
              {/* 1. FRECCIA CURVA DI RITORNO ALLA HOME (Invisibile sulla Landing e se siamo al Tavolo!) */}
-             {view !== 'LANDING' && !tableSessionId && ( // <--- AGGIUNTO "!tableSessionId"
-                <button 
-                   type="button"
-                   onClick={() => { setView('LANDING'); window.scrollTo(0,0); }} 
-                   className="w-10 h-10 rounded-full flex items-center justify-center text-wood-400 hover:text-white hover:bg-wood-800 transition-all"
-                   title="Torna alla schermata iniziale"
-                >
-                   <Undo size={20} />
-                </button>
-             )}
+               {view !== 'LANDING' && !tableSessionId && (
+                  <button 
+                     type="button"
+                     onClick={() => { setView('LANDING'); window.scrollTo(0,0); }} 
+                     className="w-8 h-8 rounded-full flex items-center justify-center bg-[#45856c] text-white hover:bg-[#346a54] transition-all hover:scale-105 active:scale-95 shadow-sm ml-2 mr-0.5 shrink-0"
+                     title="Torna alla schermata iniziale"
+                  >
+                     <Undo size={14} />
+                  </button>
+               )}
 
              {/* 2. MENU LINGUE (Mostrato solo nelle visualizzazioni principali) */}
              {(view === 'LANDING' || view === 'MENU' || view === 'CHECKOUT') && (
