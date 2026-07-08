@@ -1126,25 +1126,41 @@ const [customModal, setCustomModal] = useState<{
 const handleUpdatePassword = async (e: React.FormEvent) => {
   e.preventDefault();
   if (newPassword.length < 6) {
-    alert("La password deve contenere almeno 6 caratteri.");
+    // Sostituito il vecchio alert di errore con il tuo customModal grafico
+    setCustomModal({
+      show: true,
+      title: "Attenzione",
+      message: "La password deve contenere almeno 6 caratteri."
+    });
     return;
   }
 
   try {
-    // Aggiorna l'utente corrente loggato temporaneamente con la nuova password
+    // Aggiorna l'utente corrente con la nuova password
     const { error } = await supabase.auth.updateUser({
       password: newPassword,
     });
 
     if (error) throw error;
 
-    // Chiude il modale e notifica il successo
+    // Chiude il modale e azzera il campo
     setShowNewPasswordModal(false);
     setNewPassword("");
-    alert("Password aggiornata con successo! Ora puoi accedere.");
+    
+    // Sostituito il vecchio alert di successo con il tuo customModal grafico!
+    setCustomModal({
+      show: true,
+      title: "Password Aggiornata!",
+      message: "La tua password è stata modificata con successo. Sei già connesso al tuo account!"
+    });
   } catch (error: any) {
     console.error("Errore durante l'aggiornamento della password:", error);
-    alert(`Errore: ${error.message || "Impossibile aggiornare la password."}`);
+    // Sostituito l'alert in caso di errore
+    setCustomModal({
+      show: true,
+      title: "Impossibile aggiornare",
+      message: error.message || "Si è verificato un errore durante il salvataggio della nuova password."
+    });
   }
 };
 
@@ -1278,12 +1294,24 @@ const handleUpdatePassword = async (e: React.FormEvent) => {
     }
   };
 
-  const handleLogoutUser = async () => {
-    if (window.confirm("Sei sicuro di voler uscire dal tuo account?")) {
+  const handleLogout = () => {
+  setCustomModal({
+    show: true,
+    title: "Disconnessione",
+    message: "Sei sicuro di voler uscire dal tuo account?",
+    showCancel: true,
+    onConfirm: async () => {
+      // Esegue effettivamente il logout da Supabase
       await supabase.auth.signOut();
       setIsProfileOpen(false);
+      setCustomModal({
+        show: true,
+        title: "Disconnesso",
+        message: "Sei uscito dal tuo account con successo."
+      });
     }
-  };
+  });
+};
 
   // CHECKOUT STATE AGGIORNATO (Aggiunto tableNumber)
   const [orderForm, setOrderForm] = useState({
