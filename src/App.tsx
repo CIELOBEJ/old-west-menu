@@ -567,7 +567,10 @@ export default function App() {
   const [profile, setProfile] = useState<any>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
+  const [authMode, setAuthMode] = useState<'LOGIN' | 'REGISTER' | 'RESET_PASSWORD'>('LOGIN');
+  const [resetSuccess, setResetSuccess] = useState<boolean>(false);
+   const [showNewPasswordModal, setShowNewPasswordModal] = useState<boolean>(false);
+   const [newPassword, setNewPassword] = useState<string>("");
   const [authForm, setAuthForm] = useState({
     email: '',
     password: '',
@@ -1153,6 +1156,28 @@ const [customModal, setCustomModal] = useState<{
       setIsProcessingAuth(false);
     }
   };
+
+  const handleResetPasswordRequest = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setIsProcessingAuth(true);
+  setAuthError(null);
+  setResetSuccess(false);
+
+  try {
+    // Invia il link di recupero password all'email inserita
+    const { error } = await supabase.auth.resetPasswordForEmail(authForm.email, {
+      redirectTo: `${window.location.origin}`, // Reindirizza l'utente sulla home della tua PWA
+    });
+
+    if (error) throw error;
+
+    setResetSuccess(true);
+  } catch (err: any) {
+    setAuthError(err.message || "Impossibile inviare l'email di recupero.");
+  } finally {
+    setIsProcessingAuth(false);
+  }
+};
 
   // Login classico email/password
   const handleLoginUser = async (e: React.FormEvent) => {
@@ -4798,79 +4823,120 @@ const renderMenu = () => {
 
       {/* ================= MODALE DI ACCESSO / REGISTRAZIONE UTENTE ================= */}
       {isAuthModalOpen && (
-         <div className="fixed inset-0 bg-black/60 z-[70] flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
-            <div className="bg-white w-full md:max-w-md max-h-[90vh] md:max-h-[85vh] md:rounded-3xl rounded-t-3xl p-6 flex flex-col shadow-2xl overflow-y-auto custom-scrollbar">
-               
-               <div className="flex justify-between items-center mb-6">
-                  <h4 className="font-western text-2xl text-wood-900 uppercase">
-                     {authMode === 'LOGIN' ? 'Accedi al tuo Account' : 'Crea un Account'}
-                  </h4>
-                  <button type="button" onClick={() => setIsAuthModalOpen(false)} className="p-2 bg-wood-50 rounded-full"><X/></button>
+   <div className="fixed inset-0 bg-black/60 z-[70] flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
+      <div className="bg-white w-full md:max-w-md max-h-[90vh] md:max-h-[85vh] md:rounded-3xl rounded-t-3xl p-6 flex flex-col shadow-2xl overflow-y-auto custom-scrollbar">
+         
+         <div className="flex justify-between items-center mb-6">
+            <h4 className="font-western text-2xl text-wood-900 uppercase">
+               {authMode === 'LOGIN' && 'Accedi al tuo Account'}
+               {authMode === 'REGISTER' && 'Crea un Account'}
+               {authMode === 'RESET_PASSWORD' && 'Recupera Password'}
+            </h4>
+            <button type="button" onClick={() => { setIsAuthModalOpen(false); setResetSuccess(false); }} className="p-2 bg-wood-50 rounded-full"><X/></button>
+         </div>
+
+         {authError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs font-bold flex items-center gap-2">
+               <AlertCircle size={16} className="text-red-600" />
+               <span>{authError}</span>
+            </div>
+         )}
+
+         {resetSuccess && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl text-green-800 text-xs font-bold flex items-center gap-2 animate-in fade-in">
+               <span>🎉 Link inviato! Controlla la tua casella di posta elettronica per reimpostare la password.</span>
+            </div>
+         )}
+
+         <form 
+            onSubmit={
+              authMode === 'LOGIN' 
+                ? handleLoginUser 
+                : authMode === 'REGISTER' 
+                  ? handleRegister 
+                  : handleResetPasswordRequest
+            } 
+            className="space-y-4"
+         >
+            <div>
+               <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Email *</label>
+               <input required type="email" value={authForm.email} onChange={e => setAuthForm({...authForm, email: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-sm" placeholder="esempio@mail.com" />
+            </div>
+
+            {authMode !== 'RESET_PASSWORD' && (
+               <div>
+                  <div className="flex justify-between items-center mb-1">
+                     <label className="block text-xs font-bold text-wood-500 uppercase">Password *</label>
+                     {authMode === 'LOGIN' && (
+                        <button 
+                           type="button" 
+                           onClick={() => { setAuthMode('RESET_PASSWORD'); setAuthError(null); }} 
+                           className="text-xs text-[#45856c] font-bold hover:underline"
+                        >
+                           Password dimenticata?
+                        </button>
+                     )}
+                  </div>
+                  <input required type="password" value={authForm.password} onChange={e => setAuthForm({...authForm, password: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-sm" placeholder="Scegli una password" />
                </div>
+            )}
 
-               {authError && (
-                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-800 text-xs font-bold flex items-center gap-2">
-                     <AlertCircle size={16} className="text-red-600" />
-                     <span>{authError}</span>
-                  </div>
-               )}
-
-               <form onSubmit={authMode === 'LOGIN' ? handleLoginUser : handleRegister} className="space-y-4">
+            {authMode === 'REGISTER' && (
+               <div className="space-y-4 pt-4 border-t border-wood-100 animate-in fade-in duration-300">
+                  <span className="text-[10px] font-bold text-wood-400 uppercase tracking-widest block">Dati di consegna preferiti (Salvati per i prossimi ordini):</span>
                   <div>
-                     <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Email *</label>
-                     <input required type="email" value={authForm.email} onChange={e => setAuthForm({...authForm, email: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-sm" placeholder="esempio@mail.com" />
+                     <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Nome e Cognome *</label>
+                     <input required type="text" value={authForm.fullName} onChange={e => setAuthForm({...authForm, fullName: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-sm" placeholder="Rossi Mario" />
                   </div>
-                  <div>
-                     <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Password *</label>
-                     <input required type="password" value={authForm.password} onChange={e => setAuthForm({...authForm, password: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-sm" placeholder="Scegli una password" />
-                  </div>
-
-                  {authMode === 'REGISTER' && (
-                     <div className="space-y-4 pt-4 border-t border-wood-100 animate-in fade-in duration-300">
-                        <span className="text-[10px] font-bold text-wood-400 uppercase tracking-widest block">Dati di consegna preferiti (Salvati per i prossimi ordini):</span>
-                        <div>
-                           <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Nome e Cognome *</label>
-                           <input required type="text" value={authForm.fullName} onChange={e => setAuthForm({...authForm, fullName: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-sm" placeholder="Rossi Mario" />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                           <div>
-                              <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Telefono *</label>
-                              <input required type="tel" value={authForm.phone} onChange={e => setAuthForm({...authForm, phone: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-sm" placeholder="3331234567" />
-                           </div>
-                           <div>
-                              <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Comune *</label>
-                              <div className="relative">
-                                 <select value={authForm.city} onChange={e => setAuthForm({...authForm, city: e.target.value})} className="w-full appearance-none bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-sm pr-8">
-                                    {DELIVERY_ZONES.map((cityName) => (
-                                       <option key={cityName} value={cityName}>{cityName}</option>
-                                    ))}
-                                 </select>
-                                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-wood-400 pointer-events-none" size={14} />
-                              </div>
-                           </div>
-                        </div>
-                        <div>
-                           <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Indirizzo di consegna *</label>
-                           <input required type="text" value={authForm.address} onChange={e => setAuthForm({...authForm, address: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-sm" placeholder="Via Rossi 45" />
+                  <div className="grid grid-cols-2 gap-3">
+                     <div>
+                        <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Telefono *</label>
+                        <input required type="tel" value={authForm.phone} onChange={e => setAuthForm({...authForm, phone: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-sm" placeholder="3331234567" />
+                     </div>
+                     <div>
+                        <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Comune *</label>
+                        <div className="relative">
+                           <select value={authForm.city} onChange={e => setAuthForm({...authForm, city: e.target.value})} className="w-full appearance-none bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-sm pr-8">
+                              {DELIVERY_ZONES.map((cityName) => (
+                                 <option key={cityName} value={cityName}>{cityName}</option>
+                              ))}
+                           </select>
+                           <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-wood-400 pointer-events-none" size={14} />
                         </div>
                      </div>
-                  )}
-
-                  <button type="submit" disabled={isProcessingAuth} className="w-full bg-[#45856c] text-white py-3 rounded-xl font-bold shadow-md hover:bg-opacity-90 transition-all flex items-center justify-center gap-2">
-                     {isProcessingAuth ? <Loader2 className="animate-spin" size={18} /> : authMode === 'LOGIN' ? 'Accedi' : 'Registrati ed Entra'}
-                  </button>
-               </form>
-
-               <div className="mt-6 pt-4 border-t border-wood-100 text-center text-sm">
-                  {authMode === 'LOGIN' ? (
-                     <p className="text-wood-500">Non hai ancora un account? <button type="button" onClick={() => { setAuthMode('REGISTER'); setAuthError(null); }} className="text-[#45856c] font-bold underline">Registrati ora</button></p>
-                  ) : (
-                     <p className="text-wood-500">Hai già un account? <button type="button" onClick={() => { setAuthMode('LOGIN'); setAuthError(null); }} className="text-[#45856c] font-bold underline">Accedi</button></p>
-                  )}
+                  </div>
+                  <div>
+                     <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Indirizzo di consegna *</label>
+                     <input required type="text" value={authForm.address} onChange={e => setAuthForm({...authForm, address: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-sm" placeholder="Via Rossi 45" />
+                  </div>
                </div>
-            </div>
+            )}
+
+            <button type="submit" disabled={isProcessingAuth} className="w-full bg-[#45856c] text-white py-3 rounded-xl font-bold shadow-md hover:bg-opacity-90 transition-all flex items-center justify-center gap-2 active:scale-[0.98]">
+               {isProcessingAuth ? (
+                  <Loader2 className="animate-spin" size={18} />
+               ) : authMode === 'LOGIN' ? (
+                  'Accedi'
+               ) : authMode === 'REGISTER' ? (
+                  'Registrati ed Entra'
+               ) : (
+                  'Invia link di recupero'
+               )}
+            </button>
+         </form>
+
+         <div className="mt-6 pt-4 border-t border-wood-100 text-center text-sm">
+            {authMode === 'RESET_PASSWORD' ? (
+               <p className="text-wood-500">Ricordi la password? <button type="button" onClick={() => { setAuthMode('LOGIN'); setAuthError(null); setResetSuccess(false); }} className="text-[#45856c] font-bold underline">Accedi ora</button></p>
+            ) : authMode === 'LOGIN' ? (
+               <p className="text-wood-500">Non hai ancora un account? <button type="button" onClick={() => { setAuthMode('REGISTER'); setAuthError(null); }} className="text-[#45856c] font-bold underline">Registrati ora</button></p>
+            ) : (
+               <p className="text-wood-500">Hai già un account? <button type="button" onClick={() => { setAuthMode('LOGIN'); setAuthError(null); }} className="text-[#45856c] font-bold underline">Accedi</button></p>
+            )}
          </div>
-      )}
+      </div>
+   </div>
+)}
 
 
       {/* ================= MODALE PROFILO UTENTE CON STORICO ORDINI E TRACKING ================= */}
