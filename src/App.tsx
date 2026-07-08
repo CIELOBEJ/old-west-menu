@@ -232,7 +232,7 @@ const LandingPage = ({ setView, setIsPreOrder, setTempReservationInfo, setReserv
     prenota_title: { it: 'Prenota Tavolo', en: 'Book a Table', fr: 'Réserver une table', de: 'Tisch reservieren' },
     prenota_sub: { it: 'Riserva un tavolo nel locale', en: 'Reserve a table in the restaurant', fr: 'Réservez une table', de: 'Tisch im Restaurant reservieren' },
     preordine_title: { it: 'Pre-ordine cibo', en: 'Pre-order food', fr: 'Précommande de repas', de: 'Essen vorbestellen' },
-    preordine_sub: { it: 'Scegli i piatti in anticipo', en: 'Choose your dishes in advance', fr: 'Choisissez vos plats à l\'avance', de: 'Gerichte im Voraus wählen' }
+    preordine_sub: { it: 'Prenota tavolo + Piatti', en: 'Book table + Dishes', fr: 'Réserver table + Plats', de: 'Tisch reservieren + Gerichte' }
   };
 
   const getTxt = (key: string) => translations[key]?.[lang] || translations[key]?.['it'] || key;
