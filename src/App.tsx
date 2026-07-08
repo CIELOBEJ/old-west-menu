@@ -4851,7 +4851,7 @@ const renderMenu = () => {
                         </div>
                         <div>
                            <label className="block text-xs font-bold text-wood-500 uppercase mb-1">Indirizzo di consegna *</label>
-                           <input required type="text" value={authForm.address} onChange={e => setAuthForm({...authForm, address: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-sm" placeholder="Via dei Mille 26" />
+                           <input required type="text" value={authForm.address} onChange={e => setAuthForm({...authForm, address: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-sm" placeholder="Via Rossi 45" />
                         </div>
                      </div>
                   )}
