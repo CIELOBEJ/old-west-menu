@@ -5101,7 +5101,7 @@ const renderMenu = () => {
                         <p className="text-xs text-wood-400 italic text-center py-2">Non hai ancora effettuato ordini online.</p>
                      ) : (
                         <div className="space-y-2">
-                           {userOrders.map((order) => {
+                           {userOrders.slice(0, 10).map((order) => {
                               const isActive = order.status !== 'completed' && order.status !== 'cancelled';
                               return (
                                  <div key={order.id} className="p-3 bg-wood-50 rounded-2xl border border-wood-100 flex justify-between items-center gap-2">
@@ -5146,7 +5146,7 @@ const renderMenu = () => {
                         <p className="text-xs text-wood-400 italic text-center py-2">Nessuna prenotazione passata registrata.</p>
                      ) : (
                         <div className="space-y-2">
-                           {userReservations.map((res) => {
+                           {userReservations.slice(0, 10).map((res) => {
                               const isPending = res.status === 'pending';
                               const isConfirmed = res.status === 'confirmed';
 
@@ -5177,7 +5177,7 @@ const renderMenu = () => {
 
                {/* SEZIONE LOGOUT IN FONDO FISSA */}
                <div className="pt-4 border-t border-wood-100 shrink-0">
-                  <button type="button" onClick={handleLogoutUser} className="w-full py-3 rounded-xl font-bold text-red-600 bg-red-50 hover:bg-red-100 flex items-center justify-center gap-2">
+                  <button type="button" onClick={handleLogout} className="w-full py-3 rounded-xl font-bold text-red-600 bg-red-50 hover:bg-red-100 flex items-center justify-center gap-2">
                      <LogOut size={16} /> Disconnetti Account
                   </button>
                </div>
