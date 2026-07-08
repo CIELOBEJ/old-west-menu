@@ -1109,6 +1109,45 @@ const [customModal, setCustomModal] = useState<{
     }
   }, [isProfileOpen, user]);
 
+  useEffect(() => {
+  // Ascolta gli eventi di autenticazione di Supabase
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      // Se l'utente arriva dal link di recupero, apriamo il popup della nuova password
+      setShowNewPasswordModal(true);
+    }
+  });
+
+  return () => {
+    subscription.unsubscribe();
+  };
+}, []);
+
+const handleUpdatePassword = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (newPassword.length < 6) {
+    alert("La password deve contenere almeno 6 caratteri.");
+    return;
+  }
+
+  try {
+    // Aggiorna l'utente corrente loggato temporaneamente con la nuova password
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+
+    if (error) throw error;
+
+    // Chiude il modale e notifica il successo
+    setShowNewPasswordModal(false);
+    setNewPassword("");
+    alert("Password aggiornata con successo! Ora puoi accedere.");
+  } catch (error: any) {
+    console.error("Errore durante l'aggiornamento della password:", error);
+    alert(`Errore: ${error.message || "Impossibile aggiornare la password."}`);
+  }
+};
+
   // Registrazione utente + Inserimento record nella tabella dei profili
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -4937,7 +4976,36 @@ const renderMenu = () => {
       </div>
    </div>
 )}
+      
+      {/* MODALE PER IMPOSTARE LA NUOVA PASSWORD (DOPO IL CLIC SULL'EMAIL) */}
+{showNewPasswordModal && (
+  <div className="fixed inset-0 bg-black/60 z-[99999] flex items-center justify-center p-4 animate-in fade-in duration-200">
+    <div className="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl flex flex-col text-center">
+      <h3 className="font-western text-2xl text-wood-900 uppercase mb-2">Nuova Password</h3>
+      <p className="text-gray-500 text-xs mb-6">Inserisci una nuova password sicura per il tuo account</p>
 
+      <form onSubmit={handleUpdatePassword} className="space-y-4">
+        <div>
+          <input
+            required
+            type="password"
+            placeholder="Minimo 6 caratteri"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-center text-sm font-semibold focus:outline-none focus:border-gray-400"
+          />
+        </div>
+        
+        <button
+          type="submit"
+          className="w-full bg-[#45856c] text-white py-3 rounded-xl font-bold shadow-md hover:bg-opacity-90 transition-all active:scale-95"
+        >
+          Salva Nuova Password
+        </button>
+      </form>
+    </div>
+  </div>
+)}
 
       {/* ================= MODALE PROFILO UTENTE CON STORICO ORDINI E TRACKING ================= */}
       {isProfileOpen && user && (
