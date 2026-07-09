@@ -772,7 +772,7 @@ const [customModal, setCustomModal] = useState<{
       setIsBillModalOpen(false);
 
       // Mostra la schermata di successo
-      setSuccessType('ORDER');
+      setSuccessType('BILL_PAID');
       setView('ORDER_SUCCESS');
       
       setSuggestionToast({ show: true, text: "🎉 Pagamento completato in app! Grazie e arrivederci!" });
