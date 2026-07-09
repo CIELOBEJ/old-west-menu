@@ -14,7 +14,7 @@ import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-
 import logoOldWest from './assets/LOGO-OLD-WEST.png';
 
 // Inizializza Stripe con la tua chiave pubblica di Test (Sostituisci con la tua pk_test_... reale!)
-const stripePromise = loadStripe('pk_test_51TiIYsCXySNnuldcThqR3ZAY2XpOwaUEb7rdhJ663hAfI7IeKap5bJ3HnbUbUVknR62JWTk6NbuVgocFIdRNrWj800M7BvpfqR');
+const stripePromise = loadStripe('pk_live_51TiK3DRrEKqBg7womS0ExuqRDuB3qGqFBHrJh9JiwwXxmVgOjPXCmaPtQ0pTAgR6JaRY9U6ZzHku7tInjnlJMqtC00mjt6Eitr');
 
 // --- Helper Functions ---
 
