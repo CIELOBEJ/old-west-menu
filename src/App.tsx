@@ -453,7 +453,7 @@ export default function App() {
     const urlParams = new URLSearchParams(window.location.search);
     return urlParams.get('table') ? 'MENU' : 'LANDING';
   });
-  const [successType, setSuccessType] = useState<'ORDER' | 'BOOKING'>('ORDER');
+  const [successType, setSuccessType] = useState<'ORDER' | 'BOOKING' | 'BILL_PAID'>('ORDER');
   const [activeCategory, setActiveCategory] = useState<string>('Tutti');
   const [activeSubCategoryView, setActiveSubCategoryView] = useState<string | null>(null);
   // Traccia quale sottocategoria delle bevande è attualmente aperta (null se sono tutte chiuse)
@@ -1760,6 +1760,7 @@ const handleInitStripePayment = async () => {
 
   // Rileva se si tratta di una bibita singola (senza varianti) che necessita del servizio bar
   const isSingleDrinkWithService = 
+   orderForm.orderType === "table" &&
     catName === "BEVANDE" && 
     (!item.variants || item.variants.length === 0) &&
     (
@@ -3194,6 +3195,7 @@ const handleInitStripePayment = async () => {
 
   const renderOrderSuccess = () => {
     const isBooking = successType === 'BOOKING';
+    const isBillPaid = successType === 'BILL_PAID';
 
     return (
       <div className="min-h-screen bg-[#45856c] flex flex-col items-center justify-center p-4 text-white text-center">
@@ -3202,28 +3204,35 @@ const handleInitStripePayment = async () => {
          </div>
          
          <h1 className="text-5xl font-western mb-4">
-            {isBooking ? 'Tavolo Riservato!' : 'Ordine Inviato!'}
+            {isBooking 
+               ? 'Tavolo Riservato!' 
+               : isBillPaid 
+                  ? 'Grazie e Arrivederci!' // <--- Titolo per il conto saldato!
+                  : 'Ordine Inviato!'}
          </h1>
          
          <div className="text-xl opacity-90 max-w-md mx-auto mb-12 space-y-2">
             {isBooking ? (
                <>
                   <p>
-                     {isPreOrder 
-                        ? 'Grazie, la tua richiesta di prenotazione con pre-ordine di cibo è stata ricevuta dallo staff.' 
-                        : 'Grazie, la tua richiesta di prenotazione del tavolo è stata ricevuta dallo staff.'
-                     }
+                  {isPreOrder
+                     ? 'Grazie, la tua richiesta di prenotazione con pre-ordine di cibo è stata ricevuta dallo staff.'
+                     : 'Grazie, la tua richiesta di prenotazione del tavolo è stata ricevuta dallo staff.'}
                   </p>
                   {tempReservationInfo && (
-                     <p className="font-bold text-orange-200 mt-2">
-                        Ti aspettiamo il {new Date(tempReservationInfo.date).toLocaleDateString('it-IT')} alle ore {tempReservationInfo.time}!
-                     </p>
+                  <p className="font-bold text-wood-200 mt-2">
+                     Ti aspettiamo il {new Date(tempReservationInfo.date).toLocaleDateString('it-IT')} alle ore {tempReservationInfo.time}
+                  </p>
                   )}
                </>
+            ) : isBillPaid ? (
+               // MESSAGGIO DI CONFERMA SCONTRINO SALDATO PER IL TAVOLO!
+               <p>Il conto del tuo tavolo è stato saldato con successo. Grazie per essere stato nostro ospite!</p>
             ) : (
+               // Messaggio standard per ordine di cibo
                <p>Il tuo ordine è stato ricevuto con successo dalla cucina.</p>
             )}
-         </div>
+            </div>
          
          <button 
             type="button"
@@ -4858,18 +4867,21 @@ const renderMenu = () => {
                       prodName.includes("COLA")
                     );
 
-                  if (isCoffee && !isCorretto) {
-                    setTempSelectedVariant(variant);
-                  } else if (isDrinkWithService) {
-                    setTempSelectedVariant(variant);
+                  const needsServiceOption = orderForm.orderType === 'table';
+
+                  if (needsServiceOption && isCoffee && !isCorretto) {
+                  setTempSelectedVariant(variant);
+                  } else if (needsServiceOption && isDrinkWithService) {
+                  setTempSelectedVariant(variant);
                   } else {
-                    const finalItem = {
-                      ...selectingVariantItem,
-                      price: Number(variant.price)
-                    };
-                    addToCart(finalItem, variant); 
-                    setSelectingVariantItem(null);
-                    setVariantSearchQuery("");
+                  // Se siamo in consegna o asporto, aggiunge direttamente al carrello al primo click!
+                  const finalItem = {
+                     ...selectingVariantItem,
+                     price: Number(variant.price)
+                  };
+                  addToCart(finalItem, variant);
+                  setSelectingVariantItem(null);
+                  setVariantSearchQuery("");
                   }
                 }}
                 className="flex justify-between items-center p-4 rounded-xl border border-wood-100 hover:bg-wood-50 hover:border-accent-300 cursor-pointer transition-all duration-200"
