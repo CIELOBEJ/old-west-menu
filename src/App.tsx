@@ -4,7 +4,7 @@ import {
   ChevronLeft, ChevronRight, Lock, Utensils, Star, MapPin, Clock, Instagram, Facebook, Phone, LayoutGrid, 
   ArrowRight, Upload, Image as ImageIcon, Download, RotateCcw, Save, ChevronDown, ChevronUp, X, Loader2, 
   Pencil, RefreshCw, Wheat, CircleDot, Globe, Languages, Check, Leaf, Flame, Award, QrCode, Database, Sprout, ShoppingBag, 
-  Milk, Egg, Nut, Bean, AlertCircle, Wine, Shell, Info, Search, Sandwich, Sparkles, Bike, Store, CheckCircle2, Copy, User, Mail, ShoppingCart, Undo, ReceiptText 
+  Milk, Egg, Nut, Bean, AlertCircle, Wine, Shell, Info, Search, Sandwich, Sparkles, Bike, Store, CheckCircle2, Copy, User, Mail, ShoppingCart, Undo, ReceiptText, Eye, EyeOff
 } from 'lucide-react';
 import { MenuItem, ProductCategory, ViewState, LanguageCode, ActiveFilters, CartItem, AllergenType, ProductVariant, OrderType, PaymentMethod } from './types';
 import { INITIAL_MENU_ITEMS, CATEGORIES_LIST, HAMBURGER_SUBCATEGORIES, DRINK_SUBCATEGORIES, TRUE_DIY_OPTIONS, HOUSE_BURGER_OPTIONS, UI_TRANSLATIONS, CATEGORY_TRANSLATIONS, SUBCATEGORY_TRANSLATIONS, HAMBURGER_SUBCATEGORIES_TRANSLATIONS, DATA_VERSION, ALLERGENS_CONFIG, EXTRA_INGREDIENTS_ITEMS, DELIVERY_ZONES, LUNCH_HOURS, DINNER_HOURS, ADDON_SUBCATEGORIES, HAMBURGER_SPECIAL_NAMES } from './constants';
@@ -459,6 +459,8 @@ export default function App() {
   // Traccia quale sottocategoria delle bevande è attualmente aperta (null se sono tutte chiuse)
   const [expandedSubCategory, setExpandedSubCategory] = useState<string | null>(null);
   const [categories, setCategories] = useState<{ id: string; image_url: string | null }[]>([]);
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showResetPassword, setShowResetPassword] = useState<boolean>(false);
   const [tempSelectedVariant, setTempSelectedVariant] = useState<any>(null);
   const [diyStep, setDiyStep] = useState(0);
   const [diySelections, setDiySelections] = useState<Record<string, any>>({});
@@ -5042,7 +5044,28 @@ const renderMenu = () => {
                         </button>
                      )}
                   </div>
-                  <input required type="password" value={authForm.password} onChange={e => setAuthForm({...authForm, password: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-sm" placeholder="Scegli una password" />
+                  
+                  {/* CONTENITORE RELATIVO PER POSIZIONARE L'OCCHIOLINO SULLA DESTRA */}
+                  <div className="relative">
+                     <input 
+                        required 
+                        // Il tipo cambia dinamicamente tra "password" e "text" al click dell'occhiolino!
+                        type={showPassword ? "text" : "password"} 
+                        value={authForm.password} 
+                        onChange={e => setAuthForm({...authForm, password: e.target.value})} 
+                        // Aggiunta la classe pr-10 per evitare che il testo si sovrapponga all'icona
+                        className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 pr-10 text-sm focus:outline-none focus:border-gray-400" 
+                        placeholder={authMode === 'REGISTER' ? "Scegli una password" : "La tua password"} 
+                     />
+                     {/* Bottone Occhiolino */}
+                     <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-wood-400 hover:text-wood-600 p-1 flex items-center"
+                     >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                     </button>
+                  </div>
                </div>
             )}
 
@@ -5111,16 +5134,26 @@ const renderMenu = () => {
       <p className="text-gray-500 text-xs mb-6">Inserisci una nuova password sicura per il tuo account</p>
 
       <form onSubmit={handleUpdatePassword} className="space-y-4">
-        <div>
-          <input
+        <div className="relative">
+         <input
             required
-            type="password"
+            // Il tipo cambia dinamicamente tra "password" e "text" al click dell'occhiolino!
+            type={showResetPassword ? "text" : "password"}
             placeholder="Minimo 6 caratteri"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-2.5 text-center text-sm font-semibold focus:outline-none focus:border-gray-400"
-          />
-        </div>
+            // Aggiunta la classe pr-10 per fare spazio all'icona
+            className="w-full bg-wood-50 border border-wood-200 rounded-xl pl-4 pr-10 py-2.5 text-center text-sm font-semibold focus:outline-none focus:border-gray-400"
+         />
+         {/* Bottone Occhiolino */}
+         <button
+            type="button"
+            onClick={() => setShowResetPassword(!showResetPassword)}
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-wood-400 hover:text-wood-600 p-1 flex items-center"
+         >
+            {showResetPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+         </button>
+         </div>
         
         <button
           type="submit"
