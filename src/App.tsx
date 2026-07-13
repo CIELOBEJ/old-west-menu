@@ -502,6 +502,23 @@ export default function App() {
       }
       }, [expandedSubCategory]);   
 
+               // Blocca lo zoom a due dita (pinch-to-zoom) specificatamente su Safari iOS (iPhone)
+         useEffect(() => {
+         const preventZoom = (e: Event) => {
+            // Intercetta ed evita i comandi di zoom grafici nativi di WebKit/Safari
+            e.preventDefault();
+         };
+
+         // gesturestart e gesturechange sono eventi proprietari Apple supportati da iOS
+         document.addEventListener('gesturestart', preventZoom);
+         document.addEventListener('gesturechange', preventZoom);
+
+         return () => {
+            document.removeEventListener('gesturestart', preventZoom);
+            document.removeEventListener('gesturechange', preventZoom);
+         };
+         }, []);
+
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAddonModalOpen, setIsAddonModalOpen] = useState(false);

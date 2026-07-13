@@ -8,7 +8,7 @@
     <link rel="apple-touch-icon" href="/logo192.png" />
     <link rel="manifest" href="/manifest.json" />
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <!-- TITOLO E DESCRIZIONE SEO RICHIESTI DA TE (Ottimizzati e perfetti!) -->
     <title>Old West Cameri - Ordini Online, Tavoli e Menu Digitale</title>
     <meta name="description" content="Scopri il menu di Old West Cameri. Ordina online da asporto, prenota il tuo tavolo con preordine o ordina direttamente dal tavolo con il QR code.">
@@ -51,6 +51,9 @@
       }
     </script>
     <style>
+      body {
+        touch-action: manipulation !important;
+      }
       .no-scrollbar::-webkit-scrollbar { display: none; }
       .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       .bg-texture {
