@@ -519,6 +519,15 @@ export default function App() {
          };
          }, []);
 
+         // Sostituisci il blocco useEffect con questa versione che usa il tuo stato reale:
+            useEffect(() => {
+            const isMonday = new Date().getDay() === 1;
+            if (isMonday) {
+               setOrderFormDate('Domani'); // <--- Aggiornato con il tuo nome corretto!
+            }
+            }, []);
+
+
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAddonModalOpen, setIsAddonModalOpen] = useState(false);
@@ -2902,13 +2911,14 @@ const handleInitStripePayment = async () => {
                // LOGICA CHIUSURA: Definiamo se il locale è chiuso ora
                const oraAttuale = new Date().getHours();
                const isChiusoOra = (oraAttuale < 11 || (oraAttuale >= 15 && oraAttuale < 17) || oraAttuale >= 23);
+               const isWeeklyClosedToday = new Date().getDay() === 1; // 1 = Lunedì (chiusura settimanale)
                
                return (
                   <div className="bg-white p-6 rounded-3xl border border-wood-100 shadow-sm space-y-6 animate-in fade-in">
                      <h3 className="font-bold text-lg text-wood-900 mb-2">{t('your_data', lang)}</h3>
                      
                      {/* Messaggio Locale Chiuso (appare solo se è orario di chiusura e hai scelto 'Oggi') */}
-                     {isChiusoOra && orderDate === 'Oggi' && (
+                     {(isChiusoOra || isWeeklyClosedToday) && orderDate === 'Oggi' && (
                         <div className="p-4 bg-orange-50 border border-orange-100 rounded-2xl text-orange-800 text-sm flex items-start gap-3">
                            <Info size={20} className="shrink-0 mt-0.5" />
                            <p>🤠 <strong>Siamo chiusi al momento!</strong><br/>Puoi comunque inviare l'ordine: lo riceveremo alla prossima apertura.</p>
@@ -3048,9 +3058,33 @@ const handleInitStripePayment = async () => {
                      <div className="pt-4 border-t border-wood-50">
                         <label className="block text-xs font-bold text-wood-500 uppercase mb-3">Quando?</label>
                         <div className="flex gap-2 mb-6">
-                           {['Oggi', 'Domani'].map(d => (
-                              <button key={d} type="button" onClick={() => setOrderFormDate(d)} className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${orderDate === d ? 'border-[#45856c] bg-[#45856c] text-white shadow-md' : 'border-wood-100 bg-wood-50 text-wood-400'}`}>{d}</button>
-                           ))}
+                           {/* 
+                           Sostituisci il vecchio ciclo con questa versione intelligente che disabilita Oggi 
+                           se è il giorno di chiusura del lunedì!
+                           */}
+                           {['Oggi', 'Domani'].map(d => {
+                              const isOggi = d === 'Oggi';
+                              // isWeeklyClosedToday deve essere definita in cima (const isWeeklyClosedToday = new Date().getDay() === 1)
+                              const isDisabled = isOggi && isWeeklyClosedToday;
+
+                              return (
+                                 <button 
+                                    key={d} 
+                                    type="button" 
+                                    disabled={isDisabled} // <--- Disabilita il click su Oggi se è lunedì!
+                                    onClick={() => setOrderFormDate(d)} 
+                                    className={`flex-1 py-3 rounded-xl font-bold border-2 transition-all ${
+                                       isDisabled
+                                          ? 'border-gray-100 bg-gray-100 text-gray-400 cursor-not-allowed opacity-50' // Stile disabilitato
+                                          : orderDate === d 
+                                             ? 'border-[#45856c] bg-[#45856c] text-white shadow-md' 
+                                             : 'border-wood-100 bg-wood-50 text-wood-400 hover:bg-wood-100'
+                                    }`}
+                                 >
+                                    {d}
+                                 </button>
+                              );
+                           })}
                         </div>
 
                         <label className="block text-xs font-bold text-wood-500 uppercase mb-3">{t('time', lang)}</label>
