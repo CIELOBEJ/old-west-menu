@@ -2917,12 +2917,26 @@ const handleInitStripePayment = async () => {
                   <div className="bg-white p-6 rounded-3xl border border-wood-100 shadow-sm space-y-6 animate-in fade-in">
                      <h3 className="font-bold text-lg text-wood-900 mb-2">{t('your_data', lang)}</h3>
                      
-                     {/* Messaggio Locale Chiuso (appare solo se è orario di chiusura e hai scelto 'Oggi') */}
-                     {(isChiusoOra || isWeeklyClosedToday) && orderDate === 'Oggi' && (
-                        <div className="p-4 bg-orange-50 border border-orange-100 rounded-2xl text-orange-800 text-sm flex items-start gap-3">
-                           <Info size={20} className="shrink-0 mt-0.5" />
-                           <p>🤠 <strong>Siamo chiusi al momento!</strong><br/>Puoi comunque inviare l'ordine: lo riceveremo alla prossima apertura.</p>
-                        </div>
+                     {/* Messaggio Locale Chiuso (mostra un testo specifico se è il giorno di chiusura settimanale o l'orario di chiusura quotidiano) */}
+                     {(isChiusoOra || isWeeklyClosedToday) && (
+                     <div className="p-4 bg-orange-50 border border-orange-100 rounded-2xl text-orange-800 text-sm flex items-start gap-3 animate-in fade-in duration-200">
+                        <Info size={20} className="shrink-0 mt-0.5" />
+                        <p className="text-left leading-relaxed">
+                           {isWeeklyClosedToday ? (
+                              <>
+                              🤠 <strong>Oggi siamo chiusi per il turno settimanale!</strong>
+                              <br />
+                              Puoi comunque inviare la tua comanda in anticipo: la riceveremo e la prepareremo direttamente per domani.
+                              </>
+                           ) : (
+                              <>
+                              🤠 <strong>Siamo chiusi al momento!</strong>
+                              <br />
+                              Puoi comunque inviare l'ordine: lo riceveremo e lo prepareremo alla nostra prossima apertura.
+                              </>
+                           )}
+                        </p>
+                     </div>
                      )}
 
                      {/* Nome e Telefono */}
