@@ -3515,11 +3515,16 @@ const renderMenu = () => {
     const hasActiveFilters = activeFilters.vegetarian || activeFilters.vegan || activeFilters.spicy || activeFilters.bestseller;
     const filteredItems = items.filter(item => {
       if (item.category === ProductCategory.AGGIUNTE) return false;
+
+      // ESCLUSIONE FISICA: Nascondiamo permanentemente la Proposta del Giorno da qualsiasi elenco di categoria
+      const isProposta = item.id === 'proposta-del-giorno' || item.name?.toUpperCase() === 'PROPOSTA DEL GIORNO';
+      if (isProposta) return false; // <--- Non comparirà mai nei Secondi piatti!
+
       if (activeCategory === 'Tutti' && hasActiveFilters) { return checkFilters(item); }
       if (activeCategory !== 'Tutti' && item.category !== activeCategory) return false;
       if (activeCategory === ProductCategory.HAMBURGER && activeSubCategoryView && item.subCategory !== activeSubCategoryView) return false;
       return checkFilters(item);
-    });
+      });
     // ALGORITMO DI ORDINAMENTO INTELLIGENTE DEI PRODOTTI
     const sortedFilteredItems = [...filteredItems].sort((a, b) => {
       const nameA = a.name.toLowerCase();
@@ -3540,7 +3545,22 @@ const renderMenu = () => {
       return 0;
     });
     if (activeCategory === 'Tutti' && hasActiveFilters) { const categoryOrder = Object.values(ProductCategory); filteredItems.sort((a, b) => categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category)); }
-    const highlightedItems = items.filter(i => (i.tags?.includes('Best Seller') || i.tags?.includes('Consigliato')) && i.category !== ProductCategory.AGGIUNTE);
+    const isThursday = new Date().getDay() === 4;
+
+      const highlightedItems = items.filter(i => {
+      // Escludiamo sempre gli ingredienti extra dal carosello in evidenza
+      if (i.category === ProductCategory.AGGIUNTE) return false;
+
+      const isProposta = i.id === 'proposta-del-giorno' || i.name?.toUpperCase() === 'PROPOSTA DEL GIORNO';
+      const isConsigliato = i.tags?.includes('Best Seller') || i.tags?.includes('Consigliato');
+
+      if (isProposta) {
+         // La Proposta del Giorno compare in evidenza SOLO il giovedì!
+         return isThursday;
+      }
+
+      return isConsigliato;
+      });
 
     return (
       <div className="min-h-screen bg-wood-50 flex flex-col justify-between">
@@ -4882,7 +4902,8 @@ const renderMenu = () => {
         /* FASE 1: LISTA DELLE OPZIONI ORIGINALI (CON RICERCA) */
         /* ========================================== */
         <div className={`flex-1 overflow-y-auto pr-1 space-y-2 custom-scrollbar ${selectingVariantItem.variants.length <= 3 ? 'mt-4' : ''}`}>
-          {selectingVariantItem.variants
+          {[...selectingVariantItem.variants]
+            .sort((a, b) => a.name.localeCompare(b.name, 'it', { sensitivity: 'base' }))
             .filter((v: any) => v.name.toLowerCase().includes(variantSearchQuery.toLowerCase()))
             .map((variant: any) => (
               <div 
