@@ -2157,7 +2157,7 @@ const calcolaDistanzaEPrezzoConsegna = async (via: string, citta: string): Promi
       }, 0);
 
       const coverCharge = getCoverCharge(); // <--- USA DIRETTAMENTE LA FUNZIONE UNIFICATA (Sarà 6,00 €!)
-      const finalTotalAmount = cartTotal + coverCharge + finalDeliveryFee; // <--- RISOLTO!
+      let finalTotalAmount = cartTotal + coverCharge + finalDeliveryFee; // <--- RISOLTO!
 
          // =========================================================================
       if (isPreOrder && tempReservationInfo) {
@@ -2259,7 +2259,8 @@ const calcolaDistanzaEPrezzoConsegna = async (via: string, citta: string): Promi
          finalDeliveryFee = costoApplicato;
          setSpeseConsegna(costoApplicato);
          setDistanzaRilevata(risultato.km);
-         setErroreIndirizzo(risultato.errore); 
+         setErroreIndirizzo(risultato.errore);
+         finalTotalAmount = cartTotal + coverCharge + finalDeliveryFee; 
          }
 
       // Se c'è un blocco di errore attivo legato alla distanza, fermiamo l'invio
