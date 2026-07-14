@@ -2158,39 +2158,65 @@ const handleInitStripePayment = async () => {
 
       // Se è a domicilio ed il calcolo chilometrico d'emergenza non è ancora stato eseguito (solo per ordine in tempo reale)
       if (!customForm && activeForm.orderType === 'delivery' && distanzaRilevata === null) {
-        const query = `${activeForm.deliveryAddress}, ${activeForm.deliveryCity}, Italy`;
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
-          { headers: { 'User-Agent': 'OldWestOnlineApp/1.0 (info@oldwest.click)' } }
-        );
-        const data = await response.json();
-        
-        if (data && data.length > 0) {
-          const destLat = parseFloat(data[0].lat);
-          const destLon = parseFloat(data[0].lon);
-          const km = calcolaDistanzaInKm(45.49955, 8.67277, destLat, destLon);
-          
-          if (km > 15) {
+  
+      // 1. PULIZIA INDIRIZZO: Sostituisce l'apostrofo curvo di iPhone/Mac con quello dritto standard
+      const cleanedAddress = activeForm.deliveryAddress
+         .replace(/’/g, "'")
+         .replace(/`/g, "'")
+         .replace(/´/g, "'")
+         .trim();
+
+      const queryWithNumber = `${cleanedAddress}, ${activeForm.deliveryCity}, Italy`;
+
+      // Funzione helper per interrogare OpenStreetMap via rete
+      const fetchCoords = async (searchQuery: string) => {
+         const response = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`,
+            { headers: { 'User-Agent': 'OldWestOnlineApp/1.0 (info@oldwest.click)' } }
+         );
+         return await response.json();
+      };
+
+      let data = await fetchCoords(queryWithNumber);
+
+      // 2. FALLBACK DI SICUREZZA SE IL CIVICO NON È MAPPATO SULLA MAPPA:
+      // Se non trova nulla, e l'indirizzo termina con un numero (es: "via san francesco d'assisi 17"),
+      // rimuoviamo il numero dal fondo e cerchiamo solo la via ("via san francesco d'assisi")!
+      if ((!data || data.length === 0) && /\s\d+$/.test(cleanedAddress)) {
+         const addressWithoutNumber = cleanedAddress.replace(/\s\d+$/, "").trim();
+         const queryWithoutNumber = `${addressWithoutNumber}, ${activeForm.deliveryCity}, Italy`;
+         
+         console.log("Civico non mappato. Tento il recupero tramite la sola via:", queryWithoutNumber);
+         data = await fetchCoords(queryWithoutNumber);
+      }
+
+      if (data && data.length > 0) {
+         const destLat = parseFloat(data[0].lat);
+         const destLon = parseFloat(data[0].lon);
+         const km = calcolaDistanzaInKm(45.49955, 8.67277, destLat, destLon);
+         
+         if (km > 15) {
             alert(`La tua posizione (~${km.toFixed(1)} km) supera il nostro limite massimo di consegna (15km). L'ordine non può essere completato.`);
             setIsSubmittingOrder(false);
             return;
-          }
-          
-          let costo = 2.00;
-          if (km > 5 && km <= 10) costo = 5.00;
-          else if (km > 10 && km <= 15) costo = 8.00;
-          
-          // Se è la promozione primo ordine, azzeriamo il costo applicato
-          const costoApplicato = isFirstOrder ? 0 : costo;
-          finalDeliveryFee = costoApplicato;
-          setSpeseConsegna(costoApplicato);
-          setDistanzaRilevata(km);
-          setErroreIndirizzo(null);
-        } else {
-          alert("Indirizzo di consegna non riconosciuto. Verifica via e civico prima di procedere.");
-          setIsSubmittingOrder(false);
-          return;
-        }
+         }
+         
+         let costo = 2.00;
+         if (km > 5 && km <= 10) costo = 5.00;
+         else if (km > 10 && km <= 15) costo = 8.00;
+         
+         // Se è la promo primo ordine (isFirstOrder), azzeriamo il costo applicato
+         const costoApplicato = isFirstOrder ? 0 : costo;
+         
+         finalDeliveryFee = costoApplicato;
+         setSpeseConsegna(costoApplicato);
+         setDistanzaRilevata(km);
+         setErroreIndirizzo(null);
+      } else {
+         alert("Indirizzo di consegna non riconosciuto. Verifica via e civico prima di procedere.");
+         setIsSubmittingOrder(false);
+         return;
+      }
       }
 
       // Se c'è un blocco di errore attivo legato alla distanza, fermiamo l'invio
