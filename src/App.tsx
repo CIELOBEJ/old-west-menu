@@ -3916,9 +3916,17 @@ const renderMenu = () => {
 
             {/* COPYRIGHT */}
             <p className="text-xs opacity-75">&copy; {new Date().getFullYear()} Old West. {t('rights_reserved', lang)}</p>
-            <p className="text-[10px] opacity-40 tracking-wider uppercase">
-            Design by CIELOBEJ STUDIO
-            </p>
+            <p className="text-[10px] opacity-45 tracking-wider uppercase">
+               Design by{' '}
+               <a 
+                  href="https://www.instagram.com/cielobej/" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="hover:underline hover:opacity-100 transition-opacity font-bold"
+               >
+                  CIELOBEJ STUDIO
+               </a>
+               </p>
             
             {/* SEZIONE LINK LEGALI STATICI OSPITATI NELLA CARTELLA PUBLIC */}
             <div className="flex justify-center gap-3 mt-4 text-[10px] opacity-60 hover:opacity-75 transition-opacity font-bold uppercase tracking-wider">
