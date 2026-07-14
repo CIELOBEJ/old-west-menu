@@ -1517,61 +1517,141 @@ const handleInitStripePayment = async () => {
     return R * c; // Ritorna i km reali
   };
 
+   interface RisultatoSpese {
+  success: boolean;
+  km: number | null;
+  costoBase: number;
+  errore: string | null;
+}
+
+const calcolaDistanzaEPrezzoConsegna = async (via: string, citta: string): Promise<RisultatoSpese> => {
+  if (!via || !citta) {
+    return { success: false, km: null, costoBase: 2.00, errore: "Via o città mancanti." };
+  }
+
+  // 1. PULIZIA INDIRIZZO: Sostituisce gli apostrofi curvi di iOS/Mac con quello dritto standard
+  const cleanedAddress = via
+    .replace(/’/g, "'")
+    .replace(/`/g, "'")
+    .replace(/´/g, "'")
+    .trim();
+
+  const queryWithNumber = `${cleanedAddress}, ${citta}, Italy`;
+
+  const fetchCoords = async (searchQuery: string) => {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`,
+      { headers: { 'User-Agent': 'OldWestOnlineApp/1.0 (info@oldwest.click)' } }
+    );
+    return await response.json();
+  };
+
+  try {
+    let data = await fetchCoords(queryWithNumber);
+
+    // 2. PRIMO FALLBACK: Se non trova l'indirizzo e termina con un numero, prova senza numero civico
+    if ((!data || data.length === 0) && /\s\d+$/.test(cleanedAddress)) {
+      const addressWithoutNumber = cleanedAddress.replace(/\s\d+$/, "").trim();
+      const queryWithoutNumber = `${addressWithoutNumber}, ${citta}, Italy`;
+      console.log("Civico non mappato. Tento il recupero tramite la sola via:", queryWithoutNumber);
+      data = await fetchCoords(queryWithoutNumber);
+    }
+
+    // Se ha trovato la via (con o senza numero)
+    if (data && data.length > 0) {
+      const destLat = parseFloat(data[0].lat);
+      const destLon = parseFloat(data[0].lon);
+      
+      const localeLat = 45.49955;
+      const localeLon = 8.67277;
+      
+      const km = calcolaDistanzaInKm(localeLat, localeLon, destLat, destLon);
+      
+      let costo = 2.00; // Fino a 4 km
+      if (km > 4 && km <= 8) costo = 5.00;
+      else if (km > 8 && km <= 15) costo = 8.00;
+      else if (km > 15) {
+        return {
+          success: false,
+          km,
+          costoBase: 0,
+          errore: `La tua posizione (~${km.toFixed(1)} km) supera il nostro limite massimo di consegna di 15km.`
+        };
+      }
+
+      return { success: true, km, costoBase: costo, errore: null };
+    } 
+    
+    // 3. SECONDO FALLBACK (SALVA-CLIENTE): Se la via non esiste proprio su OpenStreetMap (come Via San Francesco d'Assisi)
+    // interroghiamo solo il Comune per non bloccare l'ordine e calcolare una tariffa approssimativa sul centro città.
+    console.log("Via non trovata su OSM. Tento il recupero usando solo il comune:", citta);
+    const queryCityOnly = `${citta}, Italy`;
+    const cityData = await fetchCoords(queryCityOnly);
+    
+    if (cityData && cityData.length > 0) {
+      const destLat = parseFloat(cityData[0].lat);
+      const destLon = parseFloat(cityData[0].lon);
+      
+      const localeLat = 45.49955;
+      const localeLon = 8.67277;
+      
+      const km = calcolaDistanzaInKm(localeLat, localeLon, destLat, destLon);
+      
+      let costo = 2.00; // Fino a 4 km
+      if (km > 4 && km <= 8) costo = 5.00;
+      else if (km > 8 && km <= 15) costo = 8.00;
+      else if (km > 15) {
+        return {
+          success: false,
+          km,
+          costoBase: 0,
+          errore: `Il comune di consegna (~${km.toFixed(1)} km) supera il nostro limite massimo di consegna di 15km.`
+        };
+      }
+
+      return {
+        success: true, // Restituiamo TRUE così sblocchiamo il cliente e può ordinare!
+        km,
+        costoBase: costo,
+        errore: null // Impostando a null mostrerà la barra verde di successo!
+      };
+    } else {
+      return {
+        success: false,
+        km: null,
+        costoBase: 2.00,
+        errore: "Indirizzo non trovato. Verifica di aver inserito via e civico correttamente."
+      };
+    }
+  } catch (error) {
+    console.error("Errore Nominatim API:", error);
+    return {
+      success: false,
+      km: null,
+      costoBase: 2.50,
+      errore: "Impossibile verificare la via. Verrà applicata una tariffa forfettaria."
+    };
+  }
+};
+
   // Funzione per contattare OpenStreetMap (Nominatim) e settare la corretta tariffa
   const handleCalcolaSpeseConsegna = async (via: string, citta: string) => {
-    if (!via || !citta) return;
-    
-    setIsCalcolandoDistanza(true);
-    setErroreIndirizzo(null);
-    
-    // Uniamo la via con il comune selezionato limitando le ricerche in Italia
-    const query = `${via}, ${citta}, Italy`;
-    
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`,
-        { headers: { 'User-Agent': 'OldWestOnlineApp/1.0 (info@oldwest.click)' } }
-      );
-      const data = await response.json();
-      
-      if (data && data.length > 0) {
-        const destLat = parseFloat(data[0].lat);
-        const destLon = parseFloat(data[0].lon);
-        
-        // Coordinate ristorante Cameri (Via G. Galilei 35)
-        const localeLat = 45.49955;
-        const localeLon = 8.67277;
-        
-        const km = calcolaDistanzaInKm(localeLat, localeLon, destLat, destLon);
-        setDistanzaRilevata(km);
-        
-        // APPLICAZIONE TARIFFE RICHIESTE:
-        let costo = 2.00; // Fino a 4km
-        
-        if (km > 4 && km <= 8) {
-          costo = 5.00; // Da 4 a 8 km
-        } else if (km > 8 && km <= 15) {
-          costo = 8.00; // Da 8 a 15 km
-        } else if (km > 15) {
-          setErroreIndirizzo(`La tua posizione (~${km.toFixed(1)} km) supera il nostro limite massimo di consegna di 15km.`);
-          setSpeseConsegna(0);
-          setIsCalcolandoDistanza(false);
-          return;
-        }
-        
-        setSpeseConsegna(costo);
-      } else {
-        setErroreIndirizzo("Indirizzo non trovato. Verifica di aver inserito via e civico correttamente.");
-        setSpeseConsegna(2.00);
-      }
-    } catch (error) {
-      console.error("Errore Nominatim API:", error);
-      setErroreIndirizzo("Impossibile verificare la via. Verrà applicata una tariffa forfettaria.");
-      setSpeseConsegna(2.50);
-    } finally {
-      setIsCalcolandoDistanza(false);
-    }
-  };
+  setIsCalcolandoDistanza(true);
+  setErroreIndirizzo(null);
+
+  const risultato = await calcolaDistanzaEPrezzoConsegna(via, citta);
+
+  if (risultato.success) {
+    setDistanzaRilevata(risultato.km);
+    setSpeseConsegna(risultato.costoBase);
+  } else {
+    setErroreIndirizzo(risultato.errore);
+    setSpeseConsegna(risultato.costoBase);
+    setDistanzaRilevata(risultato.km);
+  }
+
+  setIsCalcolandoDistanza(false);
+};
 
   const carouselRef = useRef<HTMLDivElement>(null);
   const highlightsRef = useRef<HTMLDivElement>(null);
@@ -2158,66 +2238,29 @@ const handleInitStripePayment = async () => {
 
       // Se è a domicilio ed il calcolo chilometrico d'emergenza non è ancora stato eseguito (solo per ordine in tempo reale)
       if (!customForm && activeForm.orderType === 'delivery' && distanzaRilevata === null) {
-  
-      // 1. PULIZIA INDIRIZZO: Sostituisce l'apostrofo curvo di iPhone/Mac con quello dritto standard
-      const cleanedAddress = activeForm.deliveryAddress
-         .replace(/’/g, "'")
-         .replace(/`/g, "'")
-         .replace(/´/g, "'")
-         .trim();
+         setIsSubmittingOrder(true);
 
-      const queryWithNumber = `${cleanedAddress}, ${activeForm.deliveryCity}, Italy`;
+         const risultato = await calcolaDistanzaEPrezzoConsegna(activeForm.deliveryAddress, activeForm.deliveryCity);
 
-      // Funzione helper per interrogare OpenStreetMap via rete
-      const fetchCoords = async (searchQuery: string) => {
-         const response = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`,
-            { headers: { 'User-Agent': 'OldWestOnlineApp/1.0 (contatto@oldwest.click)' } }
-         );
-         return await response.json();
-      };
-
-      let data = await fetchCoords(queryWithNumber);
-
-      // 2. FALLBACK DI SICUREZZA SE IL CIVICO NON È MAPPATO SULLA MAPPA:
-      // Se non trova nulla, e l'indirizzo termina con un numero (es: "via san francesco d'assisi 17"),
-      // rimuoviamo il numero dal fondo e cerchiamo solo la via ("via san francesco d'assisi")!
-      if ((!data || data.length === 0) && /\s\d+$/.test(cleanedAddress)) {
-         const addressWithoutNumber = cleanedAddress.replace(/\s\d+$/, "").trim();
-         const queryWithoutNumber = `${addressWithoutNumber}, ${activeForm.deliveryCity}, Italy`;
-         
-         console.log("Civico non mappato. Tento il recupero tramite la sola via:", queryWithoutNumber);
-         data = await fetchCoords(queryWithoutNumber);
-      }
-
-      if (data && data.length > 0) {
-         const destLat = parseFloat(data[0].lat);
-         const destLon = parseFloat(data[0].lon);
-         const km = calcolaDistanzaInKm(45.49955, 8.67277, destLat, destLon);
-         
-         if (km > 15) {
-            alert(`La tua posizione (~${km.toFixed(1)} km) supera il nostro limite massimo di consegna (15km). L'ordine non può essere completato.`);
+         if (!risultato.success && risultato.km === null) {
+            alert(risultato.errore || "Indirizzo di consegna non riconosciuto. Verifica via e civico prima di procedere.");
             setIsSubmittingOrder(false);
             return;
          }
-         
-         let costo = 2.00;
-         if (km > 5 && km <= 10) costo = 5.00;
-         else if (km > 10 && km <= 15) costo = 8.00;
-         
-         // Se è la promo primo ordine (isFirstOrder), azzeriamo il costo applicato
-         const costoApplicato = isFirstOrder ? 0 : costo;
-         
+
+         if (risultato.km !== null && risultato.km > 15) {
+            alert(`La tua posizione (~${risultato.km.toFixed(1)} km) supera il nostro limite massimo di consegna (15km). L'ordine non può essere completato.`);
+            setIsSubmittingOrder(false);
+            return;
+         }
+
+         const costoApplicato = isFirstOrder ? 0 : risultato.costoBase;
+
          finalDeliveryFee = costoApplicato;
          setSpeseConsegna(costoApplicato);
-         setDistanzaRilevata(km);
-         setErroreIndirizzo(null);
-      } else {
-         alert("Indirizzo di consegna non riconosciuto. Verifica via e civico prima di procedere.");
-         setIsSubmittingOrder(false);
-         return;
-      }
-      }
+         setDistanzaRilevata(risultato.km);
+         setErroreIndirizzo(risultato.errore); 
+         }
 
       // Se c'è un blocco di errore attivo legato alla distanza, fermiamo l'invio
       if (orderForm.orderType === 'delivery' && erroreIndirizzo && !customForm) {
