@@ -3253,12 +3253,13 @@ const calcolaDistanzaEPrezzoConsegna = async (via: string, citta: string): Promi
                           </label>
                           <label className="flex items-center gap-3 p-4 border border-wood-200 rounded-xl cursor-pointer hover:bg-wood-50">
                              <input type="radio" name="payment" value="pos" checked={orderForm.paymentMethod === 'pos'} onChange={() => setOrderForm({...orderForm, paymentMethod: 'pos'})} className="w-5 h-5 accent-[#45856c]" />
-                             <span className="font-medium text-wood-900">Bancomat / Carta (al ritiro)</span>
+                             <span className="font-medium text-wood-900">Bancomat / Carta (alla consegna / ritiro)</span>
                           </label>
                        </>
                     )}
                     
                     {/* OPZIONE STRIPE ONLINE (COMUNE A TUTTI I FLUSSI) */}
+                    {/*
                     <label className="flex items-center gap-3 p-4 border border-[#45856c]/30 rounded-xl cursor-pointer hover:bg-green-50/30 transition-colors">
                        <input 
                           type="radio" 
@@ -3273,6 +3274,7 @@ const calcolaDistanzaEPrezzoConsegna = async (via: string, citta: string): Promi
                           <span className="text-xs text-wood-400 font-medium">{t('stripe_pay_desc', lang)}</span>
                        </div>
                     </label>
+                    */}
                  </div>
                  
                  <div className="mt-4"><label className="block text-xs font-bold text-wood-500 uppercase mb-1">{t('notes', lang)}</label><textarea rows={2} value={orderForm.notes} onChange={e => setOrderForm({...orderForm, notes: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl p-3 focus:outline-none focus:border-[#45856c] focus:ring-1 focus:ring-[#45856c] resize-none" placeholder={t('notes', lang)}></textarea></div>
@@ -3292,6 +3294,7 @@ const calcolaDistanzaEPrezzoConsegna = async (via: string, citta: string): Promi
                  </div>
                  
                  {/* STRIPE ELEMENT / PULSANTE CLASSICO DINAMICO */}
+                 {/*
                  {orderForm.paymentMethod === 'stripe' ? (
                     isInitializingStripe ? (
                        <div className="flex flex-col items-center justify-center py-4 gap-2 text-accent-500">
@@ -3321,7 +3324,11 @@ const calcolaDistanzaEPrezzoConsegna = async (via: string, citta: string): Promi
                     <button type="submit" disabled={isSubmittingOrder} className="w-full bg-[#45856c] text-white py-4 rounded-xl font-bold text-xl shadow-lg flex items-center justify-center gap-3 hover:bg-opacity-90 transition-all disabled:opacity-50">
                        {isSubmittingOrder ? <Loader2 className="animate-spin" size={24} /> : <>{t('send_order', lang)} <ArrowRight size={24} /></>}
                     </button>
-                 )}
+                 )}*/}
+                 {/* PULSANTE DI SUBMIT CLASSICO - SEMPRE ATTIVO ORA CHE STRIPE È NASCOSTO */}
+                  <button type="submit" disabled={isSubmittingOrder} className="w-full bg-[#45856c] text-white py-4 rounded-xl font-bold text-xl shadow-lg flex items-center justify-center gap-3 hover:bg-opacity-90 transition-all disabled:opacity-50">
+                     {isSubmittingOrder ? <Loader2 className="animate-spin" size={24} /> : <>{t('send_order', lang)} <ArrowRight size={24} /></>}
+                  </button>
               </div>
            </form>
         </div>
@@ -4742,6 +4749,7 @@ const renderMenu = () => {
                            </button>
 
                            {/* OPZIONE 2: PAGA IN APP CON STRIPE */}
+                           {/*
                            <button 
                               type="button"
                               onClick={() => handleInitBillStripePayment(billTotal)}
@@ -4751,10 +4759,12 @@ const renderMenu = () => {
                               <span className="font-bold text-wood-900">Paga ora in App con Carta</span>
                               <span className="text-xs text-wood-400 font-medium">Sotto sotto trovi Google/Apple Pay e Carte di Credito</span>
                            </button>
+                           */}
                         </div>
                      )}
 
                      {/* ELEMENTO DI PAGAMENTO STRIPE INTEGRATO NELLA MODALE CONTO */}
+                     {/*
                      {billClientSecret && (
                         <div className="mt-4 pt-4 border-t border-wood-100 animate-in fade-in duration-300">
                            <Elements stripe={stripePromise} options={{ clientSecret: billClientSecret, locale: lang }}>
@@ -4768,7 +4778,7 @@ const renderMenu = () => {
                            </Elements>
                         </div>
                      )}
-
+                      */}
                   </div>
 
                   {/* TOTALE COMPLESSIVO FISSO IN BASSO */}
