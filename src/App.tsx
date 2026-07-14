@@ -2172,7 +2172,7 @@ const handleInitStripePayment = async () => {
       const fetchCoords = async (searchQuery: string) => {
          const response = await fetch(
             `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`,
-            { headers: { 'User-Agent': 'OldWestOnlineApp/1.0 (info@oldwest.click)' } }
+            { headers: { 'User-Agent': 'OldWestOnlineApp/1.0 (contatto@oldwest.click)' } }
          );
          return await response.json();
       };
