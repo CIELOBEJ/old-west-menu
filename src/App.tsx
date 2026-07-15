@@ -1833,7 +1833,7 @@ const calcolaDistanzaEPrezzoConsegna = async (via: string, citta: string): Promi
     return getProductContent(opt).name;
   }
   // Altrimenti, se è un'opzione statica del constants.ts, usiamo getDIYOptionContent
-  return getDIYOptionContent(opt, lang);
+  return getDIYOptionContent(opt, 'it');
 };
   const checkFilters = (item: MenuItem) => {
     if (activeFilters.vegetarian) { const isVeg = item.tags?.includes('Vegetariano') || item.tags?.includes('Vegano') || item.category === ProductCategory.CONTORNI || (item.category === ProductCategory.PIZZA && (item.name === 'Vegetariana' || item.name === 'Margherita' || item.name === 'Marinara' || item.name === 'Verdure')); if (!isVeg) return false; }
