@@ -2003,7 +2003,7 @@ const calcolaDistanzaEPrezzoConsegna = async (via: string, citta: string): Promi
   }, 200);
 };
 
-  const handleDiyNext = () => {
+const handleDiyNext = () => {
   const activeConfig = diyType === 'house' ? HOUSE_BURGER_OPTIONS : TRUE_DIY_OPTIONS;
 
   if (diyStep < activeConfig.steps.length - 1) {
@@ -2023,20 +2023,20 @@ const calcolaDistanzaEPrezzoConsegna = async (via: string, citta: string): Promi
       }
     }, 0);
 
-    // 2. COMPOSIZIONE DELLA DESCRIZIONE DETTAGLIATA
+    // 2. COMPOSIZIONE DELLA DESCRIZIONE DETTAGLIATA (Forziamo l'Italiano per lo staff e la cucina!)
     const description = activeConfig.steps.map(step => {
       const selected = diySelections[step.id];
       if (!selected) return '';
 
       if (step.isMulti) {
-        const labelStep = step.title;
+        const labelStep = step.title; // Solitamente già in italiano ("La Farcitura")
         const multiNames = (selected as any[])
-          .map(item => getOptionName(item, lang))
+          .map(item => getOptionName(item, 'it')) // <--- CAMBIATO DA lang A 'it'
           .join(', ');
         
         return multiNames ? `${labelStep}: ${multiNames}` : '';
       } else {
-        const optionName = getOptionName(selected, lang);
+        const optionName = getOptionName(selected, 'it'); // <--- CAMBIATO DA lang A 'it'
         
         if (step.id === 'contorno') {
           return `Contorno: ${optionName}`;
@@ -2049,17 +2049,16 @@ const calcolaDistanzaEPrezzoConsegna = async (via: string, citta: string): Promi
     const diyItem: any = {
       id: `diy-${Date.now()}`,
       name: diyType === 'house' 
-        ? (lang === 'it' ? "Hamburger della Casa" : (lang === 'fr' ? "Burger de la Maison" : "House Burger")) 
-        : t('create_your_taste', lang),
+        ? "Hamburger della Casa" // <--- FORZATO IN ITALIANO
+        : "Hamburger Fai da Te", // <--- FORZATO IN ITALIANO (oppure: t('create_your_taste', 'it'))
       description: description,
-      price: totalPrice, // <--- Il prezzo di 15.00€ comprende già tutto
+      price: totalPrice,
       category: ProductCategory.HAMBURGER,
       isAvailable: true,
       imageUrl: diyType === 'house' 
         ? 'https://oldwest.click/wp-content/uploads/2020/02/hamburger-della-casa.jpg' 
         : 'https://oldwest.click/wp-content/uploads/2020/02/hamburger-fai-da-te.jpg',
       
-      // Impostiamo selectedAddons vuoto per evitare doppioni grafici e tentativi di frode del cliente
       selectedAddons: [] 
     };
 
