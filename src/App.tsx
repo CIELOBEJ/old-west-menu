@@ -1827,6 +1827,14 @@ const calcolaDistanzaEPrezzoConsegna = async (via: string, citta: string): Promi
   const scrollCarousel = (direction: 'left' | 'right', ref: React.RefObject<HTMLDivElement>) => { if (ref.current) { const scrollAmount = 300; ref.current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' }); } };
   const getProductContent = (item: MenuItem | Partial<MenuItem>) => { if (lang === 'it') return { name: item.name || '', description: item.description || '' }; const trans = item.translations?.[lang]; return { name: trans?.name || item.name || '', description: trans?.description || item.description || '' }; };
   const getOptionName = (opt: any, lang: LanguageCode) => {
+   if (!opt) return '';
+
+  // 1. Se la lingua richiesta per la stampa/carrello è l'italiano ('it')
+  if (lang === 'it') {
+    // Cerchiamo prima la traduzione italiana se il database ha i nomi base in inglese.
+    // Se non c'è, restituiamo il nome base (che ipotizziamo essere in italiano).
+    return opt.translations?.['it']?.name || opt.name || '';
+  }
   // Se l'oggetto ha la proprietà 'category', significa che è un MenuItem del database.
   // In questo caso usiamo la tua funzione getProductContent
   if (opt.category) {
