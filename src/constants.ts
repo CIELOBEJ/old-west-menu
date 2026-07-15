@@ -250,7 +250,18 @@ export const UI_TRANSLATIONS: Record<string, Record<LanguageCode, string>> = {
   'frozen_explanation': { it: '* Prodotto congelato all\'origine', en: '* Frozen product', fr: '* Produit surgelé', de: '* Tiefkühlprodukt' },
   'rights_reserved': { it: 'All rights reserved', en: 'All rights reserved', fr: 'Tous droits réservés', de: 'Alle Rechte vorbehalten' },
   'suggestion_burger': { it: 'Ottimo con una Birra Media o Patatine!', en: 'Great with a Beer or Fries!', fr: 'Excellent avec une Bière ou des Frites!', de: 'Toll mit einem Bier oder Pommes!' },
-  'suggestion_main': { it: 'Accompagnalo con un buon Vino Rosso', en: 'Pair it with a good Red Wine', fr: 'Accompagnez-le d\'un bon Vin Rouge', de: 'Passt gut zu einem Rotwein' },
+  'suggestion_red_wine': {
+  it: 'Accompagnalo con un buon Vino Rosso',
+  en: 'Pair it with a good Red Wine',
+  fr: 'Accompagnez-le d\'un bon Vin Rouge',
+  de: 'Passt gut zu einem Rotwein'
+},
+'suggestion_white_wine': {
+  it: 'Accompagnalo con un buon Vino Bianco',
+  en: 'Pair it with a good White Wine',
+  fr: 'Accompagnez-le d\'un bon Vin Blanc',
+  de: 'Passt gut zu einem Weißwein'
+},
   'suggestion_dessert': { it: 'Ideale con un Caffè o un Amaro', en: 'Perfect with Coffee or Digestif', fr: 'Idéal avec un Café ou un Digestif', de: 'Ideal mit Kaffee oder Digestif' },
   
   // Traduzioni corte per i bottoni Checkout

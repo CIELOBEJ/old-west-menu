@@ -1856,7 +1856,15 @@ const calcolaDistanzaEPrezzoConsegna = async (via: string, citta: string): Promi
   
   const getCrossSellSuggestion = (item: MenuItem) => {
       if (item.category === ProductCategory.HAMBURGER || item.category === ProductCategory.PIZZA) return t('suggestion_burger', lang);
-      if (item.category === ProductCategory.SECONDI || item.category === ProductCategory.PESCE) return t('suggestion_main', lang);
+      // Se è un secondo (carne), suggerisce il vino rosso
+      if (item.category === ProductCategory.SECONDI) {
+      return t('suggestion_red_wine', lang);
+      }
+
+      // Se è un piatto di pesce, suggerisce il vino bianco
+      if (item.category === ProductCategory.PESCE) {
+      return t('suggestion_white_wine', lang);
+      }
       if (item.category === ProductCategory.DOLCI) return t('suggestion_dessert', lang);
       return null;
   };
