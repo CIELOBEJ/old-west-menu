@@ -2140,6 +2140,14 @@ const handleDiyNext = () => {
     if (e) e.preventDefault();
     setIsSubmittingOrder(true);
 
+    const getFormattedDeliveryDate = () => {
+      const d = new Date();
+      if (orderDate === 'Domani') {
+         d.setDate(d.getDate() + 1);
+      }
+      return d.toISOString().split('T')[0]; // Ritorna es: "2026-07-17"
+      };
+
     
     // Se passati (dopo il pagamento), usa i dati recuperati dal localStorage, altrimenti usa lo stato corrente
     const activeCart = customCart || cart;
@@ -2349,6 +2357,7 @@ const handleDiyNext = () => {
         delivery_address: activeForm.orderType === 'delivery' ? activeForm.deliveryAddress : null,
         delivery_city: activeForm.orderType === 'delivery' ? activeForm.deliveryCity : null,
         delivery_time: activeForm.orderType === 'table' ? 'Immediato' : activeForm.deliveryTime,
+        delivery_date: getFormattedDeliveryDate(),
         payment_method: activeForm.paymentMethod,
         total_amount: finalTotalAmount,
         cart_items: preparedCartItems,
