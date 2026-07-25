@@ -1662,13 +1662,44 @@ const calcolaDistanzaEPrezzoConsegna = async (via: string, citta: string): Promi
   const [scrollLeft, setScrollLeft] = useState(0);
 
   const fetchItems = async () => {
-    try {
-      const { data, error } = await supabase.from('menu_items').select('*');
-      if (error) throw error;
-      if (data && data.length > 0) setItems(data); 
-      else setItems([...INITIAL_MENU_ITEMS, ...EXTRA_INGREDIENTS_ITEMS]);
-    } catch (error) { console.error('Error fetching data:', error); setItems([...INITIAL_MENU_ITEMS, ...EXTRA_INGREDIENTS_ITEMS]); } finally { setIsDataLoaded(true); }
-  };
+  try {
+    const cachedData = localStorage.getItem('menu_items_cache');
+    const cachedTime = localStorage.getItem('menu_items_cache_time');
+    const now = Date.now();
+    
+    // 1. Se la cache esiste ed è più recente di 12 ore, carichiamo istantaneamente quella!
+    if (cachedData && cachedTime && (now - Number(cachedTime) < 43200000)) {
+      setItems(JSON.parse(cachedData));
+      return; // Esce dalla funzione, ma esegue comunque il "finally" sotto!
+    }
+
+    // 2. Altrimenti (o se la cache è scaduta), interroghiamo Supabase
+    const { data, error } = await supabase.from('menu_items').select('*');
+    if (error) throw error;
+    
+    if (data && data.length > 0) {
+      setItems(data);
+      // Salviamo i dati freschi nella memoria locale per i prossimi accessi
+      localStorage.setItem('menu_items_cache', JSON.stringify(data));
+      localStorage.setItem('menu_items_cache_time', String(now));
+    } else {
+      setItems([...INITIAL_MENU_ITEMS, ...EXTRA_INGREDIENTS_ITEMS]);
+    }
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    
+    // RESILIENZA OFFLINE: In caso di errore di rete, proviamo a caricare l'ultimo menu salvato
+    const backupCachedData = localStorage.getItem('menu_items_cache');
+    if (backupCachedData) {
+      setItems(JSON.parse(backupCachedData));
+    } else {
+      setItems([...INITIAL_MENU_ITEMS, ...EXTRA_INGREDIENTS_ITEMS]);
+    }
+  } finally {
+    // 3. FONDAMENTALE: Avvisa l'applicazione che il caricamento è completato per togliere lo spinner
+    setIsDataLoaded(true);
+  }
+};
 
   // Effetto iniziale di caricamento dati e lettura automatica QR del tavolo
   useEffect(() => {
