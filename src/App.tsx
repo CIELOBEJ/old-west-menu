@@ -4311,13 +4311,13 @@ const renderMenu = () => {
 
     const currentStepIndex = statusSteps.findIndex(s => s.id === currentOrder.status);
     const displayCustomerName = currentOrder?.customer_name
-  ? currentOrder.customer_name
+    ? currentOrder.customer_name
       .replace("AGGIUNTA - ", "")
       .replace("AGGIUNTE - ", "")
       .replace(/TAVOLO\s+\d+/i, "")
       .replace(/[()]/g, "")
       .trim()
-  : (orderForm.customerName || "Ospite");
+    : (orderForm.customerName || "Ospite");
 
     return (
       <div className="min-h-screen bg-wood-50 pt-24 pb-20 px-4">
@@ -4335,6 +4335,23 @@ const renderMenu = () => {
                    : `Grazie ${displayCustomerName}, stiamo lavorando per te.`
                 }
              </p>
+             {/* AGGIUNTO: Badge dinamico con l'orario o tempo stimato in tempo reale */}
+             {!isTableOrder && (
+               <div className="mt-5 bg-white/20 backdrop-blur-md rounded-2xl p-4 border border-white/10 w-full max-w-[280px]">
+                  <span className="block text-[10px] font-black uppercase tracking-widest text-white/80 mb-1">
+                     Orario di consegna previsto
+                  </span>
+                  <span className="text-lg font-extrabold text-white block">
+                     {currentOrder.delivery_time.toLowerCase().includes("prima possibile") 
+                        ? (currentOrder.estimated_time 
+                             ? `TRA CIRCA ${currentOrder.estimated_time.toUpperCase()}` 
+                             : "IN ATTESA DI CONFERMA..."
+                          )
+                        : `ALLE ORE ${currentOrder.delivery_time}`
+                     }
+                  </span>
+               </div>
+             )}
           </div>
 
           <div className="p-6 md:p-8">
