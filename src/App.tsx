@@ -1450,11 +1450,11 @@ const handleInitStripePayment = async () => {
     // per poterli ricalcolare, lasciando però intatti gli extra cercati da tastiera (es: Scamorza)
     const cleanedAddons = (item.selectedAddons || []).filter((add: any) => {
       const isBaseExtra = baseIngredients.some(ing => {
-        const addonName = add.name.toLowerCase();
-        const baseName = ing.toLowerCase();
-        return addonName.includes(baseName) || baseName.includes(addonName);
+        const addonName = add.name.toLowerCase().trim();
+        const baseName = ing.toLowerCase().trim();
+        return addonName === baseName; // <--- CAMBIATO DA .includes() A CONFRONTO ESATTO ===
       });
-      return !isBaseExtra; // Teniamo solo gli ingredienti indipendenti inseriti dalla ricerca
+      return !isBaseExtra; 
     });
     
     const removed: string[] = [];
