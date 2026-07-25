@@ -1713,28 +1713,49 @@ const calcolaDistanzaEPrezzoConsegna = async (via: string, citta: string): Promi
   useEffect(() => {
     fetchItems();
 
-    // ---> AGGIUNTO: Controllo Chiusura/Ferie del locale
+    // CARICAMENTO E CONTROLLO DELLE CHIUSURE MULTIPLE IN REALTIME (SALVA-FERIE)
     const checkRestaurantClosure = async () => {
       try {
-        const { data } = await supabase
+        // 1. Carica lo stato dell'interruttore manuale istantaneo
+        const { data: configData } = await supabase
           .from('restaurant_config')
           .select('*')
           .eq('id', 'config')
           .single();
           
-        if (data) {
-          const oggi = new Date().toISOString().split('T')[0];
-          const isChiusoManualmente = data.is_closed_manual;
-          const isFerieAttive = data.vacation_start && data.vacation_end && (oggi >= data.vacation_start && oggi <= data.vacation_end);
-          
-          if (isChiusoManualmente || isFerieAttive) {
-            setIsClosed(true);
-            setClosureMessage(data.closure_message || "Il locale è temporaneamente chiuso.");
-            setClosureImageUrl(data.closure_image_url || "");
-          }
+        // 2. Carica l'elenco di tutte le chiusure programmate
+        const { data: closuresData } = await supabase
+          .from('restaurant_closures')
+          .select('*');
+
+        const oggi = new Date().toISOString().split('T')[0]; // Data locale odierna "YYYY-MM-DD"
+        
+        // Verifichiamo se c'è una chiusura manuale immediata attiva dello staff
+        const isChiusoManualmente = configData?.is_closed_manual;
+        
+        // Verifichiamo se la data di oggi rientra in uno dei periodi di chiusura salvati
+        const chiusuraAttiva = closuresData?.find(c => 
+          oggi >= c.start_date && oggi <= c.end_date
+        );
+
+        if (isChiusoManualmente) {
+          // Caso A: Chiusura manuale attiva
+          setIsClosed(true);
+          setClosureMessage(configData.closure_message || "Il locale è temporaneamente chiuso. Ci vediamo presto!");
+          setClosureImageUrl(configData.closure_image_url || "");
+        } else if (chiusuraAttiva) {
+          // Caso B: Ferie o chiusura programmata attiva per oggi!
+          setIsClosed(true);
+          setClosureMessage(chiusuraAttiva.message || `Chiusi per ${chiusuraAttiva.title}.`);
+          setClosureImageUrl(chiusuraAttiva.image_url || "");
+        } else {
+          // Caso C: Locale aperto regolarmente!
+          setIsClosed(false);
+          setClosureMessage("");
+          setClosureImageUrl("");
         }
       } catch (err) {
-        console.error("Errore controllo chiusura locale:", err);
+        console.error("Errore nel controllo chiusura locale:", err);
       }
     };
     checkRestaurantClosure();
