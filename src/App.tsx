@@ -556,6 +556,9 @@ export default function App() {
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
   const [currentOrder, setCurrentOrder] = useState<any>(null);
   const [isFirstOrder, setIsFirstOrder] = useState<boolean>(false);
+  const [isClosed, setIsClosed] = useState(false);
+  const [closureMessage, setClosureMessage] = useState("");
+  const [closureImageUrl, setClosureImageUrl] = useState("");
   const [suggestionToast, setSuggestionToast] = useState<{show: boolean, text: string}>({ show: false, text: '' });
   const getCustomerVariantPlaceholder = () => {
   if (!selectingVariantItem) return "Cerca...";
@@ -1709,6 +1712,32 @@ const calcolaDistanzaEPrezzoConsegna = async (via: string, citta: string): Promi
   // Effetto iniziale di caricamento dati e lettura automatica QR del tavolo
   useEffect(() => {
     fetchItems();
+
+    // ---> AGGIUNTO: Controllo Chiusura/Ferie del locale
+    const checkRestaurantClosure = async () => {
+      try {
+        const { data } = await supabase
+          .from('restaurant_config')
+          .select('*')
+          .eq('id', 'config')
+          .single();
+          
+        if (data) {
+          const oggi = new Date().toISOString().split('T')[0];
+          const isChiusoManualmente = data.is_closed_manual;
+          const isFerieAttive = data.vacation_start && data.vacation_end && (oggi >= data.vacation_start && oggi <= data.vacation_end);
+          
+          if (isChiusoManualmente || isFerieAttive) {
+            setIsClosed(true);
+            setClosureMessage(data.closure_message || "Il locale è temporaneamente chiuso.");
+            setClosureImageUrl(data.closure_image_url || "");
+          }
+        }
+      } catch (err) {
+        console.error("Errore controllo chiusura locale:", err);
+      }
+    };
+    checkRestaurantClosure();
     
     const savedLogo = localStorage.getItem('oldWestLogoUrl');
     if (savedLogo) setCustomLogo(savedLogo);
@@ -4767,6 +4796,30 @@ const renderMenu = () => {
          </div>
       </div>
       )}
+
+      {/* ================= SCHERMATA BLOCCANTE LOCALE CHIUSO / FERIE ================= */}
+         {isClosed && (
+         <div className="fixed inset-0 bg-black/85 z-[9999] flex items-center justify-center p-6 backdrop-blur-md">
+            <div className="bg-white p-6 rounded-3xl max-w-sm w-full shadow-2xl text-center flex flex-col gap-4 animate-in zoom-in duration-300">
+               
+               <div>
+                  <h3 className="font-western text-2xl text-red-600 leading-none">Ci Dispiace!</h3>
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-1">Il locale è temporaneamente chiuso</p>
+               </div>
+               
+               {/* Se lo staff ha caricato un volantino grafico, mostra l'immagine, altrimenti mostra la scritta testuale */}
+               {closureImageUrl ? (
+                  <img src={closureImageUrl} className="rounded-2xl max-h-64 object-contain mx-auto border border-gray-100 shadow-sm" alt="Avviso Chiusura" />
+               ) : (
+                  <div className="bg-red-50 p-4 rounded-2xl border border-red-100 text-sm text-red-700 font-medium leading-relaxed">
+                     {closureMessage}
+                  </div>
+               )}
+               
+               <p className="text-[10px] text-gray-400 font-semibold tracking-widest uppercase mt-2">OLD WEST CAMERI</p>
+            </div>
+         </div>
+         )}
 
       {/* ================= MODALE DI VISUALIZZAZIONE E PAGAMENTO CONTO UNICO AL TAVOLO ================= */}
       {isBillModalOpen && tableSessionId && (() => {
