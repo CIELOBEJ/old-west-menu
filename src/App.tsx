@@ -811,6 +811,11 @@ const [customModal, setCustomModal] = useState<{
     }
   };
 
+  // ---STATI PER per il numero di persone e l'apertura del modale ---
+
+  const [numPeople, setNumPeople] = useState<number>(1);
+  const [showNumPeopleModal, setShowNumPeopleModal] = useState<boolean>(false);
+
   // --- STATI AGGIUNTI PER LA PRENOTAZIONE TAVOLO & PRE-ORDINE ---
   const [isPreOrder, setIsPreOrder] = useState(false);
   const [tempReservationInfo, setTempReservationInfo] = useState<any>(null);
@@ -1718,7 +1723,7 @@ const calcolaDistanzaEPrezzoConsegna = async (via: string, citta: string): Promi
     const urlParams = new URLSearchParams(window.location.search);
     const tableParam = urlParams.get('table'); // Legge il parametro "?table=5" [8]
 
-   if (tableParam) {
+    if (tableParam) {
       // 1. Configura il carrello in modalità Tavolo e fissa il numero del tavolo in automatico! [1]
       setOrderForm(prev => ({
         ...prev,
@@ -1743,6 +1748,9 @@ const calcolaDistanzaEPrezzoConsegna = async (via: string, citta: string): Promi
           // CASO 1: C'è un conto attivo dello staff (pre-ordine o ordine in corso) [1]
           session = data[0].table_session_id;
           setHasPriorOrders(true); // Attiva subito lo scontrino rosso pulsante!
+          
+          // ---> AGGIUNTO: Non mostriamo il modale perché il coperto è già stato registrato nel conto aperto!
+          setShowNumPeopleModal(false); 
 
           // ESTRAZIONE E SINCRONIZZAZIONE AUTOMATICA DEL NOME
           const rawName = data[0].customer_name;
@@ -1771,6 +1779,9 @@ const calcolaDistanzaEPrezzoConsegna = async (via: string, citta: string): Promi
             session = `session-${tableParam}-${Math.random().toString(36).substring(2, 9)}`;
           }
           setHasPriorOrders(false);
+          
+          // ---> AGGIUNTO: Apriamo il modale coperti perché è il primo ordine del tavolo!
+          setShowNumPeopleModal(true);
         }
 
         // Memorizziamo la sessione corretta sia nello stato che nel localStorage [1]
@@ -1977,15 +1988,24 @@ const calcolaDistanzaEPrezzoConsegna = async (via: string, citta: string): Promi
   };
 
   const getCoverCharge = () => {
-     if (orderForm.orderType === 'table') {
-        // Se è un'aggiunta (hasPriorOrders è true), il coperto è 0!
-        if (hasPriorOrders) return 0; 
-        
-        const hasFood = cart.some(item => item.category !== ProductCategory.BEVANDE);
-        return hasFood && cart.length > 0 ? (tempReservationInfo ? tempReservationInfo.numPeople * 2.00 : 2.00) : 0;
-     }
-     return 0;
-  };
+  if (orderForm.orderType === 'table') {
+    // Se è un'aggiunta (hasPriorOrders è true), il coperto è 0!
+    if (hasPriorOrders) return 0; 
+    
+    // Controlla se c'è almeno un piatto di cibo nel carrello (esclude le bevande)
+    const hasFood = cart.some(item => item.category !== ProductCategory.BEVANDE);
+    
+    if (hasFood && cart.length > 0) {
+      // Se c'è una prenotazione con pre-ordine, usa il numero di persone della prenotazione.
+      // Altrimenti, usa il numero di persone impostato dal cliente nel nuovo modale del QR (numPeople)!
+      const persone = tempReservationInfo ? tempReservationInfo.numPeople : numPeople;
+      return persone * 2.00;
+    }
+    
+    return 0;
+  }
+  return 0;
+};
 
   const checkFirstOrderPromotion = async (phone: string) => {
   // Avviamo il controllo solo se il numero di telefono sembra completo (almeno 9 cifre)
@@ -4698,6 +4718,55 @@ const renderMenu = () => {
             </div>
          );
       })()}
+
+      {/* ================= MODALE SELEZIONE COPERTI TAVOLO DA QR ================= */}
+      {showNumPeopleModal && (
+      <div className="fixed inset-0 bg-black/60 z-[999] flex items-center justify-center p-4 backdrop-blur-sm animate-in fade-in duration-200">
+         <div className="bg-white p-6 rounded-3xl max-w-sm w-full shadow-2xl border border-wood-100 text-center flex flex-col gap-4 animate-in zoom-in duration-300">
+            
+            <div>
+               <h3 className="font-western text-2xl text-wood-900 mb-1">Tavolo {orderForm.tableNumber}</h3>
+               <p className="text-xs text-wood-400 font-bold uppercase tracking-wider">Quante persone si siederanno al tavolo?</p>
+            </div>
+
+            {/* Selettore Quantità Ospiti */}
+            <div className="flex items-center justify-center gap-6 py-4 border-y border-wood-100">
+               <button 
+                  type="button" 
+                  onClick={() => setNumPeople(prev => Math.max(1, prev - 1))}
+                  className="w-10 h-10 bg-wood-50 hover:bg-wood-100 text-wood-700 font-bold rounded-full text-lg border border-wood-200 active:scale-95 transition-all"
+               >
+                  -
+               </button>
+               <span className="text-3xl font-western text-wood-900 w-12">{numPeople}</span>
+               <button 
+                  type="button" 
+                  onClick={() => setNumPeople(prev => prev + 1)}
+                  className="w-10 h-10 bg-wood-50 hover:bg-wood-100 text-wood-700 font-bold rounded-full text-lg border border-wood-200 active:scale-95 transition-all"
+               >
+                  +
+               </button>
+            </div>
+
+            <div className="flex gap-2.5">
+               <button 
+                  type="button" 
+                  onClick={() => { setNumPeople(1); setShowNumPeopleModal(false); }} 
+                  className="flex-1 py-3 rounded-xl font-bold text-gray-500 bg-gray-50 hover:bg-gray-100 text-sm"
+               >
+                  Annulla
+               </button>
+               <button 
+                  type="button" 
+                  onClick={() => setShowNumPeopleModal(false)} 
+                  className="flex-1 py-3 bg-[#45856c] hover:bg-opacity-95 text-white rounded-xl font-bold text-sm shadow-md"
+               >
+                  Procedi al Menu
+               </button>
+            </div>
+         </div>
+      </div>
+      )}
 
       {/* ================= MODALE DI VISUALIZZAZIONE E PAGAMENTO CONTO UNICO AL TAVOLO ================= */}
       {isBillModalOpen && tableSessionId && (() => {
