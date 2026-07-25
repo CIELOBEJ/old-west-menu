@@ -4508,11 +4508,14 @@ const renderMenu = () => {
                 <div className="flex items-center justify-between pt-4 border-t border-wood-100">
                    <span className="text-2xl font-western text-wood-900">€{infoItem.price.toFixed(2)}</span>
                    <button 
-                     onClick={() => { addToCart(infoItem); setInfoItem(null); }}
+                     onClick={() => { 
+                        handleAddToCartClick(infoItem); // <--- CAMBIATO DA addToCart A handleAddToCartClick!
+                        setInfoItem(null);              // Chiude il popup dettagli
+                     }}
                      className="bg-[#45856c] text-white px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-opacity-90 transition-all active:scale-95"
-                   >
+                     >
                      <Plus size={18}/> {t('add_to_cart', lang)}
-                   </button>
+                  </button>
                 </div>
               </div>
             </div>
