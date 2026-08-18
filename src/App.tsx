@@ -4121,7 +4121,7 @@ const renderMenu = () => {
             <p className="text-[10px] opacity-45 tracking-wider uppercase">
                Design by{' '}
                <a 
-                  href="https://www.instagram.com/cielobej/" 
+                  href="https://www.cielobejstudio.com/" 
                   target="_blank" 
                   rel="noopener noreferrer" 
                   className="hover:underline hover:opacity-100 transition-opacity font-bold"
