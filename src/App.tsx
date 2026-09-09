@@ -1532,112 +1532,331 @@ const handleInitStripePayment = async () => {
   errore: string | null;
 }
 
-const calcolaDistanzaEPrezzoConsegna = async (via: string, citta: string): Promise<RisultatoSpese> => {
+const calcolaDistanzaEPrezzoConsegna = async (
+  via: string,
+  citta: string
+): Promise<RisultatoSpese> => {
+
   if (!via || !citta) {
-    return { success: false, km: null, costoBase: 2.00, errore: "Via o città mancanti." };
+    return {
+      success: false,
+      km: null,
+      costoBase: 2.00,
+      errore: "Via o città mancanti."
+    };
   }
 
-  // 1. PULIZIA INDIRIZZO: Sostituisce gli apostrofi curvi di iOS/Mac con quello dritto standard
+  // Coordinate Old West
+  const localeLat = 45.49955;
+  const localeLon = 8.67277;
+
+  // Pulisce gli apostrofi inseriti da iPhone/Mac
   const cleanedAddress = via
     .replace(/’/g, "'")
     .replace(/`/g, "'")
     .replace(/´/g, "'")
     .trim();
 
-  const queryWithNumber = `${cleanedAddress}, ${citta}, Italy`;
-
   const fetchCoords = async (searchQuery: string) => {
     const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`,
-      { headers: { 'User-Agent': 'OldWestOnlineApp/1.0 (info@oldwest.click)' } }
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+        searchQuery
+      )}&limit=1`,
+      {
+        headers: {
+          "User-Agent": "OldWestOnlineApp/1.0 (info@oldwest.click)"
+        }
+      }
     );
+
+    if (!response.ok) {
+      throw new Error(`Errore Nominatim: ${response.status}`);
+    }
+
     return await response.json();
   };
 
+  /*
+   * Calcola la distanza STRADALE tramite OSRM.
+   *
+   * IMPORTANTE:
+   * OSRM usa l'ordine longitudine,latitudine.
+   */
+  const fetchRoadDistance = async (
+    destLat: number,
+    destLon: number
+  ): Promise<number | null> => {
+    try {
+      const url =
+        `https://router.project-osrm.org/route/v1/driving/` +
+        `${localeLon},${localeLat};${destLon},${destLat}` +
+        `?overview=false&steps=false`;
+
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        console.warn(
+          "OSRM non disponibile. Uso distanza in linea d'aria.",
+          response.status
+        );
+        return null;
+      }
+
+      const data = await response.json();
+
+      if (
+        data?.code !== "Ok" ||
+        !data?.routes ||
+        data.routes.length === 0 ||
+        typeof data.routes[0]?.distance !== "number"
+      ) {
+        console.warn(
+          "OSRM non ha restituito un percorso valido. Uso Haversine.",
+          data
+        );
+        return null;
+      }
+
+      // OSRM restituisce metri
+      return data.routes[0].distance / 1000;
+    } catch (error) {
+      console.warn(
+        "Errore OSRM. Uso distanza in linea d'aria come fallback.",
+        error
+      );
+      return null;
+    }
+  };
+
+  /*
+   * Applica le fasce prezzo.
+   * La teniamo centralizzata per evitare duplicazioni.
+   */
+  const calcolaCosto = (
+    km: number,
+    messaggioFuoriZona: string
+  ): RisultatoSpese => {
+
+    if (km <= 4) {
+      return {
+        success: true,
+        km,
+        costoBase: 2.00,
+        errore: null
+      };
+    }
+
+    if (km <= 8) {
+      return {
+        success: true,
+        km,
+        costoBase: 5.00,
+        errore: null
+      };
+    }
+
+    if (km <= 15) {
+      return {
+        success: true,
+        km,
+        costoBase: 8.00,
+        errore: null
+      };
+    }
+
+    return {
+      success: false,
+      km,
+      costoBase: 0,
+      errore: messaggioFuoriZona
+    };
+  };
+
+  /*
+   * Data una coordinata di destinazione:
+   *
+   * 1. prova distanza stradale OSRM
+   * 2. se OSRM non funziona usa Haversine
+   *
+   * Questo evita che un problema OSRM blocchi gli ordini.
+   */
+  const calculateDistance = async (
+    destLat: number,
+    destLon: number
+  ): Promise<number> => {
+
+    const roadKm = await fetchRoadDistance(destLat, destLon);
+
+    if (roadKm !== null && Number.isFinite(roadKm)) {
+      console.log(
+        `Distanza stradale OSRM: ${roadKm.toFixed(2)} km`
+      );
+
+      return roadKm;
+    }
+
+    const airKm = calcolaDistanzaInKm(
+      localeLat,
+      localeLon,
+      destLat,
+      destLon
+    );
+
+    console.warn(
+      `Fallback Haversine: ${airKm.toFixed(2)} km`
+    );
+
+    return airKm;
+  };
+
   try {
+
+    // ------------------------------------------------
+    // 1. CERCA INDIRIZZO COMPLETO
+    // ------------------------------------------------
+
+    const queryWithNumber =
+      `${cleanedAddress}, ${citta}, Italy`;
+
     let data = await fetchCoords(queryWithNumber);
 
-    // 2. PRIMO FALLBACK: Se non trova l'indirizzo e termina con un numero, prova senza numero civico
-    if ((!data || data.length === 0) && /\s\d+$/.test(cleanedAddress)) {
-      const addressWithoutNumber = cleanedAddress.replace(/\s\d+$/, "").trim();
-      const queryWithoutNumber = `${addressWithoutNumber}, ${citta}, Italy`;
-      console.log("Civico non mappato. Tento il recupero tramite la sola via:", queryWithoutNumber);
+    // ------------------------------------------------
+    // 2. FALLBACK SENZA CIVICO
+    // ------------------------------------------------
+
+    if (
+      (!data || data.length === 0) &&
+      /\s\d+$/.test(cleanedAddress)
+    ) {
+
+      const addressWithoutNumber = cleanedAddress
+        .replace(/\s\d+$/, "")
+        .trim();
+
+      const queryWithoutNumber =
+        `${addressWithoutNumber}, ${citta}, Italy`;
+
+      console.log(
+        "Civico non mappato. Tento la sola via:",
+        queryWithoutNumber
+      );
+
       data = await fetchCoords(queryWithoutNumber);
     }
 
-    // Se ha trovato la via (con o senza numero)
+    // ------------------------------------------------
+    // INDIRIZZO/VIA TROVATO
+    // ------------------------------------------------
+
     if (data && data.length > 0) {
+
       const destLat = parseFloat(data[0].lat);
       const destLon = parseFloat(data[0].lon);
-      
-      const localeLat = 45.49955;
-      const localeLon = 8.67277;
-      
-      const km = calcolaDistanzaInKm(localeLat, localeLon, destLat, destLon);
-      
-      let costo = 2.00; // Fino a 4 km
-      if (km > 4 && km <= 8) costo = 5.00;
-      else if (km > 8 && km <= 15) costo = 8.00;
-      else if (km > 15) {
-        return {
-          success: false,
-          km,
-          costoBase: 0,
-          errore: `La tua posizione (~${km.toFixed(1)} km) supera il nostro limite massimo di consegna di 15km.`
-        };
+
+      if (
+        !Number.isFinite(destLat) ||
+        !Number.isFinite(destLon)
+      ) {
+        throw new Error(
+          "Coordinate destinazione non valide"
+        );
       }
 
-      return { success: true, km, costoBase: costo, errore: null };
-    } 
-    
-    // 3. SECONDO FALLBACK (SALVA-CLIENTE): Se la via non esiste proprio su OpenStreetMap (come Via San Francesco d'Assisi)
-    // interroghiamo solo il Comune per non bloccare l'ordine e calcolare una tariffa approssimativa sul centro città.
-    console.log("Via non trovata su OSM. Tento il recupero usando solo il comune:", citta);
-    const queryCityOnly = `${citta}, Italy`;
-    const cityData = await fetchCoords(queryCityOnly);
-    
-    if (cityData && cityData.length > 0) {
-      const destLat = parseFloat(cityData[0].lat);
-      const destLon = parseFloat(cityData[0].lon);
-      
-      const localeLat = 45.49955;
-      const localeLon = 8.67277;
-      
-      const km = calcolaDistanzaInKm(localeLat, localeLon, destLat, destLon);
-      
-      let costo = 2.00; // Fino a 4 km
-      if (km > 4 && km <= 8) costo = 5.00;
-      else if (km > 8 && km <= 15) costo = 8.00;
-      else if (km > 15) {
-        return {
-          success: false,
-          km,
-          costoBase: 0,
-          errore: `Il comune di consegna (~${km.toFixed(1)} km) supera il nostro limite massimo di consegna di 15km.`
-        };
-      }
+      const km = await calculateDistance(
+        destLat,
+        destLon
+      );
 
-      return {
-        success: true, // Restituiamo TRUE così sblocchiamo il cliente e può ordinare!
+      return calcolaCosto(
         km,
-        costoBase: costo,
-        errore: null // Impostando a null mostrerà la barra verde di successo!
-      };
-    } else {
-      return {
-        success: false,
-        km: null,
-        costoBase: 2.00,
-        errore: "Indirizzo non trovato. Verifica di aver inserito via e civico correttamente."
-      };
+        `La tua posizione (~${km.toFixed(
+          1
+        )} km) supera il nostro limite massimo di consegna di 15km.`
+      );
     }
+
+    // ------------------------------------------------
+    // 3. FALLBACK COMUNE
+    // ------------------------------------------------
+
+    console.log(
+      "Via non trovata su OSM. Tento il comune:",
+      citta
+    );
+
+    const queryCityOnly =
+      `${citta}, Italy`;
+
+    const cityData =
+      await fetchCoords(queryCityOnly);
+
+    if (
+      cityData &&
+      cityData.length > 0
+    ) {
+
+      const destLat =
+        parseFloat(cityData[0].lat);
+
+      const destLon =
+        parseFloat(cityData[0].lon);
+
+      if (
+        !Number.isFinite(destLat) ||
+        !Number.isFinite(destLon)
+      ) {
+        throw new Error(
+          "Coordinate comune non valide"
+        );
+      }
+
+      /*
+       * ATTENZIONE:
+       * questa rimane una stima sul centro del comune,
+       * esattamente come nella tua versione attuale.
+       *
+       * Non la elimino ora per non cambiare
+       * il comportamento dell'app in produzione.
+       */
+      const km =
+        await calculateDistance(
+          destLat,
+          destLon
+        );
+
+      return calcolaCosto(
+        km,
+        `Il comune di consegna (~${km.toFixed(
+          1
+        )} km) supera il nostro limite massimo di consegna di 15km.`
+      );
+    }
+
+    return {
+      success: false,
+      km: null,
+      costoBase: 2.00,
+      errore:
+        "Indirizzo non trovato. Verifica di aver inserito via e civico correttamente."
+    };
+
   } catch (error) {
-    console.error("Errore Nominatim API:", error);
+
+    console.error(
+      "Errore calcolo consegna:",
+      error
+    );
+
+    /*
+     * Mantengo il comportamento di emergenza
+     * che avevi già nell'app.
+     */
     return {
       success: false,
       km: null,
       costoBase: 2.50,
-      errore: "Impossibile verificare la via. Verrà applicata una tariffa forfettaria."
+      errore:
+        "Impossibile verificare la via. Verrà applicata una tariffa forfettaria."
     };
   }
 };
