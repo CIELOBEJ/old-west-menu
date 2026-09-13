@@ -1888,44 +1888,50 @@ const calcolaDistanzaEPrezzoConsegna = async (
   const [scrollLeft, setScrollLeft] = useState(0);
 
   const fetchItems = async () => {
-  try {
-    const cachedData = localStorage.getItem('menu_items_cache');
-    const cachedTime = localStorage.getItem('menu_items_cache_time');
-    const now = Date.now();
-    
-    // 1. Se la cache esiste ed è più recente di 12 ore, carichiamo istantaneamente quella!
-    if (cachedData && cachedTime && (now - Number(cachedTime) < 43200000)) {
-      setItems(JSON.parse(cachedData));
-      return; // Esce dalla funzione, ma esegue comunque il "finally" sotto!
-    }
+   try {
+      const cachedData = localStorage.getItem('menu_items_cache');
 
-    // 2. Altrimenti (o se la cache è scaduta), interroghiamo Supabase
-    const { data, error } = await supabase.from('menu_items').select('*');
-    if (error) throw error;
-    
-    if (data && data.length > 0) {
-      setItems(data);
-      // Salviamo i dati freschi nella memoria locale per i prossimi accessi
-      localStorage.setItem('menu_items_cache', JSON.stringify(data));
-      localStorage.setItem('menu_items_cache_time', String(now));
-    } else {
-      setItems([...INITIAL_MENU_ITEMS, ...EXTRA_INGREDIENTS_ITEMS]);
-    }
-  } catch (error) {
-    console.error('Error fetching data:', error);
-    
-    // RESILIENZA OFFLINE: In caso di errore di rete, proviamo a caricare l'ultimo menu salvato
-    const backupCachedData = localStorage.getItem('menu_items_cache');
-    if (backupCachedData) {
-      setItems(JSON.parse(backupCachedData));
-    } else {
-      setItems([...INITIAL_MENU_ITEMS, ...EXTRA_INGREDIENTS_ITEMS]);
-    }
-  } finally {
-    // 3. FONDAMENTALE: Avvisa l'applicazione che il caricamento è completato per togliere lo spinner
-    setIsDataLoaded(true);
-  }
-};
+      // 1. Mostra subito la cache, se presente, per non rallentare l'apertura
+      if (cachedData) {
+         try {
+         setItems(JSON.parse(cachedData));
+         } catch (error) {
+         console.warn('Cache menu non valida, verrà ricaricata dal database.');
+         }
+      }
+
+      // 2. Controlla SEMPRE Supabase per eventuali modifiche dello staff
+      const { data, error } = await supabase
+         .from('menu_items')
+         .select('*');
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+         setItems(data);
+
+         // Aggiorna la cache con i dati freschi
+         localStorage.setItem('menu_items_cache', JSON.stringify(data));
+         localStorage.setItem('menu_items_cache_time', String(Date.now()));
+      } else if (!cachedData) {
+         setItems([...INITIAL_MENU_ITEMS, ...EXTRA_INGREDIENTS_ITEMS]);
+      }
+
+   } catch (error) {
+      console.error('Error fetching data:', error);
+
+      // Se Supabase non risponde, continuiamo ad usare la cache
+      const backupCachedData = localStorage.getItem('menu_items_cache');
+
+      if (backupCachedData) {
+         setItems(JSON.parse(backupCachedData));
+      } else {
+         setItems([...INITIAL_MENU_ITEMS, ...EXTRA_INGREDIENTS_ITEMS]);
+      }
+   } finally {
+      setIsDataLoaded(true);
+   }
+   };
 
   // Effetto iniziale di caricamento dati e lettura automatica QR del tavolo
   useEffect(() => {
@@ -2921,7 +2927,7 @@ const handleDiyNext = () => {
 
       return i.subCategory === "Generale" || i.subCategory === logicalCategory;
       });
-      
+
       const filteredAddons = addons.filter((a: any) => 
          a.name.toLowerCase().includes(addonSearch.toLowerCase())
       );
@@ -3903,6 +3909,8 @@ const renderMenu = () => {
       }
     const hasActiveFilters = activeFilters.vegetarian || activeFilters.vegan || activeFilters.spicy || activeFilters.bestseller;
     const filteredItems = items.filter(item => {
+      // Nasconde i prodotti disattivati dallo staff
+      if (item.isAvailable === false) return false;
       if (item.category === ProductCategory.AGGIUNTE) return false;
 
       // ESCLUSIONE FISICA: Nascondiamo permanentemente la Proposta del Giorno da qualsiasi elenco di categoria
@@ -3937,8 +3945,10 @@ const renderMenu = () => {
     const isThursday = new Date().getDay() === 4;
 
       const highlightedItems = items.filter(i => {
-      // Escludiamo sempre gli ingredienti extra dal carosello in evidenza
-      if (i.category === ProductCategory.AGGIUNTE) return false;
+         // Non mostrare prodotti nascosti dallo staff
+       if (i.isAvailable === false) return false;
+         // Escludiamo sempre gli ingredienti extra dal carosello in evidenza
+         if (i.category === ProductCategory.AGGIUNTE) return false;
 
       const isProposta = i.id === 'proposta-del-giorno' || i.name?.toUpperCase() === 'PROPOSTA DEL GIORNO';
       const isConsigliato = i.tags?.includes('Best Seller') || i.tags?.includes('Consigliato');
@@ -4730,6 +4740,8 @@ const renderMenu = () => {
          // Filtriamo gli ingredienti extra da cercare in base alla categoria
          const addons = items.filter(i => {
            if (i.category !== ProductCategory.AGGIUNTE) return false;
+           // Nasconde gli ingredienti disattivati dallo staff
+           if (i.isAvailable === false) return false;
            return i.subCategory === "Generale" || i.subCategory === item.category;
          });
          const filteredAddons = addons.filter(a => a.name.toLowerCase().includes(addonSearch.toLowerCase()));
