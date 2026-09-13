@@ -2890,37 +2890,38 @@ const handleDiyNext = () => {
     const itemBeingEdited = editingCartItemIndex !== null ? cart[editingCartItemIndex] : null;
 
     // Filtriamo gli ingredienti extra in base alla categoria del prodotto
-  // Filtriamo gli ingredienti extra in base alla categoria del prodotto
-  const addons = items.filter(i => {
-    if (i.category !== ProductCategory.AGGIUNTE) return false;
-    if (!itemBeingEdited) return true; // Controllo di sicurezza se l'articolo è nullo
+      // Filtriamo gli ingredienti extra in base alla categoria del prodotto
+            const addons = items.filter(i => {
+      // Mostra solo ingredienti extra
+      if (i.category !== ProductCategory.AGGIUNTE) return false;
 
-    const prodName = itemBeingEdited.name?.toUpperCase() || "";
-    const prodCategory = itemBeingEdited.category?.toUpperCase() || "";
+      // Nasconde gli ingredienti disattivati dallo staff
+      if (i.isAvailable === false) return false;
 
-    // MODIFICA APPLICATA QUI (aggiunto ": any"):
-    let logicalCategory: any = itemBeingEdited.category; 
+      if (!itemBeingEdited) return true;
 
-    // Fallback A: Se il nome è nella lista degli speciali, lo trattiamo come "Hamburger"
-    const isSpecialHamburger = HAMBURGER_SPECIAL_NAMES.some(
-      specialName => specialName.toUpperCase() === prodName
-    );
+      const prodName = itemBeingEdited.name?.toUpperCase() || "";
+      const prodCategory = itemBeingEdited.category?.toUpperCase() || "";
 
-    if (isSpecialHamburger) {
-      logicalCategory = "Hamburger";
-    }
-    // Fallback B: Se la categoria contiene "PIZZA" o "PIZZE" (es: Pizze Speciali)
-    else if (prodCategory.includes("PIZZA") || prodCategory.includes("PIZZE")) {
-      logicalCategory = "Pizza";
-    }
-    // Fallback C: Se la categoria contiene "HAMBURGER" o "PANINI"
-    else if (prodCategory.includes("HAMBURGER") || prodCategory.includes("PANINI")) {
-      logicalCategory = "Hamburger";
-    }
+      let logicalCategory: any = itemBeingEdited.category;
 
-    // Mostriamo gli Extra Generali o quelli del reparto specifico (Pizza o Hamburger)
-    return i.subCategory === "Generale" || i.subCategory === logicalCategory;
-  });
+      const isSpecialHamburger = HAMBURGER_SPECIAL_NAMES.some(
+         specialName => specialName.toUpperCase() === prodName
+      );
+
+      if (isSpecialHamburger) {
+         logicalCategory = "Hamburger";
+      }
+      else if (prodCategory.includes("PIZZA") || prodCategory.includes("PIZZE")) {
+         logicalCategory = "Pizza";
+      }
+      else if (prodCategory.includes("HAMBURGER") || prodCategory.includes("PANINI")) {
+         logicalCategory = "Hamburger";
+      }
+
+      return i.subCategory === "Generale" || i.subCategory === logicalCategory;
+      });
+      
       const filteredAddons = addons.filter((a: any) => 
          a.name.toLowerCase().includes(addonSearch.toLowerCase())
       );
@@ -3188,7 +3189,7 @@ const handleDiyNext = () => {
       )}
       </>
       );
-  };
+   };
 
   const renderCheckout = () => {
     const timeSlots = [t('asap', lang), "18:30", "19:00", "19:30", "20:00", "20:30", "21:00", "21:30", "22:00", "22:30", "23:00"];
