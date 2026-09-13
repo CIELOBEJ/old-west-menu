@@ -555,7 +555,6 @@ export default function App() {
   const [infoItem, setInfoItem] = useState<MenuItem | null>(null);
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
   const [currentOrder, setCurrentOrder] = useState<any>(null);
-  const [isFirstOrder, setIsFirstOrder] = useState<boolean>(false);
   const [isClosed, setIsClosed] = useState(false);
   const [closureMessage, setClosureMessage] = useState("");
   const [closureImageUrl, setClosureImageUrl] = useState("");
@@ -2276,36 +2275,13 @@ const calcolaDistanzaEPrezzoConsegna = async (
   return 0;
 };
 
-  const checkFirstOrderPromotion = async (phone: string) => {
-  // Avviamo il controllo solo se il numero di telefono sembra completo (almeno 9 cifre)
-  if (phone.trim().length < 9) {
-    setIsFirstOrder(false);
-    return;
-  }
-
-  try {
-    const { count, error } = await supabase
-      .from('orders')
-      .select('*', { count: 'exact', head: true })
-      .eq('customer_phone', phone.trim())
-      .neq('status', 'cancelled'); // Escludiamo dal conteggio eventuali ordini annullati
-
-    if (error) throw error;
-
-    // Se il conteggio degli ordini passati è esattamente 0, è il suo primo ordine!
-    setIsFirstOrder(count === 0);
-  } catch (error) {
-    console.error("Errore nel controllo promozione lancio:", error);
-    setIsFirstOrder(false); // In caso di errore, per sicurezza applichiamo la tariffa standard
-  }
-};
 
   const getDeliveryFee = () => {
-    // Solo se l'ordine è 'delivery' applico il costo, altrimenti è 0
-    if (orderForm.orderType !== 'delivery') return 0;
-    // Se è la promozione del primo ordine, restituiamo 0 (consegna gratis!)
-  return isFirstOrder ? 0 : speseConsegna;
-  };
+  // Solo se l'ordine è 'delivery' applico il costo, altrimenti è 0
+  if (orderForm.orderType !== 'delivery') return 0;
+
+  return speseConsegna;
+};
 
   const getGrandTotal = () => getCartItemsTotal() + getCoverCharge() + getDeliveryFee();
 
@@ -2597,7 +2573,7 @@ const handleDiyNext = () => {
             return;
          }
 
-         const costoApplicato = isFirstOrder ? 0 : risultato.costoBase;
+         const costoApplicato = risultato.costoBase;
 
          finalDeliveryFee = costoApplicato;
          setSpeseConsegna(costoApplicato);
@@ -3370,35 +3346,24 @@ const handleDiyNext = () => {
                               className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:border-[#45856c]" 
                            />
                         </div>
-                        {/* SOSTITUISCI IL BLOCCO DEL TELEFONO CON QUESTO: */}
+                        {/* BLOCCO DEL TELEFONO: */}
                            <div>
-                              <label className="block text-xs font-bold text-wood-500 uppercase mb-1">
-                                 {t('phone', lang)} *
-                              </label>
-                              <input 
-                                 required 
-                                 type="tel" 
-                                 value={orderForm.customerPhone} 
-                                 onChange={e => {
-                                    const newPhone = e.target.value;
-                                    setOrderForm({...orderForm, customerPhone: newPhone});
-                                    
-                                    // Avvia il controllo sul database solo se il numero ha almeno 9 cifre
-                                    if (newPhone.trim().length >= 9) {
-                                       checkFirstOrderPromotion(newPhone);
-                                    } else {
-                                       setIsFirstOrder(false); // Resetta la promo se il numero viene cancellato
-                                    }
-                                 }} 
-                                 className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:border-[#45856c]" 
-                              />
+                           <label className="block text-xs font-bold text-wood-500 uppercase mb-1">
+                              {t('phone', lang)} *
+                           </label>
 
-                              {/* DOMANDA 3: IL BANNER PROMOZIONALE LO INSERIAMO DIRETTAMENTE QUI SOTTO! */}
-                              {isFirstOrder && orderForm.orderType === 'delivery' && (
-                                 <div className="mt-2 bg-green-50 border border-green-200 p-3 rounded-xl text-green-800 text-[11px] font-bold text-center animate-in fade-in duration-200">
-                                    🎉 Promozione Lancio: Consegna gratuita applicata sul tuo primo ordine!
-                                 </div>
-                              )}
+                           <input
+                              required
+                              type="tel"
+                              value={orderForm.customerPhone}
+                              onChange={e => {
+                                 setOrderForm({
+                                 ...orderForm,
+                                 customerPhone: e.target.value
+                                 });
+                              }}
+                              className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:border-[#45856c]"
+                           />
                            </div>
                      </div>
 
