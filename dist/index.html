@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="it" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    
+    <!-- COLLEGAMENTI ALLE NUOVE ICONE NELLA CARTELLA PUBLIC -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/logo192.png" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <!-- TITOLO E DESCRIZIONE SEO RICHIESTI DA TE (Ottimizzati e perfetti!) -->
+    <title>Old West Cameri - Ordini Online, Tavoli e Menu Digitale</title>
+    <meta name="description" content="Scopri il menu di Old West Cameri. Ordina online da asporto, prenota il tuo tavolo con preordine o ordina direttamente dal tavolo con il QR code.">
+
+    <!-- TOCCO DI CLASSE 1: Colora la barra dello smartphone del cliente con il verde Old West -->
+    <meta name="theme-color" content="#45856c">
+
+    <!-- TOCCO DI CLASSE 2: Ottimizzazione condivisione link su WhatsApp e Social (Open Graph) -->
+    <meta property="og:title" content="Old West Cameri - Ordini Online, Tavoli e Menu Digitale">
+    <meta property="og:description" content="Scopri il menu di Old West Cameri. Ordina online da asporto, prenota il tuo tavolo con preordine o ordina direttamente dal tavolo con il QR code.">
+    <meta property="og:image" content="/logo512.png">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://old-west-menu.vercel.app">
+    <meta name="twitter:card" content="summary_large_image">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Rye&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              western: ['"Rye"', 'serif'],
+              sans: ['"DM Sans"', 'sans-serif'],
+            },
+            colors: {
+              wood: {
+                50: '#F4F6F6', 100: '#E3E6E8', 200: '#C7CBCD', 300: '#9DA3A6',
+                400: '#7A8084', 500: '#5C6367', 600: '#4B5054', 700: '#424548',
+                800: '#3F4244', 900: '#3A3D3F',
+              },
+              accent: {
+                50: '#F0F7F4', 100: '#DBEBE4', 500: '#45856C', 600: '#366A55',
+              }
+            },
+            boxShadow: {
+              'soft': '0 10px 40px -10px rgba(0,0,0,0.08)',
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+      body {
+        touch-action: manipulation !important;
+      }
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      .bg-texture {
+        background-color: #F4F6F6;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
+      }
+      .bg-dark-texture {
+        /* Applica un filtro scuro all'88% di opacità sopra alla foto del locale caricata in /public */
+        background-image: 
+          linear-gradient(rgba(24, 27, 29, 0.88), rgba(24, 27, 29, 0.88)), 
+          url('/restaurant-bg.jpg'); 
+        background-size: cover;
+        background-position: 85% center;
+        background-attachment: fixed; /* Mantiene lo sfondo fisso ed elegante durante lo scorrimento */
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/index-B5GR59WW.js"></script>
+  </head>
+  <body class="bg-texture text-wood-900 font-sans antialiased selection:bg-accent-500 selection:text-white">
+    <div id="root"></div>
+  </body>
+</html>

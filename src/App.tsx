@@ -555,6 +555,7 @@ export default function App() {
   const [infoItem, setInfoItem] = useState<MenuItem | null>(null);
   const [activeOrderId, setActiveOrderId] = useState<string | null>(null);
   const [currentOrder, setCurrentOrder] = useState<any>(null);
+  const [isRespondingToProposal, setIsRespondingToProposal] = useState(false);
   const [isClosed, setIsClosed] = useState(false);
   const [closureMessage, setClosureMessage] = useState("");
   const [closureImageUrl, setClosureImageUrl] = useState("");
@@ -1994,8 +1995,70 @@ const calcolaDistanzaEPrezzoConsegna = async (
     fetchCategories();
 
     // LEGGERE IL TAVOLO DAL QR CODE DELLA URL (ES: ?table=5)
-    const urlParams = new URLSearchParams(window.location.search);
-    const tableParam = urlParams.get('table'); // Legge il parametro "?table=5" [8]
+    // Legge i parametri presenti nella URL
+         const urlParams = new URLSearchParams(
+         window.location.search
+         );
+
+         const tableParam = urlParams.get('table');
+         const proposalParam = urlParams.get('proposal');
+         const proposalTokenParam = urlParams.get('token');
+
+         // Apertura diretta della proposta ricevuta via email
+         if (proposalParam && proposalTokenParam) {
+         const openProposalFromEmail = async () => {
+            const { data, error } = await supabase
+               .from('orders')
+               .select('*')
+               .eq('id', proposalParam)
+               .eq('proposal_token', proposalTokenParam)
+               .single();
+
+            if (error || !data) {
+               console.error(
+               'Proposta non trovata o collegamento non valido:',
+               error
+               );
+
+               alert(
+               'Questo collegamento non è valido oppure la proposta non è più disponibile.'
+               );
+
+               window.history.replaceState(
+               {},
+               '',
+               window.location.pathname
+               );
+
+               return;
+            }
+
+            localStorage.setItem(
+               'activeOrderId',
+               data.id
+            );
+
+            setActiveOrderId(data.id);
+            setCurrentOrder(data);
+            setView('TRACKING');
+
+            // Rimuove token e ID dalla barra degli indirizzi
+            // dopo aver caricato correttamente la proposta
+            window.history.replaceState(
+               {},
+               '',
+               window.location.pathname
+            );
+
+            window.scrollTo(0, 0);
+         };
+
+         openProposalFromEmail();
+
+         // Impedisce all’inizializzazione normale di sovrascrivere
+         // la schermata aperta tramite email
+         return;
+         }
 
     if (tableParam) {
       // 1. Configura il carrello in modalità Tavolo e fissa il numero del tavolo in automatico! [1]
@@ -2134,6 +2197,107 @@ const calcolaDistanzaEPrezzoConsegna = async (
       return () => { supabase.removeChannel(channel); };
     }
   }, [view, activeOrderId]);
+
+  type ProposalResponse =
+  | 'accepted_time'
+  | 'accepted_pickup'
+  | 'declined';
+
+const handleProposalResponse = async (
+  response: ProposalResponse
+) => {
+  if (
+    !currentOrder ||
+    currentOrder.status !== 'awaiting_customer_response' ||
+    isRespondingToProposal
+  ) {
+    return;
+  }
+
+  if (
+    currentOrder.proposal_expires_at &&
+    new Date(currentOrder.proposal_expires_at).getTime() <= Date.now()
+  ) {
+    alert(
+      'Questa proposta è scaduta. Contatta il locale per concordare un nuovo orario.'
+    );
+    return;
+  }
+
+  if (
+    response === 'accepted_pickup' &&
+    (!currentOrder.pickup_offered ||
+      currentOrder.proposed_pickup_total == null)
+  ) {
+    alert('L’opzione di ritiro non è disponibile per questo ordine.');
+    return;
+  }
+
+  setIsRespondingToProposal(true);
+
+  try {
+    const respondedAt = new Date().toISOString();
+
+    let updates: Record<string, any>;
+
+    if (response === 'accepted_time') {
+      updates = {
+        status: 'preparing',
+        delivery_time: currentOrder.proposed_time,
+        customer_response: 'accepted_time',
+        proposal_responded_at: respondedAt
+      };
+    } else if (response === 'accepted_pickup') {
+      updates = {
+        status: 'preparing',
+        order_type: 'takeaway',
+        delivery_time: currentOrder.proposed_time,
+        total_amount: Number(currentOrder.proposed_pickup_total),
+        customer_response: 'accepted_pickup',
+        proposal_responded_at: respondedAt
+      };
+    } else {
+      updates = {
+        status: 'cancelled',
+        customer_response: 'declined',
+        proposal_responded_at: respondedAt
+      };
+    }
+
+    let responseQuery = supabase
+      .from('orders')
+      .update(updates)
+      .eq('id', currentOrder.id)
+      .eq('status', 'awaiting_customer_response');
+
+      if (currentOrder.proposal_token) {
+      responseQuery = responseQuery.eq(
+         'proposal_token',
+         currentOrder.proposal_token
+      );
+      }
+
+      const { data, error } = await responseQuery
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    setCurrentOrder(data);
+
+    if (response === 'declined') {
+      localStorage.removeItem('activeOrderId');
+    }
+  } catch (error) {
+    console.error('Errore risposta proposta:', error);
+
+    alert(
+      'Non è stato possibile registrare la risposta. Aggiorna la pagina e riprova.'
+    );
+  } finally {
+    setIsRespondingToProposal(false);
+  }
+};
 
   const scrollToTop = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const handleMouseDown = (e: React.MouseEvent, ref: React.RefObject<HTMLDivElement>) => { if (!ref.current) return; setIsDragging(true); setStartX(e.pageX - ref.current.offsetLeft); setScrollLeft(ref.current.scrollLeft); };
@@ -4514,126 +4678,421 @@ const renderMenu = () => {
   )};
 
   const renderTracking = () => {
-    if (!currentOrder) return null;
+  if (!currentOrder) return null;
 
-    const isTableOrder = currentOrder.order_type === 'table';
+  const isTableOrder = currentOrder.order_type === 'table';
 
-    const statusSteps = [
-      { id: 'pending', label: 'Inviato', icon: Check },
-      { id: 'preparing', label: 'In Preparazione', icon: Utensils },
-      { id: 'shipped', label: orderForm.orderType === 'delivery' ? 'In Consegna' : 'Pronto al Ritiro', icon: Bike },
-      { id: 'completed', label: 'Consegnato', icon: CheckCircle2 }
-    ];
+  const isAwaitingResponse =
+    currentOrder.status === 'awaiting_customer_response';
 
-    const currentStepIndex = statusSteps.findIndex(s => s.id === currentOrder.status);
-    const displayCustomerName = currentOrder?.customer_name
+  const isCustomerDeclined =
+    currentOrder.status === 'cancelled' &&
+    currentOrder.customer_response === 'declined';
+
+  const isProposalExpired =
+    isAwaitingResponse &&
+    currentOrder.proposal_expires_at &&
+    new Date(currentOrder.proposal_expires_at).getTime() <= Date.now();
+
+  const statusSteps = [
+    { id: 'pending', label: 'Inviato', icon: Check },
+    {
+      id: 'preparing',
+      label: 'In Preparazione',
+      icon: Utensils
+    },
+    {
+      id: 'shipped',
+      label:
+        currentOrder.order_type === 'delivery'
+          ? 'In Consegna'
+          : 'Pronto al Ritiro',
+      icon: Bike
+    },
+    {
+      id: 'completed',
+      label: 'Consegnato',
+      icon: CheckCircle2
+    }
+  ];
+
+  const currentStepIndex = statusSteps.findIndex(
+    (step) => step.id === currentOrder.status
+  );
+
+  const displayCustomerName = currentOrder?.customer_name
     ? currentOrder.customer_name
-      .replace("AGGIUNTA - ", "")
-      .replace("AGGIUNTE - ", "")
-      .replace(/TAVOLO\s+\d+/i, "")
-      .replace(/[()]/g, "")
-      .trim()
-    : (orderForm.customerName || "Ospite");
+        .replace('AGGIUNTA - ', '')
+        .replace('AGGIUNTE - ', '')
+        .replace(/TAVOLO\s+\d+/i, '')
+        .replace(/[()]/g, '')
+        .trim()
+    : orderForm.customerName || 'Ospite';
 
-    return (
-      <div className="min-h-screen bg-wood-50 pt-24 pb-20 px-4">
-        <div className="max-w-md mx-auto bg-white rounded-3xl shadow-xl overflow-hidden border border-wood-100 animate-in fade-in duration-300">
-          
-          {/* HEADER */}
-          <div className="bg-[#45856c] p-8 text-white text-center">
-            <CheckCircle2 size={48} className="mx-auto mb-4 animate-bounce" />
-            <h2 className="text-2xl font-western uppercase tracking-wider">
-               {isTableOrder ? 'Ordine in Preparazione!' : 'Ordine Ricevuto!'}
-            </h2>
-            <p className="opacity-90 text-sm mt-2">
-                {isTableOrder
-                   ? `Grazie ${displayCustomerName}, mettiti comodo!` // <--- Molto più semplice ed elegante! [1]
-                   : `Grazie ${displayCustomerName}, stiamo lavorando per te.`
-                }
-             </p>
-             {/* AGGIUNTO: Badge dinamico con l'orario o tempo stimato in tempo reale */}
-             {!isTableOrder && (
-               <div className="mt-5 bg-white/20 backdrop-blur-md rounded-2xl p-4 border border-white/10 w-full max-w-[280px]">
-                  <span className="block text-[10px] font-black uppercase tracking-widest text-white/80 mb-1">
-                     Orario di consegna previsto
-                  </span>
-                  <span className="text-lg font-extrabold text-white block">
-                     {currentOrder.delivery_time.toLowerCase().includes("prima possibile") 
-                        ? (currentOrder.estimated_time 
-                             ? `TRA CIRCA ${currentOrder.estimated_time.toUpperCase()}` 
-                             : "IN ATTESA DI CONFERMA..."
-                          )
-                        : `ALLE ORE ${currentOrder.delivery_time}`
-                     }
-                  </span>
-               </div>
-             )}
-          </div>
+  return (
+    <div className="min-h-screen bg-wood-50 pt-24 pb-20 px-4">
+      <div className="max-w-md mx-auto bg-white rounded-3xl shadow-xl overflow-hidden border border-wood-100 animate-in fade-in duration-300">
 
-          <div className="p-6 md:p-8">
-            
-            {isTableOrder ? (
-               // SCENARIO AL TAVOLO: NESSUNA LINEA STRADALE COINVOLTA! (FOTO 3 RIVISITATA) [5]
-               <div className="space-y-6 text-center py-4">
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-2xl">
-                     <span className="block text-xs font-bold text-green-600 uppercase tracking-widest mb-1">Stato Ordinazione</span>
-                     <span className="text-2xl font-western text-green-800 animate-pulse">IN PREPARAZIONE 🍳</span>
-                  </div>
-                  
-                  <p className="text-sm text-wood-600 leading-relaxed font-medium">
-                     La cucina ha ricevuto le tue consumazioni. Le serviremo direttamente al tuo tavolo non appena saranno pronte!
+        {/* HEADER */}
+        <div
+          className={`p-8 text-white text-center transition-colors ${
+            isCustomerDeclined
+              ? 'bg-red-600'
+              : isAwaitingResponse
+                ? 'bg-amber-500'
+                : 'bg-[#45856c]'
+          }`}
+        >
+          {isCustomerDeclined ? (
+            <X
+              size={48}
+              className="mx-auto mb-4"
+            />
+          ) : isAwaitingResponse ? (
+            <Clock
+              size={48}
+              className="mx-auto mb-4 animate-pulse"
+            />
+          ) : (
+            <CheckCircle2
+              size={48}
+              className="mx-auto mb-4 animate-bounce"
+            />
+          )}
+
+          <h2 className="text-2xl font-western uppercase tracking-wider">
+            {isCustomerDeclined
+              ? 'Ordine annullato'
+              : isAwaitingResponse
+                ? 'È richiesta una risposta'
+                : isTableOrder
+                  ? 'Ordine in Preparazione!'
+                  : 'Ordine Ricevuto!'}
+          </h2>
+
+          <p className="opacity-90 text-sm mt-2">
+            {isCustomerDeclined
+              ? `La tua risposta è stata registrata, ${displayCustomerName}.`
+              : isAwaitingResponse
+                ? `Ciao ${displayCustomerName}, il locale ti propone una modifica.`
+                : isTableOrder
+                  ? `Grazie ${displayCustomerName}, mettiti comodo!`
+                  : `Grazie ${displayCustomerName}, stiamo lavorando per te.`}
+          </p>
+
+          {!isTableOrder &&
+            !isCustomerDeclined &&
+            !isAwaitingResponse && (
+              <div className="mt-5 bg-white/20 backdrop-blur-md rounded-2xl p-4 border border-white/10 w-full max-w-[280px] mx-auto">
+                <span className="block text-[10px] font-black uppercase tracking-widest text-white/80 mb-1">
+                  Orario di consegna previsto
+                </span>
+
+                <span className="text-lg font-extrabold text-white block">
+                  {currentOrder.delivery_time
+                    .toLowerCase()
+                    .includes('prima possibile')
+                    ? currentOrder.estimated_time
+                      ? `TRA CIRCA ${currentOrder.estimated_time.toUpperCase()}`
+                      : 'IN ATTESA DI CONFERMA...'
+                    : `ALLE ORE ${currentOrder.delivery_time}`}
+                </span>
+              </div>
+            )}
+        </div>
+
+        <div className="p-6 md:p-8">
+          {isTableOrder ? (
+
+            /* ORDINE AL TAVOLO */
+            <div className="space-y-6 text-center py-4">
+              <div className="p-4 bg-green-50 border border-green-200 rounded-2xl">
+                <span className="block text-xs font-bold text-green-600 uppercase tracking-widest mb-1">
+                  Stato Ordinazione
+                </span>
+
+                <span className="text-2xl font-western text-green-800 animate-pulse">
+                  IN PREPARAZIONE 🍳
+                </span>
+              </div>
+
+              <p className="text-sm text-wood-600 leading-relaxed font-medium">
+                La cucina ha ricevuto le tue consumazioni. Le serviremo
+                direttamente al tuo tavolo non appena saranno pronte!
+              </p>
+
+              <div className="mt-6 pt-6 border-t border-wood-100 text-left">
+                <span className="text-[10px] font-bold text-wood-400 uppercase tracking-widest block mb-2">
+                  Piatti in preparazione:
+                </span>
+
+                <div className="space-y-1.5 bg-wood-50 p-3 rounded-2xl border border-wood-100 font-mono text-xs text-wood-700">
+                  {currentOrder.cart_items?.map(
+                    (item: any, idx: number) => (
+                      <div
+                        key={idx}
+                        className="flex justify-between"
+                      >
+                        <span>
+                          {item.quantity}x {item.name.toUpperCase()}
+                        </span>
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+            </div>
+
+          ) : isAwaitingResponse ? (
+
+            /* PROPOSTA DEL LOCALE */
+            <div className="space-y-5">
+              <div className="text-center">
+                <span className="text-[10px] font-black uppercase tracking-widest text-amber-600">
+                  Proposta del locale
+                </span>
+
+                <h3 className="text-xl font-bold text-wood-900 mt-1">
+                  Possiamo servirti a un nuovo orario
+                </h3>
+
+                {currentOrder.proposal_reason && (
+                  <p className="text-sm text-wood-500 mt-2">
+                    {currentOrder.proposal_reason}
+                  </p>
+                )}
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl overflow-hidden">
+                <div className="flex justify-between items-center gap-4 p-4 border-b border-amber-200">
+                  <span className="text-sm text-amber-700">
+                    Orario richiesto
+                  </span>
+
+                  <strong className="text-amber-900">
+                    {currentOrder.original_delivery_time ||
+                      currentOrder.delivery_time}
+                  </strong>
+                </div>
+
+                <div className="flex justify-between items-center gap-4 p-4">
+                  <span className="text-sm text-amber-700">
+                    Nuovo orario
+                  </span>
+
+                  <strong className="text-2xl text-amber-900">
+                    {currentOrder.proposed_time}
+                  </strong>
+                </div>
+              </div>
+
+              {isProposalExpired ? (
+                <div className="bg-red-50 border border-red-200 rounded-2xl p-5 text-center">
+                  <AlertCircle
+                    size={30}
+                    className="mx-auto text-red-500 mb-2"
+                  />
+
+                  <p className="font-bold text-red-800">
+                    Questa proposta è scaduta
                   </p>
 
-                  {/* RIEPILOGO DEI PIATTI ORDINATI */}
-                  <div className="mt-6 pt-6 border-t border-wood-100 text-left">
-                     <span className="text-[10px] font-bold text-wood-400 uppercase tracking-widest block mb-2">Piatti in preparazione:</span>
-                     <div className="space-y-1.5 bg-wood-50 p-3 rounded-2xl border border-wood-100 font-mono text-xs text-wood-700">
-                        {currentOrder.cart_items?.map((item: any, idx: number) => (
-                           <div key={idx} className="flex justify-between">
-                              <span>{item.quantity}x {item.name.toUpperCase()}</span>
-                           </div>
-                        ))}
-                      </div>
-                   </div>
-                </div>
-             ) : (
-                // SCENARIO STRADALE CLASSICO (DELIVERY / TAKEAWAY)
-                <div className="relative space-y-8">
-                  {statusSteps.map((step, idx) => {
-                    const isDone = idx <= currentStepIndex;
-                    const isCurrent = idx === currentStepIndex;
-                    return (
-                      <div key={step.id} className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${isDone ? 'bg-[#45856c]' : 'bg-wood-100'}`}>
-                          <step.icon size={20} className={isDone ? 'text-white' : 'text-wood-300'} />
-                        </div>
-                        <div className="flex-1">
-                          <p className={`font-bold ${isDone ? 'text-wood-900' : 'text-wood-300'} ${isCurrent ? 'text-lg text-[#45856c]' : ''}`}>
-                            {step.label}
-                          </p>
-                          {isCurrent && step.id !== 'completed' && (
-                            <span className="text-xs text-wood-400 animate-pulse">In corso...</span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                  <div className="absolute left-5 top-5 bottom-5 w-0.5 bg-wood-100 -z-10"></div>
-                  <div className="absolute left-5 top-5 w-0.5 bg-[#45856c] -z-10 transition-all duration-1000" style={{ height: `${(currentStepIndex / 3) * 100}%` }}></div>
-                </div>
-             )}
+                  <p className="text-xs text-red-600 mt-2">
+                    Contatta il locale per concordare un nuovo orario.
+                  </p>
 
-             <button 
-               onClick={() => { setView('MENU'); setActiveOrderId(null); }}
-               className="w-full mt-12 py-4 text-wood-400 font-bold hover:text-wood-600 transition-colors border-2 border-wood-50 rounded-2xl"
-             >
-               Torna al Menu
-             </button>
-          </div>
+                  <a
+                    href="tel:0323257067"
+                    className="inline-flex items-center justify-center gap-2 mt-4 bg-red-600 text-white px-5 py-3 rounded-xl font-bold"
+                  >
+                    <Phone size={17} />
+                    Chiama il locale
+                  </a>
+                </div>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleProposalResponse('accepted_time')
+                    }
+                    disabled={isRespondingToProposal}
+                    className="w-full bg-[#45856c] text-white py-4 px-4 rounded-2xl font-bold shadow-lg hover:bg-opacity-90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isRespondingToProposal ? (
+                      <Loader2
+                        size={20}
+                        className="animate-spin"
+                      />
+                    ) : (
+                      <Check size={20} />
+                    )}
+
+                    ACCETTO LE {currentOrder.proposed_time}
+                  </button>
+
+                  {currentOrder.order_type === 'delivery' &&
+                    currentOrder.pickup_offered &&
+                    currentOrder.proposed_pickup_total != null && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleProposalResponse(
+                            'accepted_pickup'
+                          )
+                        }
+                        disabled={isRespondingToProposal}
+                        className="w-full bg-blue-600 text-white py-4 px-4 rounded-2xl font-bold shadow-lg hover:bg-blue-700 transition-all disabled:opacity-50"
+                      >
+                        <span className="flex items-center justify-center gap-2">
+                          <Store size={20} />
+                          PREFERISCO IL RITIRO
+                        </span>
+
+                        <span className="block text-xs font-normal text-blue-100 mt-1">
+                          Nuovo totale: €
+                          {Number(
+                            currentOrder.proposed_pickup_total
+                          ).toFixed(2)}
+                        </span>
+                      </button>
+                    )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const confirmed = window.confirm(
+                        'Vuoi annullare definitivamente questo ordine?'
+                      );
+
+                      if (confirmed) {
+                        handleProposalResponse('declined');
+                      }
+                    }}
+                    disabled={isRespondingToProposal}
+                    className="w-full border-2 border-red-200 text-red-600 py-3 px-4 rounded-2xl font-bold hover:bg-red-50 transition-all disabled:opacity-50"
+                  >
+                    NON POSSO ACCETTARE: ANNULLA L’ORDINE
+                  </button>
+
+                  <p className="text-[11px] leading-relaxed text-center text-wood-400">
+                    L’ordine resterà in attesa e non verrà preparato
+                    finché non effettui una scelta.
+                  </p>
+                </>
+              )}
+            </div>
+
+          ) : isCustomerDeclined ? (
+
+            /* ORDINE ANNULLATO DAL CLIENTE */
+            <div className="text-center py-6">
+              <div className="w-16 h-16 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-4">
+                <X size={32} />
+              </div>
+
+              <h3 className="text-xl font-bold text-wood-900">
+                Ordine annullato
+              </h3>
+
+              <p className="text-sm text-wood-500 mt-2 leading-relaxed">
+                Hai scelto di non accettare la proposta del locale.
+                L’ordine non verrà preparato.
+              </p>
+
+              <a
+                href="tel:0323257067"
+                className="inline-flex items-center justify-center gap-2 mt-5 text-[#45856c] font-bold"
+              >
+                <Phone size={17} />
+                Contatta Old West
+              </a>
+            </div>
+
+          ) : (
+
+            /* TRACKING NORMALE */
+            <div className="relative space-y-8">
+              {statusSteps.map((step, idx) => {
+                const isDone = idx <= currentStepIndex;
+                const isCurrent = idx === currentStepIndex;
+
+                return (
+                  <div
+                    key={step.id}
+                    className="flex items-center gap-4"
+                  >
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${
+                        isDone
+                          ? 'bg-[#45856c]'
+                          : 'bg-wood-100'
+                      }`}
+                    >
+                      <step.icon
+                        size={20}
+                        className={
+                          isDone
+                            ? 'text-white'
+                            : 'text-wood-300'
+                        }
+                      />
+                    </div>
+
+                    <div className="flex-1">
+                      <p
+                        className={`font-bold ${
+                          isDone
+                            ? 'text-wood-900'
+                            : 'text-wood-300'
+                        } ${
+                          isCurrent
+                            ? 'text-lg text-[#45856c]'
+                            : ''
+                        }`}
+                      >
+                        {step.label}
+                      </p>
+
+                      {isCurrent &&
+                        step.id !== 'completed' && (
+                          <span className="text-xs text-wood-400 animate-pulse">
+                            In corso...
+                          </span>
+                        )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              <div className="absolute left-5 top-5 bottom-5 w-0.5 bg-wood-100 -z-10" />
+
+              <div
+                className="absolute left-5 top-5 w-0.5 bg-[#45856c] -z-10 transition-all duration-1000"
+                style={{
+                  height: `${Math.max(
+                    0,
+                    currentStepIndex / 3
+                  ) * 100}%`
+                }}
+              />
+            </div>
+          )}
+
+          <button
+            onClick={() => {
+              setView('MENU');
+              setActiveOrderId(null);
+            }}
+            className="w-full mt-12 py-4 text-wood-400 font-bold hover:text-wood-600 transition-colors border-2 border-wood-50 rounded-2xl"
+          >
+            Torna al Menu
+          </button>
         </div>
       </div>
-    );
-  };
+    </div>
+  );
+};
 
   return (
     <>
