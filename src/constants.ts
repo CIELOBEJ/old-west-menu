@@ -309,6 +309,7 @@ export const CATEGORY_TRANSLATIONS: Record<ProductCategory, Record<LanguageCode,
   [ProductCategory.ANTIPASTI]: { it: 'Antipasti e Insalate', en: 'Appetizers & Salads', fr: 'Entrées & Salades', de: 'Vorspeisen & Salate' },
   [ProductCategory.BIMBI]: { it: 'Menu Bimbi', en: 'Kids Menu', fr: 'Menu Enfants', de: 'Kindermenü' },
   [ProductCategory.CONTORNI]: { it: 'Contorni', en: 'Side Dishes', fr: 'Accompagnements', de: 'Beilagen' },
+  [ProductCategory.SALSE]: { it: 'Salse', en: 'Sauces', fr: 'Sauces', de: 'Soßen' },
   [ProductCategory.DOLCI]: { it: 'Dolci', en: 'Desserts', fr: 'Desserts', de: 'Desserts' },
   [ProductCategory.BEVANDE]: { it: 'Bevande', en: 'Drinks', fr: 'Boissons', de: 'Getränke' },
   [ProductCategory.AGGIUNTE]: { it: 'Ingredienti Extra', en: 'Extra Ingredients', fr: 'Ingrédients Supplémentaires', de: 'Zusätzliche Zutaten' }
@@ -345,7 +346,7 @@ export const EXTRA_INGREDIENTS_ITEMS: MenuItem[] = [
 ];
 
 export const INITIAL_MENU_ITEMS: MenuItem[] = []; 
-export const CATEGORIES_LIST = Object.values(ProductCategory).filter(c => c !== ProductCategory.AGGIUNTE);
+export const CATEGORIES_LIST = Object.values(ProductCategory).filter(c => c !== ProductCategory.AGGIUNTE && c !== ProductCategory.SALSE);
 
 export const LUNCH_HOURS = ["11:30", "12:00", "12:30", "13:00", "13:30", "14:00", "14:30"];
 export const DINNER_HOURS = ["18:30", "19:00", "19:30", "20:00", "20:30", "21:00", "21:30", "22:00", "22:30", "23:00", "23:30"];

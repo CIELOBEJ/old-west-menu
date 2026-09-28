@@ -6,6 +6,7 @@ export enum ProductCategory {
   ANTIPASTI = 'Antipasti e Insalate',
   BIMBI = 'Menu Bimbi',
   CONTORNI = 'Contorni',
+  SALSE = 'Salse',
   DOLCI = 'Dolci',
   BEVANDE = 'Bevande',
   AGGIUNTE = 'Ingredienti Extra'
@@ -61,6 +62,7 @@ export interface CartItem extends MenuItem {
   removedIngredients?: string[]; // <--- AGGIUNGI QUESTA
   selectedSideDish?: string;
   selectedFreeDrink?: string;
+  selectedSauce?: string;
 }
 
 // --- NUOVI TIPI PER IL DELIVERY ---

@@ -963,6 +963,30 @@ const [customModal, setCustomModal] = useState<{
     setFreeDrinkItemIndex(null);
   };
 
+  // --- GESTIONE SALSA OMAGGIO PER LE PATATINE ---
+  const [isSauceModalOpen, setIsSauceModalOpen] = useState(false);
+  const [sauceItemIndex, setSauceItemIndex] = useState<number | null>(null);
+
+  const openSauceModal = (index: number) => {
+    setSauceItemIndex(index);
+    setIsSauceModalOpen(true);
+  };
+
+  const selectSauce = (sauceName?: string) => {
+    if (sauceItemIndex === null) return;
+
+    const newCart = [...cart];
+
+    newCart[sauceItemIndex] = {
+      ...newCart[sauceItemIndex],
+      selectedSauce: sauceName
+    };
+
+    setCart(newCart);
+    setIsSauceModalOpen(false);
+    setSauceItemIndex(null);
+  };
+
   // Genera dinamicamente tutti gli orari possibili ogni 15 minuti basandosi sulle aperture reali del locale
   const generateTimeSlots = (): string[] => {
     const slots: string[] = [];
@@ -2692,6 +2716,18 @@ const handleDiyNext = () => {
                });
             }
 
+          // Genera la comanda virtuale per la salsa omaggio delle patatine anche nei pre-ordini
+            if (item.selectedSauce) {
+              virtualAddons.push({
+                  id: `virtual-sauce-${item.selectedSauce}-${Date.now()}`,
+                  name: `SALSA: ${item.selectedSauce.toUpperCase()}`,
+                  description: '',
+                  price: 0,
+                  category: 'Ingredienti Extra',
+                  isAvailable: true
+              });
+            }  
+
           return { ...item, selectedAddons: virtualAddons };
         });
 
@@ -2802,6 +2838,18 @@ const handleDiyNext = () => {
                isAvailable: true
             });
          }
+
+       // Genera la comanda virtuale per la salsa omaggio delle patatine
+        if (item.selectedSauce) {
+          virtualAddons.push({
+              id: `virtual-sauce-${item.selectedSauce}-${Date.now()}`,
+              name: `SALSA: ${item.selectedSauce.toUpperCase()}`,
+              description: '',
+              price: 0,
+              category: 'Ingredienti Extra',
+              isAvailable: true
+          });
+        }  
 
         return { ...item, selectedAddons: virtualAddons };
       });
@@ -3211,6 +3259,45 @@ const handleDiyNext = () => {
                                        )}
                                     </div>
                                  );
+                              })()}
+
+                              {/* SEZIONE SALSA OMAGGIO PER PATATINE */}
+                              {(() => {
+                                const isFries =
+                                    item.category === ProductCategory.CONTORNI &&
+                                    (
+                                      item.name.toLowerCase() === 'patatine fritte' ||
+                                      item.name.toLowerCase() === 'patatine dippers'
+                                    );
+
+                                if (!isFries) return null;
+
+                                return (
+                                    <div className="mt-2 animate-in fade-in duration-300">
+                                      {item.selectedSauce ? (
+                                          <div className="flex items-center gap-2 bg-green-50 border border-green-200 text-green-800 text-xs font-bold px-3 py-1.5 rounded-xl w-fit">
+                                            <Check size={14} className="text-green-600" />
+                                            <span>Salsa: {item.selectedSauce.toUpperCase()}</span>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => openSauceModal(index)}
+                                                className="text-wood-400 hover:text-[#45856c] ml-2 font-bold underline"
+                                            >
+                                                {labelModifica}
+                                            </button>
+                                          </div>
+                                      ) : (
+                                          <button
+                                            type="button"
+                                            onClick={() => openSauceModal(index)}
+                                            className="text-xs font-bold bg-wood-50 border border-wood-200 text-wood-600 rounded-xl px-3 py-2 flex items-center gap-1.5 hover:bg-wood-100 transition-colors"
+                                          >
+                                            <Plus size={14} /> Scegli salsa
+                                          </button>
+                                      )}
+                                    </div>
+                                );
                               })()}
 
                               {/* TASTO PERSONALIZZA PRODOTTO (Sostituisce Tasto Aggiungi e traduce) */}
@@ -5443,6 +5530,97 @@ const renderMenu = () => {
                </div>
             </div>
          );
+      })()}
+
+      {/* ================= MODALE SELEZIONE SALSA PATATINE ================= */}
+      {isSauceModalOpen && sauceItemIndex !== null && (() => {
+        const availableSauces = items.filter(
+            i =>
+              i.category === ProductCategory.SALSE &&
+              i.isAvailable !== false
+        );
+
+        const currentItem = cart[sauceItemIndex];
+
+        return (
+            <div className="fixed inset-0 bg-black/60 z-[70] flex items-end md:items-center justify-center p-0 md:p-4 animate-in fade-in duration-200">
+              <div className="bg-white w-full md:max-w-md max-h-[75vh] md:rounded-3xl rounded-t-3xl p-6 flex flex-col shadow-2xl overflow-hidden">
+
+                  <div className="text-center mb-6 pb-4 border-b border-wood-100">
+                    <h4 className="font-western text-2xl text-wood-900 leading-none">
+                        SCEGLI LA SALSA
+                    </h4>
+                    <p className="text-xs text-orange-500 font-bold uppercase mt-1">
+                        * Una salsa inclusa con le patatine
+                    </p>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+
+                    {/* NESSUNA SALSA */}
+                    <button
+                        type="button"
+                        onClick={() => selectSauce(undefined)}
+                        className={`w-full flex justify-between items-center p-4 rounded-2xl border-2 text-left transition-all ${
+                          !currentItem.selectedSauce
+                              ? 'border-[#45856c] bg-[#45856c]/5 shadow-sm font-bold'
+                              : 'border-wood-100 hover:border-wood-300 bg-wood-50/50'
+                        }`}
+                    >
+                        <span className={!currentItem.selectedSauce ? 'text-[#45856c]' : 'text-wood-800'}>
+                          Nessuna salsa
+                        </span>
+                    </button>
+
+                    {/* SALSE DAL DATABASE */}
+                    {availableSauces.map((sauce) => {
+                        const isSelected = currentItem.selectedSauce === sauce.name;
+
+                        return (
+                          <button
+                              type="button"
+                              key={sauce.id}
+                              onClick={() => selectSauce(sauce.name)}
+                              className={`w-full flex justify-between items-center p-4 rounded-2xl border-2 text-left transition-all ${
+                                isSelected
+                                    ? 'border-[#45856c] bg-[#45856c]/5 shadow-sm font-bold'
+                                    : 'border-wood-100 hover:border-wood-300 bg-wood-50/50'
+                              }`}
+                          >
+                              <span className={isSelected ? 'text-[#45856c]' : 'text-wood-800'}>
+                                {sauce.name}
+                              </span>
+
+                              <span className="text-xs font-bold text-[#45856c] bg-[#45856c]/10 px-3 py-1 rounded-full uppercase">
+                                GRATIS
+                              </span>
+                          </button>
+                        );
+                    })}
+
+                    {availableSauces.length === 0 && (
+                        <p className="text-center py-6 text-wood-400">
+                          Nessuna salsa disponibile.
+                        </p>
+                    )}
+                  </div>
+
+                  <div className="pt-4 border-t border-wood-100">
+                    <button
+                        type="button"
+                        onClick={() => {
+                          setIsSauceModalOpen(false);
+                          setSauceItemIndex(null);
+                        }}
+                        className="w-full py-3 rounded-xl font-bold text-wood-500 bg-wood-50 hover:bg-wood-100"
+                    >
+                        Annulla
+                    </button>
+                  </div>
+
+              </div>
+            </div>
+        );
       })()}
 
       {/* ================= MODALE SELEZIONE COPERTI TAVOLO DA QR ================= */}
