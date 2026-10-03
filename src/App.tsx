@@ -1380,7 +1380,7 @@ const handleUpdatePassword = async (e: React.FormEvent) => {
     customerPhone: '',
     orderType: 'delivery' as OrderType,
     deliveryAddress: '',
-    deliveryCity: DELIVERY_ZONES[0] || '',
+    deliveryCity: '',
     deliveryTime: 'Il prima possibile',
     paymentMethod: 'cash' as PaymentMethod,
     notes: '',
@@ -2760,7 +2760,17 @@ const handleDiyNext = () => {
         setIsSubmittingOrder(false);
         return; // <--- ESCI IMMEDIATAMENTE SENZA INSERIRE IN "ORDERS"!
       }
-
+      
+      // Per la consegna il cliente deve selezionare esplicitamente il comune
+        if (
+          !customForm &&
+          activeForm.orderType === 'delivery' &&
+          !activeForm.deliveryCity
+        ) {
+          alert("Seleziona il comune di consegna prima di procedere.");
+          setIsSubmittingOrder(false);
+          return;
+        }
       // Se è a domicilio ed il calcolo chilometrico d'emergenza non è ancora stato eseguito (solo per ordine in tempo reale)
       if (!customForm && activeForm.orderType === 'delivery' && distanzaRilevata === null) {
          setIsSubmittingOrder(true);
@@ -3645,6 +3655,7 @@ const handleDiyNext = () => {
                                                 setOrderForm({ ...orderForm, deliveryCity: cityName });
                                                 // Resetta la convalida della distanza al cambio del comune
                                                 setDistanzaRilevata(null);
+                                                setSpeseConsegna(0);
                                                 setErroreIndirizzo(null);
                                              }}
                                              className={`px-5 py-3 rounded-full border-2 text-sm font-bold whitespace-nowrap transition-all duration-300 shrink-0 shadow-sm flex items-center gap-2 select-none ${
@@ -3674,6 +3685,7 @@ const handleDiyNext = () => {
                                        setOrderForm({...orderForm, deliveryAddress: e.target.value});
                                        // Resettiamo lo stato di convalida non appena l'utente digita una modifica
                                        setDistanzaRilevata(null);
+                                       setSpeseConsegna(0);
                                        setErroreIndirizzo(null);
                                     }} 
                                     className="w-full bg-wood-50 border border-wood-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#45856c]" 
@@ -3682,7 +3694,7 @@ const handleDiyNext = () => {
                                  <button
                                     type="button"
                                     onClick={() => handleCalcolaSpeseConsegna(orderForm.deliveryAddress, orderForm.deliveryCity)}
-                                    disabled={isCalcolandoDistanza || !orderForm.deliveryAddress}
+                                    disabled={isCalcolandoDistanza || !orderForm.deliveryAddress || !orderForm.deliveryCity}
                                     className="px-4 py-3 bg-wood-900 text-white rounded-xl font-bold text-xs hover:bg-[#45856c] transition-colors shrink-0 disabled:opacity-50 flex items-center gap-2"
                                  >
                                     {isCalcolandoDistanza ? <Loader2 className="animate-spin" size={16} /> : "CALCOLA KM"}
