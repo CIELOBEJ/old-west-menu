@@ -3860,7 +3860,38 @@ const handleDiyNext = () => {
                  <div className="mt-4"><label className="block text-xs font-bold text-wood-500 uppercase mb-1">{t('notes', lang)}</label><textarea rows={2} value={orderForm.notes} onChange={e => setOrderForm({...orderForm, notes: e.target.value})} className="w-full bg-wood-50 border border-wood-200 rounded-xl p-3 focus:outline-none focus:border-[#45856c] focus:ring-1 focus:ring-[#45856c] resize-none" placeholder={t('notes', lang)}></textarea></div>
               </div>
 
-              {/* RIEPILOGO TOTALE */}
+              {!isPreOrder && orderForm.orderType !== 'table' && (
+              <div className="bg-amber-50 border-2 border-amber-300 rounded-3xl p-5 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="shrink-0 w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center">
+                    <AlertCircle size={22} />
+                  </div>
+
+                  <div>
+                    <h3 className="font-black text-amber-900 uppercase tracking-wide">
+                      Importante
+                    </h3>
+
+                    <p className="text-sm text-amber-800 mt-1 leading-relaxed">
+                      Se l’orario scelto non fosse disponibile, il locale potrebbe
+                      proporti un nuovo orario. Avrai <strong>10 minuti</strong> per
+                      accettare, scegliere il ritiro oppure annullare l’ordine.
+                    </p>
+
+                    <p className="text-sm font-bold text-amber-900 mt-3">
+                      {orderForm.orderType === 'delivery'
+                        ? 'Dopo aver inviato l’ordine, controlla la tua email.'
+                        : 'Dopo aver inviato l’ordine, controlla WhatsApp e tieni il telefono raggiungibile.'}
+                    </p>
+
+                    <p className="text-xs text-amber-700 mt-2">
+                      In assenza di risposta, il locale potrà annullare l’ordine.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
               {/* RIEPILOGO TOTALE */}
               <div className="bg-wood-900 p-6 rounded-3xl text-white shadow-xl">
                  <div className="space-y-2 mb-4 border-b border-wood-700 pb-4">
@@ -3956,6 +3987,7 @@ const handleDiyNext = () => {
                <p>Il tuo ordine è stato ricevuto con successo dalla cucina.</p>
             )}
             </div>
+
          
          <button 
             type="button"
@@ -4787,6 +4819,13 @@ const renderMenu = () => {
   const isCustomerDeclined =
     currentOrder.status === 'cancelled' &&
     currentOrder.customer_response === 'declined';
+  
+  const isCancelledNoResponse =
+  currentOrder.status === 'cancelled' &&
+  currentOrder.customer_response === 'no_response';
+
+  const isOrderCancelled =
+    isCustomerDeclined || isCancelledNoResponse;  
 
   const isProposalExpired =
     isAwaitingResponse &&
@@ -4835,14 +4874,14 @@ const renderMenu = () => {
         {/* HEADER */}
         <div
           className={`p-8 text-white text-center transition-colors ${
-            isCustomerDeclined
+            isOrderCancelled
               ? 'bg-red-600'
               : isAwaitingResponse
                 ? 'bg-amber-500'
                 : 'bg-[#45856c]'
           }`}
         >
-          {isCustomerDeclined ? (
+          {isOrderCancelled ? (
             <X
               size={48}
               className="mx-auto mb-4"
@@ -4860,7 +4899,7 @@ const renderMenu = () => {
           )}
 
           <h2 className="text-2xl font-western uppercase tracking-wider">
-            {isCustomerDeclined
+            {isOrderCancelled
               ? 'Ordine annullato'
               : isAwaitingResponse
                 ? 'È richiesta una risposta'
@@ -4870,8 +4909,10 @@ const renderMenu = () => {
           </h2>
 
           <p className="opacity-90 text-sm mt-2">
-            {isCustomerDeclined
-              ? `La tua risposta è stata registrata, ${displayCustomerName}.`
+            {isCancelledNoResponse
+              ? `La proposta è scaduta senza una risposta, ${displayCustomerName}.`
+              : isCustomerDeclined
+                ? `La tua risposta è stata registrata, ${displayCustomerName}.`
               : isAwaitingResponse
                 ? `Ciao ${displayCustomerName}, il locale ti propone una modifica.`
                 : isTableOrder
@@ -4880,7 +4921,7 @@ const renderMenu = () => {
           </p>
 
           {!isTableOrder &&
-            !isCustomerDeclined &&
+            !isOrderCancelled &&
             !isAwaitingResponse && (
               <div className="mt-5 bg-white/20 backdrop-blur-md rounded-2xl p-4 border border-white/10 w-full max-w-[280px] mx-auto">
                 <span className="block text-[10px] font-black uppercase tracking-widest text-white/80 mb-1">
@@ -4896,6 +4937,26 @@ const renderMenu = () => {
                       : 'IN ATTESA DI CONFERMA...'
                     : `ALLE ORE ${currentOrder.delivery_time}`}
                 </span>
+              </div>
+            )}
+            {!isTableOrder &&
+            !isOrderCancelled &&
+            !isAwaitingResponse &&
+            currentOrder.status === 'pending' && (
+              <div className="mt-3 bg-amber-100 text-amber-950 rounded-2xl p-3 border border-amber-200 w-full max-w-[320px] mx-auto">
+                <div className="flex items-start gap-2 text-left">
+                  <AlertCircle size={18} className="shrink-0 mt-0.5" />
+
+                  <p className="text-xs leading-relaxed">
+                    <strong>Rimani raggiungibile.</strong>{' '}
+                    Se l’orario non fosse disponibile, il locale potrebbe proporti
+                    un’alternativa. Controlla{' '}
+                    {currentOrder.order_type === 'delivery'
+                      ? 'la tua email'
+                      : 'WhatsApp e il telefono'}{' '}
+                    nei prossimi minuti.
+                  </p>
+                </div>
               </div>
             )}
         </div>
@@ -5082,9 +5143,9 @@ const renderMenu = () => {
               )}
             </div>
 
-          ) : isCustomerDeclined ? (
+          ) : isOrderCancelled ? (
 
-            /* ORDINE ANNULLATO DAL CLIENTE */
+              /* ORDINE ANNULLATO */
             <div className="text-center py-6">
               <div className="w-16 h-16 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-4">
                 <X size={32} />
@@ -5095,8 +5156,9 @@ const renderMenu = () => {
               </h3>
 
               <p className="text-sm text-wood-500 mt-2 leading-relaxed">
-                Hai scelto di non accettare la proposta del locale.
-                L’ordine non verrà preparato.
+                {isCancelledNoResponse
+                  ? 'Non avendo ricevuto una risposta entro 10 minuti, il locale ha annullato l’ordine. L’ordine non verrà preparato.'
+                  : 'Hai scelto di non accettare la proposta del locale. L’ordine non verrà preparato.'}
               </p>
 
               <a
