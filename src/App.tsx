@@ -2082,10 +2082,42 @@ const calcolaDistanzaEPrezzoConsegna = async (
     if (savedLogo) setCustomLogo(savedLogo);
     
     const fetchCategories = async () => {
-      const { data } = await supabase.from('categories').select('*');
-      if (data) setCategories(data);
-    };
-    fetchCategories();
+  // Mostra subito le categorie salvate sul dispositivo
+  try {
+    const cachedCategories = localStorage.getItem('oldwest_categories_cache');
+
+    if (cachedCategories) {
+      const parsedCategories = JSON.parse(cachedCategories);
+
+      if (Array.isArray(parsedCategories) && parsedCategories.length > 0) {
+        setCategories(parsedCategories);
+      }
+    }
+  } catch (error) {
+    console.error('Errore lettura cache categorie:', error);
+  }
+
+  // Recupera sempre i dati aggiornati da Supabase
+  try {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*');
+
+    if (error) throw error;
+
+    if (data && data.length > 0) {
+      setCategories(data);
+      localStorage.setItem(
+        'oldwest_categories_cache',
+        JSON.stringify(data)
+      );
+    }
+  } catch (error) {
+    console.error('Errore caricamento categorie:', error);
+  }
+};
+
+fetchCategories();
 
     // LEGGERE IL TAVOLO DAL QR CODE DELLA URL (ES: ?table=5)
     // Legge i parametri presenti nella URL
