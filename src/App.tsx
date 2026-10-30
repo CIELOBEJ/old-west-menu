@@ -446,6 +446,25 @@ const BookingPage = ({ reservationForm, setReservationForm, isSubmittingReservat
 // --- MAIN COMPONENT ---
 
 export default function App() {
+  // Gestione aggiornamenti della PWA
+const [updateAvailable, setUpdateAvailable] = useState(false);
+useEffect(() => {
+  const handleUpdateAvailable = () => {
+    setUpdateAvailable(true);
+  };
+
+  window.addEventListener(
+    'oldwest-update-available',
+    handleUpdateAvailable
+  );
+
+  return () => {
+    window.removeEventListener(
+      'oldwest-update-available',
+      handleUpdateAvailable
+    );
+  };
+}, []);
   const [orderDate, setOrderFormDate] = useState('Oggi');
   const [items, setItems] = useState<MenuItem[]>([]);
   // Inizializza lo stato leggendo al volo la URL per evitare lo sfarfallio (flickering) all'avvio
@@ -530,7 +549,44 @@ export default function App() {
             }, []);
 
 
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(() => {
+  try {
+    const tableParam = new URLSearchParams(window.location.search).get('table');
+    const currentContext = tableParam ? `table:${tableParam}` : 'home';
+    const savedContext = localStorage.getItem('oldwest_cart_context');
+
+    // Se il contesto è cambiato, non recuperare il vecchio carrello
+    if (savedContext !== null && savedContext !== currentContext) {
+      return [];
+    }
+
+    // Al primo accesso tramite QR non recuperare carrelli precedenti
+    if (savedContext === null && tableParam) {
+      return [];
+    }
+
+    const savedCart = localStorage.getItem('oldwest_cart');
+
+    if (savedCart) {
+      const parsedCart = JSON.parse(savedCart);
+      return Array.isArray(parsedCart) ? parsedCart : [];
+    }
+  } catch (error) {
+    console.error('Errore nel recupero del carrello:', error);
+  }
+
+  return [];
+});
+
+// Salva automaticamente il carrello ogni volta che cambia
+useEffect(() => {
+  try {
+    localStorage.setItem('oldwest_cart', JSON.stringify(cart));
+  } catch (error) {
+    console.error('Errore nel salvataggio del carrello:', error);
+  }
+}, [cart]);
+
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAddonModalOpen, setIsAddonModalOpen] = useState(false);
   const [editingCartItemIndex, setEditingCartItemIndex] = useState<number | null>(null);
@@ -559,6 +615,7 @@ export default function App() {
   const [isClosed, setIsClosed] = useState(false);
   const [closureMessage, setClosureMessage] = useState("");
   const [closureImageUrl, setClosureImageUrl] = useState("");
+  const [isClosureNoticeDismissed, setIsClosureNoticeDismissed] = useState(false);
   const [suggestionToast, setSuggestionToast] = useState<{show: boolean, text: string}>({ show: false, text: '' });
   const getCustomerVariantPlaceholder = () => {
   if (!selectingVariantItem) return "Cerca...";
@@ -2008,6 +2065,18 @@ const calcolaDistanzaEPrezzoConsegna = async (
       }
     };
     checkRestaurantClosure();
+
+    // Aggiorna lo stato del locale quando il cliente torna nell'app
+      // Aggiorna lo stato del locale e i prodotti quando il cliente torna nell'app
+      const handleAppVisibility = () => {
+        if (document.visibilityState === 'visible') {
+          checkRestaurantClosure();
+          fetchItems();
+        }
+      };
+
+      document.addEventListener('visibilitychange', handleAppVisibility);
+    
     
     const savedLogo = localStorage.getItem('oldWestLogoUrl');
     if (savedLogo) setCustomLogo(savedLogo);
@@ -2027,6 +2096,27 @@ const calcolaDistanzaEPrezzoConsegna = async (
          const tableParam = urlParams.get('table');
          const proposalParam = urlParams.get('proposal');
          const proposalTokenParam = urlParams.get('token');
+
+         // Se il cliente scansiona il QR di un tavolo diverso,
+          // svuota il carrello precedente.
+          // Identifica il contesto del carrello: ordine normale oppure tavolo QR
+          const currentCartContext = tableParam ? `table:${tableParam}` : 'home';
+          const previousCartContext = localStorage.getItem('oldwest_cart_context');
+
+          // Svuota il carrello quando cambia il contesto
+          // oppure al primo accesso tramite QR
+          if (
+            (previousCartContext === null && tableParam) ||
+            (previousCartContext !== null && previousCartContext !== currentCartContext)
+          ) {
+            setCart([]);
+          }
+
+          // Memorizza il contesto attuale
+          localStorage.setItem('oldwest_cart_context', currentCartContext);
+
+          // Elimina la vecchia chiave, che non serve più
+          localStorage.removeItem('oldwest_cart_table');
 
          // Apertura diretta della proposta ricevuta via email
          if (proposalParam && proposalTokenParam) {
@@ -2081,7 +2171,9 @@ const calcolaDistanzaEPrezzoConsegna = async (
 
          // Impedisce all’inizializzazione normale di sovrascrivere
          // la schermata aperta tramite email
-         return;
+         return () => {
+          document.removeEventListener('visibilitychange', handleAppVisibility);
+        };
          }
 
     if (tableParam) {
@@ -2174,6 +2266,10 @@ const calcolaDistanzaEPrezzoConsegna = async (
         checkOrder();
       }
     }
+    // Rimuove il controllo quando il componente viene smontato
+    return () => {
+      document.removeEventListener('visibilitychange', handleAppVisibility);
+    };
   }, []);
 
   useEffect(() => {
@@ -2628,6 +2724,10 @@ const handleDiyNext = () => {
     isFastAddon = false
     ) => {
     if (e) e.preventDefault();
+    if (isClosed) {
+      alert("Il locale è attualmente chiuso. Puoi consultare il menu, ma gli ordini sono temporaneamente sospesi.");
+      return;
+    }
     setIsSubmittingOrder(true);
 
     const getFormattedDeliveryDate = () => {
@@ -3341,7 +3441,7 @@ const handleDiyNext = () => {
                      const isBimbi = item.category === ProductCategory.BIMBI;
                      return (isBimbi && !item.selectedFreeDrink) || (isDeliveryOrTakeaway && isPizza && !item.selectedFreeDrink);
                      });
-                 const isButtonDisabled = hasMissingSideDishes || hasMissingFreeDrinks;
+                 const isButtonDisabled = isClosed || hasMissingSideDishes || hasMissingFreeDrinks;
 
                  // CAPOLAVORO UX: Se l'utente è al tavolo con consumazioni già in corso, sblocca la cassa rapida in 1-Click! [1, 5]
                  const isFastTableAddon = tableSessionId !== null && hasPriorOrders;
@@ -3368,11 +3468,13 @@ const handleDiyNext = () => {
                     }
                  };
 
-                 const buttonLabel = isButtonDisabled 
-                    ? "Scegli contorni/omaggi per procedere" 
-                    : isFastTableAddon 
-                      ? "Invia Aggiunta (1-Click)" // <--- Testo chiaro e immediato [5]
-                      : t('show_staff', lang);
+                 const buttonLabel = isClosed
+                  ? "🔒 Locale chiuso · Ordini sospesi"
+                  : isButtonDisabled
+                  ? "Scegli contorni/omaggi per procedere"
+                  : isFastTableAddon
+                  ? "Invia Aggiunta (1-Click)"
+                  : t('show_staff', lang);
 
                  return (
                     <button 
@@ -5747,7 +5849,7 @@ const renderMenu = () => {
       )}
 
       {/* ================= SCHERMATA BLOCCANTE LOCALE CHIUSO / FERIE ================= */}
-         {isClosed && (
+         {isClosed && !isClosureNoticeDismissed && (
          <div className="fixed inset-0 bg-black/85 z-[9999] flex items-center justify-center p-6 backdrop-blur-md">
             <div className="bg-white p-6 rounded-3xl max-w-sm w-full shadow-2xl text-center flex flex-col gap-4 animate-in zoom-in duration-300">
                
@@ -5764,6 +5866,14 @@ const renderMenu = () => {
                      {closureMessage}
                   </div>
                )}
+
+               <button
+                type="button"
+                onClick={() => setIsClosureNoticeDismissed(true)}
+                className="w-full rounded-xl bg-[#45856c] px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-[#376d58]"
+              >
+                Esplora il menu
+              </button>
                
                <p className="text-[10px] text-gray-400 font-semibold tracking-widest uppercase mt-2">OLD WEST CAMERI</p>
             </div>
@@ -6528,6 +6638,46 @@ const renderMenu = () => {
                </div>
             </div>
          </div>
+      )}
+
+      {/* AVVISO AGGIORNAMENTO PWA */}
+      {updateAvailable && (
+        <div className="fixed bottom-5 left-4 right-4 z-[9999] mx-auto max-w-md rounded-2xl border border-white/10 bg-[#252525] p-5 text-white shadow-2xl">
+          <div className="flex items-start gap-3">
+            <div className="flex-1">
+              <h3 className="text-base font-semibold">
+                Nuova versione disponibile! ✨
+              </h3>
+
+              <p className="mt-2 text-sm text-white/70">
+                Abbiamo aggiornato Old West.
+                Puoi installare la nuova versione quando preferisci.
+                Il tuo carrello rimarrà salvato.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setUpdateAvailable(false)}
+              className="text-xl text-white/60 hover:text-white"
+              aria-label="Chiudi avviso"
+            >
+              ×
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              window.dispatchEvent(
+                new CustomEvent('oldwest-apply-update')
+              );
+            }}
+            className="mt-4 w-full rounded-xl bg-[#45856c] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#39735c]"
+          >
+            Aggiorna adesso
+          </button>
+        </div>
       )}
 
     </>
